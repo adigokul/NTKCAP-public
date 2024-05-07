@@ -1,0 +1,71 @@
+[2023-09-04 01:21:47.250] [info] Loaded model Pose2Sim_OpenPose from file G:\2023work\NTKCAP_1.0.0\patient\Ben\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim
+[2023-09-04 04:16:10.386] [info] Loaded model Pose2Sim_scaled from file G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim
+[2023-09-04 04:16:28.085] [info] Loaded marker file G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Empty_project_filt_0-30.trc (21 markers, 72 frames)
+[2023-09-04 04:16:28.085] [info] Measurement 'torso'
+[2023-09-04 04:16:28.085] [info] 	pair 0 (LShoulder, LHip): model = 0.565949, experimental = 0.551553
+[2023-09-04 04:16:28.085] [info] 	pair 1 (RShoulder, RHip): model = 0.565949, experimental = 0.549879
+[2023-09-04 04:16:28.085] [info] 	overall scale factor = 0.973084
+[2023-09-04 04:16:28.086] [info] Measurement 'arm'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (LShoulder, LElbow): model = 0.264718, experimental = 0.242251
+[2023-09-04 04:16:28.086] [info] 	pair 1 (RShoulder, RElbow): model = 0.264718, experimental = 0.28837
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 1.00224
+[2023-09-04 04:16:28.086] [info] Measurement 'forearm'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (LElbow, LWrist): model = 0.265184, experimental = 0.282673
+[2023-09-04 04:16:28.086] [info] 	pair 1 (RElbow, RWrist): model = 0.265184, experimental = 0.245745
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 0.996324
+[2023-09-04 04:16:28.086] [info] Measurement 'thigh'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (LHip, LKnee): model = 0.384007, experimental = 0.38727
+[2023-09-04 04:16:28.086] [info] 	pair 1 (RHip, RKnee): model = 0.384007, experimental = 0.383183
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 1.00318
+[2023-09-04 04:16:28.086] [info] Measurement 'shank'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (LKnee, LAnkle): model = 0.385093, experimental = 0.386444
+[2023-09-04 04:16:28.086] [info] 	pair 1 (RKnee, RAnkle): model = 0.385093, experimental = 0.381673
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 0.997313
+[2023-09-04 04:16:28.086] [info] Measurement 'foot'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (LHeel, LBigToe): model = 0.204072, experimental = 0.198986
+[2023-09-04 04:16:28.086] [info] 	pair 1 (RHeel, RBigToe): model = 0.204072, experimental = 0.209157
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 1.0
+[2023-09-04 04:16:28.086] [info] Measurement 'head'
+[2023-09-04 04:16:28.086] [warning] Marker Head in head measurement not found in Pose2Sim_scaled.
+[2023-09-04 04:16:28.086] [warning] Marker Head in head measurement not found in G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Empty_project_filt_0-30.trc.
+[2023-09-04 04:16:28.086] [info] Measurement 'pelvis'
+[2023-09-04 04:16:28.086] [info] 	pair 0 (RHip, LHip): model = 0.237070, experimental = 0.237070
+[2023-09-04 04:16:28.086] [info] 	overall scale factor = 1.0
+[2023-09-04 04:16:28.088] [info] Loaded marker file G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Empty_project_filt_0-30.trc (21 markers, 72 frames)
+[2023-09-04 04:16:32.041] [info] Step 2: Scaling generic model
+[2023-09-04 04:16:32.051] [info] Loaded marker file G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Empty_project_filt_0-30.trc (21 markers, 72 frames)
+[2023-09-04 04:16:32.051] [info] Measurement 'torso'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LShoulder, LHip): model = 0.565949, experimental = 0.551553
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RShoulder, RHip): model = 0.565949, experimental = 0.549879
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 0.973084
+[2023-09-04 04:16:32.051] [info] Measurement 'arm'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LShoulder, LElbow): model = 0.264718, experimental = 0.242251
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RShoulder, RElbow): model = 0.264718, experimental = 0.28837
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 1.00224
+[2023-09-04 04:16:32.051] [info] Measurement 'forearm'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LElbow, LWrist): model = 0.265184, experimental = 0.282673
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RElbow, RWrist): model = 0.265184, experimental = 0.245745
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 0.996324
+[2023-09-04 04:16:32.051] [info] Measurement 'thigh'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LHip, LKnee): model = 0.384007, experimental = 0.38727
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RHip, RKnee): model = 0.384007, experimental = 0.383183
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 1.00318
+[2023-09-04 04:16:32.051] [info] Measurement 'shank'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LKnee, LAnkle): model = 0.385093, experimental = 0.386444
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RKnee, RAnkle): model = 0.385093, experimental = 0.381673
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 0.997313
+[2023-09-04 04:16:32.051] [info] Measurement 'foot'
+[2023-09-04 04:16:32.051] [info] 	pair 0 (LHeel, LBigToe): model = 0.204072, experimental = 0.198986
+[2023-09-04 04:16:32.051] [info] 	pair 1 (RHeel, RBigToe): model = 0.204072, experimental = 0.209157
+[2023-09-04 04:16:32.051] [info] 	overall scale factor = 1.0
+[2023-09-04 04:16:32.051] [info] Measurement 'pelvis'
+[2023-09-04 04:16:32.052] [info] 	pair 0 (RHip, LHip): model = 0.237070, experimental = 0.237070
+[2023-09-04 04:16:32.052] [info] 	overall scale factor = 1.0
+[2023-09-04 04:16:32.094] [info] Wrote model file 'G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim' from model.
+[2023-09-04 05:05:49.326] [info] Loaded model Pose2Sim_scaled from file G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\moving\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim
+[2023-09-04 05:05:56.224] [info] Storage: read data file = G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\moving\Empty_project\opensim\Balancing_for_IK_BODY_25.mot (nr=50 nc=63)
+[2023-09-04 05:05:56.266] [warning] Coordinate.setValue:  coordinate pro_sup_r is locked. Unable to change its value.
+[2023-09-04 05:05:56.266] [warning] Coordinate.setValue:  coordinate pro_sup_l is locked. Unable to change its value.
+[2023-09-04 05:11:42.869] [info] Storage: read data file = G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\moving\Empty_project\opensim\Balancing_for_IK_BODY_25.mot (nr=401 nc=63)
+[2023-09-04 05:11:42.897] [warning] Coordinate.setValue:  coordinate pro_sup_r is locked. Unable to change its value.
+[2023-09-04 05:11:42.897] [warning] Coordinate.setValue:  coordinate pro_sup_l is locked. Unable to change its value.

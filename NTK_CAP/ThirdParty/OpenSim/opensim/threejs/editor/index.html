@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>OpenSim Visualizer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="apple-touch-icon" href="images/icon.png">
+		<link rel="manifest" href="manifest.json">
+		<link rel="shortcut icon" href="../files/favicon.ico" />
+	</head>
+	<body>
+		<link rel="stylesheet" href="css/main.css">
+		<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.6/dist/ffmpeg.min.js" defer></script>
+		<script src="../build/three.js"></script>
+		<script src="js/SkinnedMuscle.js"></script>
+
+		<!--<script src="../examples/js/libs/system.min.js"></script>-->
+
+		<!--<script src="../examples/js/libs/draco/draco_encoder.js"></script>-->
+		<script src="../examples/js/libs/dat.gui.min.js"></script>
+
+
+		<link rel="stylesheet" href="js/libs/codemirror/codemirror.css">
+		<link rel="stylesheet" href="js/libs/codemirror/theme/monokai.css">
+		<script src="js/libs/codemirror/codemirror.js"></script>
+		<script src="js/libs/codemirror/mode/javascript.js"></script>
+		<script src="js/libs/codemirror/mode/glsl.js"></script>
+
+		<script src="js/libs/esprima.js"></script>
+		<script src="js/libs/jsonlint.js"></script>
+		<script src="js/libs/Tween.js"></script>
+
+		<link rel="stylesheet" href="js/libs/codemirror/addon/dialog.css">
+		<link rel="stylesheet" href="js/libs/codemirror/addon/show-hint.css">
+		<link rel="stylesheet" href="js/libs/codemirror/addon/tern.css">
+
+		<script src="js/libs/codemirror/addon/dialog.js"></script>
+		<script src="js/libs/codemirror/addon/show-hint.js"></script>
+		<script src="js/libs/codemirror/addon/tern.js"></script>
+		<script src="js/libs/acorn/acorn.js"></script>
+		<script src="js/libs/acorn/acorn_loose.js"></script>
+		<script src="js/libs/acorn/walk.js"></script>
+		<script src="js/libs/ternjs/polyfill.js"></script>
+		<script src="js/libs/ternjs/signal.js"></script>
+		<script src="js/libs/ternjs/tern.js"></script>
+		<script src="js/libs/ternjs/def.js"></script>
+		<script src="js/libs/ternjs/comment.js"></script>
+		<script src="js/libs/ternjs/infer.js"></script>
+		<script src="js/libs/ternjs/doc_comment.js"></script>
+		<script src="js/libs/tern-threejs/threejs.js"></script>
+		<script src="js/libs/signals.min.js"></script>
+		<script src="js/libs/Whammy.js"></script>
+		<script src="js/libs/download.js"></script>
+		<script src="js/libs/gif.js"></script>
+		<script src="js/libs/CCapture.js"></script>
+
+		<script type="module">
+
+			import * as THREE from '../build/three.module.js';
+
+			import { Editor } from './js/Editor.js';
+			import { OpenSimEditor } from './js/OpenSimEditor.js';
+			import { Viewport } from './js/Viewport.js';
+			import { OpenSimViewport } from './js/OpenSimViewport.js';
+			import { Toolbar } from './js/Toolbar.js';
+			import { Script } from './js/Script.js';
+			//import { Player } from './js/Player.js';
+			import { Sidebar } from './js/Sidebar.js';
+			import { Menubar } from './js/Menubar.js';
+			import { Resizer } from './js/Resizer.js';
+			//import { VRButton } from '../examples/jsm/webxr/VRButton.js';
+			import { OpenSimToolbar } from './js/OpenSimToolbar.js';
+			import { websocket } from './websocket.js';
+
+
+			function getParameterByName(name, url) {
+				if (!url) url = window.location.href;
+					name = name.replace(/[\[\]]/g, "\\$&");
+				var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+				results = regex.exec(url);
+				if (!results) return null;
+				if (!results[2]) return '';
+				return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+
+			window.URL = window.URL || window.webkitURL;
+			window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+
+			Number.prototype.format = function (){
+
+				return this.toString().replace( /(\d)(?=(\d{3})+(?!\d))/g, '$1,' );
+
+			};
+
+      Number.prototype.format = function (){
+        return this.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+      };
+
+      var editor = new OpenSimEditor();
+
+			window.editor = editor; // Expose editor to Console
+			window.THREE = THREE; // Expose THREE to APP Scripts and Console
+			//window.VRButton = VRButton; // Expose VRButton to APP Scripts
+
+			//var viewport = new OpenSimViewport( editor );
+      // Minimal ui, should move to a different file to avoid clutter
+      var VisualizerKnobs = function() {
+      // Backdrop
+      this.backdrop = editor.config.getKey('skybox');
+      this.backdropImage = editor.config.getKey('skybox');
+      var color = editor.config.getKey('settings/backgroundcolor');
+      if (color=== undefined){
+      this.backgroundColor = "#888888";
+      editor.updateBackgroundColor(this.backgroundColor);
+      }
+      else
+      this.backgroundColor = color;
+      // Floor
+      this.texture = editor.config.getKey('floor');
+      this.height = -0.001;
+      //
+      var light = editor.scene.getObjectByName('SunLight');
+      this.sceneLightIntensity = 0.2;
+      this.modelLightIntensity = editor.modelLightIntensity;
+      //
+      this.sceneLightSelect = function () { editor.select(editor.scene.getObjectByName('SunLight')); }
+      this.modelLightSelect = function () { editor.selectCurrentModelLight(); }
+      this.expertModeSelect = function () { editor.setTheme('css/main.css'); }
+      this.showStats = function () {
+      var elem = document.getElementById("viewport");
+      if (elem.style.bottom=="20px")
+      elem.style.bottom="0px";
+      else
+      elem.style.bottom="20px";
+      window.dispatchEvent(new Event('resize'));
+      }
+      // Screen Capture
+      this.screenCaptureDPI =  editor.config.getKey('settings/captureDPI');
+      if (this.screenCaptureDPI === undefined){
+      editor.config.setKey('settings/captureDPI', 2);
+      }
+      };
+      window.onload = function () {
+          var gui = new dat.GUI({ width: 260 }); // create dat.gui
+      var knobs = new VisualizerKnobs();
+      gui.remember(knobs);
+
+      var backdrop = gui.addFolder('Backdrop');
+      var backdropColor = backdrop.addColor(knobs, 'backgroundColor').name('Background Color');
+      var backdropImage = backdrop.add(knobs, 'backdropImage', ['nobackground', 'sky', 'canyon', 'pastures', 'city']);
+      backdropColor.onChange(function (value) {
+		    editor.updateBackgroundColor(value);
+		    backdropImage.setValue('nobackground');
+		    backdropImage.updateDisplay();
+      });
+      backdropImage.name('Image');
+      backdropImage.onChange(function(newImage){
+      editor.updateBackground(newImage);
+      editor.refresh();
+      });
+
+      var ground = gui.addFolder('Floor');
+      var texture = ground.add(knobs, 'texture', ['nofloor', 'redbricks', 'graybricks', 'wood-floor', 'tile']);
+      texture.name('Texture');
+      var floorHeight = ground.add(knobs, 'height').min(-2.01).max(2.02).step(0.01).name('Height');
+      floorHeight.onChange(function (value) {
+      editor.setFloorHeight(value);
+      });
+      texture.onChange(function (value) {
+      editor.updateGroundPlane(value);
+      });
+
+      var lights = gui.addFolder('Lighting');
+      lights.add(knobs, 'sceneLightSelect').name('Select Scene Light');
+
+      var modelLightIntensity = lights.add(knobs, 'modelLightIntensity');
+      modelLightIntensity.name('Model Light').onChange(function(value){
+        editor.updateModelLightIntensity(value);
+      });
+      if (getParameterByName('expert') === "1"){
+        gui.add(knobs, 'expertModeSelect').name('Expert Mode');
+        gui.add(knobs, 'showStats').name('FPS');
+      }
+      var captureControl = gui.add(knobs, 'screenCaptureDPI').name('Snapshot Quality').min(1).max(4).step(1);
+      captureControl.onChange(function (value) {
+        editor.setScreenCaptureScaleup(value);
+		    editor.config.setKey('settings/captureDPI', value);
+		    editor.refresh();
+      });
+      gui.closed = true;
+      }
+
+      var viewport = new OpenSimViewport( editor );
+      document.body.appendChild( viewport.dom );
+
+      //var script = new Script( editor );
+      //document.body.appendChild( script.dom );
+
+      //var player = new Player( editor );
+      //document.body.appendChild( player.dom );
+
+	    var sidebar = new Sidebar( editor );
+	    //document.body.appendChild( sidebar.dom );
+
+      var toolbar = new Toolbar(editor);
+      //document.body.appendChild( toolbar.dom );
+
+      var osimToolbar = new OpenSimToolbar(editor);
+      document.body.appendChild( osimToolbar.dom );
+
+      if (getParameterByName('expert') === "1"){
+      var menubar = new Menubar( editor );
+      document.body.appendChild( menubar.dom );
+         document.body.appendChild( sidebar.dom );
+      }
+			//var resizer = new Resizer( editor );
+			//document.body.appendChild( resizer.dom );
+
+      //
+
+      editor.storage.init( function () {
+      /*
+      editor.storage.get( function ( state ) {
+
+      if ( isLoadingFromHash ) return;
+
+      if ( state !== undefined ) {
+
+      editor.fromJSON( state );
+
+      }
+
+      var selected = editor.config.getKey( 'selected' );
+
+      if ( selected !== undefined ) {
+
+      editor.selectByUuid( selected );
+
+      }
+
+      } );
+      */
+      //
+
+      var timeout;
+
+				function saveState() {
+      /*
+      if ( editor.config.getKey( 'autosave' ) === false ) {
+
+      return;
+
+      }
+
+      clearTimeout( timeout );
+
+      timeout = setTimeout( function () {
+
+      editor.signals.savingStarted.dispatch();
+
+      timeout = setTimeout( function () {
+
+      editor.storage.set( editor.toJSON() );
+
+      editor.signals.savingFinished.dispatch();
+
+      }, 100 );
+
+      }, 1000 );
+      */
+				}
+
+      var signals = editor.signals;
+
+      signals.editorCleared.add( saveState );
+      signals.geometryChanged.add( saveState );
+      signals.objectAdded.add( saveState );
+      signals.objectChanged.add( saveState );
+      signals.objectRemoved.add( saveState );
+      signals.materialChanged.add( saveState );
+      signals.sceneGraphChanged.add( saveState );
+      signals.scriptChanged.add( saveState );
+      signals.historyChanged.add( saveState );
+
+			} );
+      window.addEventListener( 'resize', onWindowResize );
+      
+      document.addEventListener( 'dragover', function ( event ) {
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+
+      }, false );
+
+      document.addEventListener( 'drop', function ( event ) {
+
+      event.preventDefault();
+
+				if ( event.dataTransfer.types[ 0 ] === 'text/plain' ) return; // Outliner drop
+
+				if ( event.dataTransfer.items ) {
+
+					// DataTransferItemList supports folders
+
+					editor.loader.loadItemList( event.dataTransfer.items );
+
+				} else {
+
+				  editor.loader.loadFiles( event.dataTransfer.files );
+
+				}
+
+      }, false );
+
+      document.addEventListener( 'keydown', function ( event ) {
+	  // Visualizer to ignore key combinations using "ctrl" to avoid breaking GUI hot-keys
+	  if ( event.ctrlKey)
+	  	return;
+	  	
+      switch ( event.keyCode ) {
+
+      case 8: // backspace
+
+      //event.preventDefault(); // prevent browser back
+      break;
+/*
+      case 46: // delete
+
+      var object = editor.selected;
+
+      if ( confirm( 'Delete ' + object.name + '?' ) === false ) return;
+
+      var parent = object.parent;
+      if ( parent !== null ) editor.execute( new RemoveObjectCommand( object ) );
+
+      break;
+
+      case 90: // Register Ctrl-Z for Undo, Ctrl-Shift-Z for Redo
+
+      if ( event.ctrlKey && event.shiftKey ) {
+
+							editor.redo();
+
+						} else if ( event.ctrlKey ) {
+
+							editor.undo();
+
+						}
+
+						break;
+
+					case 87: // Register W for translation transform mode
+
+						editor.signals.transformModeChanged.dispatch( 'translate' );
+
+						break;
+
+					case 69: // Register E for rotation transform mode
+
+						editor.signals.transformModeChanged.dispatch( 'rotate' );
+
+						break;
+
+					case 82: // Register R for scaling transform mode
+
+						editor.signals.transformModeChanged.dispatch( 'scale' );
+
+						break;
+*/
+					case 37: // Delegate ArrowKeys and OpenSim reserved keys to editor
+					case 38:
+					case 39:
+					case 40:
+					case 73:
+					case 79:
+					    editor.handleKey(event.keyCode);
+					    event.preventDefault();
+					break;
+				}
+
+			}, false );
+
+			function onWindowResize() {
+
+				editor.signals.windowResize.dispatch();
+
+			}
+
+			// ServiceWorker
+
+			if ( 'serviceWorker' in navigator ) {
+
+			animate();
+			function animate() {
+			    requestAnimationFrame(animate);
+          if (editor.recording)
+			        editor.signals.captureFrame.dispatch();
+			}
+				try {
+
+					navigator.serviceWorker.register( 'sw.js' );
+
+				} catch ( error ) {
+
+				}
+
+			}
+
+		</script>
+	</body>
+</html>

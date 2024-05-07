@@ -1,0 +1,9 @@
+log/
+.vscode/
+__pycache__/
+.ipynb_checkpoints/
+patient/testing/
+/*venv*/
+Patient_data/
+calibration/
+

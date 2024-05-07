@@ -1,0 +1,4 @@
+[submodule "NTK_CAP/ThirdParty"]
+	path = NTK_CAP/ThirdParty
+	url = https://github.com/eddLai/NTKCAP_ThirdParty.git
+
