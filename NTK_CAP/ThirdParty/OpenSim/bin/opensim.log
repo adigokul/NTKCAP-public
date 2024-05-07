@@ -1,0 +1,1283 @@
+[2023-09-04 01:24:33.007] [warning] 
+    THIS EXECUTABLE IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE.
+
+    Use opensim-cmd instead, which can do everything that this executable can.
+
+      scale -S SetupFileName -> opensim-cmd run-tool SetupFileName
+      scale -PS              -> opensim-cmd print-xml scale
+    
+[2023-09-04 01:24:44.659] [warning] 
+    THIS EXECUTABLE IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE.
+
+    Use opensim-cmd instead, which can do everything that this executable can.
+
+      forward -S SetupFileName -> opensim-cmd run-tool SetupFileName
+      forward -PS              -> opensim-cmd print-xml forward
+    
+[2023-09-04 01:24:49.528] [warning] 
+    THIS EXECUTABLE IS DEPRECATED AND WILL BE REMOVED IN A FUTURE RELEASE.
+
+    Use opensim-cmd instead, which can do everything that this executable can.
+
+      ik -S SetupFileName -> opensim-cmd run-tool SetupFileName
+      ik -PS              -> opensim-cmd print-xml ik
+    
+[2023-09-04 03:56:03.843] [error] Unexpected argument: run-tool, ForwardTool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml, -O, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim
+[2023-09-04 03:56:03.843] [error] Use --help to get more information.
+[2023-09-04 03:58:39.498] [error] 'ForwardTool' is not an opensim-cmd command. See 'opensim-cmd --help'.
+[2023-09-04 04:00:09.744] [error] 'ForwardTool' is not an opensim-cmd command. See 'opensim-cmd --help'.
+[2023-09-04 04:00:39.169] [cout] [info] OpenSim: musculoskeletal modeling and simulation.
+
+Usage:
+  opensim-cmd [--library=<path>]... [--log=<level>] <command> [<args>...]
+  opensim-cmd -h | --help
+  opensim-cmd -V | --version
+
+Options:
+  -L <path>, --library <path>  Load a plugin.
+  -o <level>, --log <level>  Logging level.
+  -h, --help     Show this help description.
+  -V, --version  Show the version number.
+
+Available commands:
+  run-tool     Run a tool (e.g., Inverse Kinematics) from an XML setup file.
+  print-xml    Print a template XML file for a Tool or class.
+  info         Show description of properties in an OpenSim class.
+  update-file  Update an .xml file (.osim or setup) to this version's format.
+  viz          Show a model, motion, or data with the Simbody Visualizer.
+
+  Pass -h or --help to any of these commands to learn how to use them.
+
+Description of options:
+  L, library  Load a plugin before executing the requested
+              command. The <path> to the library can be absolute, or
+              relative to the current directory. Make sure to include the
+              library's extension (e.g., .dll, .so, .dylib). If <path>
+              contains spaces, surround <path> in quotes. You can load
+              multiple plugins by repeating this option.
+  o, log      Control the verbosity of OpenSim's console output.
+              Levels: off, critical, error, warn, info, debug, trace.
+              Default: info.
+
+Examples:
+  opensim-cmd run-tool InverseDynamics_Setup.xml
+  opensim-cmd print-xml cmc
+  opensim-cmd info PathActuator
+  opensim-cmd update-file lowerlimb_v3.3.osim lowerlimb_updated.osim
+  opensim-cmd -L C:\Plugins\osimMyCustomForce.dll run-tool CMC_setup.xml
+  opensim-cmd --library ../plugins/libosimMyPlugin.so print-xml MyCustomTool
+  opensim-cmd --library=libosimMyCustomForce.dylib --log=debug info MyCustomForce
+
+
+[2023-09-04 04:01:15.791] [cout] [info] Run a tool (e.g., Inverse Kinematics) from an XML setup file.
+
+Usage:
+  opensim-cmd [options]... run-tool <setup-xml-file>
+  opensim-cmd run-tool -h | --help
+
+Options:
+  -L <path>, --library <path>  Load a plugin.
+  -o <level>, --log <level>  Logging level.
+
+Description:
+  The Tool to run is detected from the setup file you provide. Supported tools
+  include the following:
+  
+            Scale
+            Inverse Kinematics           (IK)
+            Inverse Dynamics             (ID)
+            Residual Reduction Algorithm (RRA)
+            Computed Muscle Control      (CMC)
+            Forward                      
+            Analyze
+            MocoStudy
+
+  This command will also recognize tools from plugins.
+
+  Use `opensim-cmd print-xml` to generate a template <setup-xml-file>.
+
+Examples:
+  opensim-cmd run-tool CMC_setup.xml
+  opensim-cmd -L C:\Plugins\osimMyCustomForce.dll run-tool CMC_setup.xml
+  opensim-cmd --library ../plugins/libosimMyPlugin.so run-tool Forward_setup.xml
+  opensim-cmd --library=libosimMyCustomForce.dylib run-tool CMC_setup.xml
+
+[2023-09-04 04:01:45.270] [cout] [info] Run a tool (e.g., Inverse Kinematics) from an XML setup file.
+
+Usage:
+  opensim-cmd [options]... run-tool <setup-xml-file>
+  opensim-cmd run-tool -h | --help
+
+Options:
+  -L <path>, --library <path>  Load a plugin.
+  -o <level>, --log <level>  Logging level.
+
+Description:
+  The Tool to run is detected from the setup file you provide. Supported tools
+  include the following:
+  
+            Scale
+            Inverse Kinematics           (IK)
+            Inverse Dynamics             (ID)
+            Residual Reduction Algorithm (RRA)
+            Computed Muscle Control      (CMC)
+            Forward                      
+            Analyze
+            MocoStudy
+
+  This command will also recognize tools from plugins.
+
+  Use `opensim-cmd print-xml` to generate a template <setup-xml-file>.
+
+Examples:
+  opensim-cmd run-tool CMC_setup.xml
+  opensim-cmd -L C:\Plugins\osimMyCustomForce.dll run-tool CMC_setup.xml
+  opensim-cmd --library ../plugins/libosimMyPlugin.so run-tool Forward_setup.xml
+  opensim-cmd --library=libosimMyCustomForce.dylib run-tool CMC_setup.xml
+
+[2023-09-04 04:02:21.496] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml, -O, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim
+[2023-09-04 04:02:21.496] [error] Use --help to get more information.
+[2023-09-04 04:03:13.670] [info] Preparing to run ScaleTool.
+[2023-09-04 04:03:13.670] [info] Processing subject Pose2Sim_scaled...
+[2023-09-04 04:03:13.671] [info] Step 1: Loading generic model
+[2023-09-04 04:03:13.671] [error] Object: Cannot open file g:\2023work\NTKCAP_1.0.0\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Body25.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-09-04 04:03:13.671] [error] Unable to load the generic model or marker set file.
+[2023-09-04 04:03:13.672] [error] ScaleTool: No model specified.
+[2023-09-04 04:03:13.673] [error] ScaleTool: No model specified.
+[2023-09-04 04:04:05.223] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml, -O, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25_scaled.osim
+[2023-09-04 04:04:05.223] [error] Use --help to get more information.
+[2023-09-04 04:04:22.020] [cout] [info] Run a tool (e.g., Inverse Kinematics) from an XML setup file.
+
+Usage:
+  opensim-cmd [options]... run-tool <setup-xml-file>
+  opensim-cmd run-tool -h | --help
+
+Options:
+  -L <path>, --library <path>  Load a plugin.
+  -o <level>, --log <level>  Logging level.
+
+Description:
+  The Tool to run is detected from the setup file you provide. Supported tools
+  include the following:
+  
+            Scale
+            Inverse Kinematics           (IK)
+            Inverse Dynamics             (ID)
+            Residual Reduction Algorithm (RRA)
+            Computed Muscle Control      (CMC)
+            Forward                      
+            Analyze
+            MocoStudy
+
+  This command will also recognize tools from plugins.
+
+  Use `opensim-cmd print-xml` to generate a template <setup-xml-file>.
+
+Examples:
+  opensim-cmd run-tool CMC_setup.xml
+  opensim-cmd -L C:\Plugins\osimMyCustomForce.dll run-tool CMC_setup.xml
+  opensim-cmd --library ../plugins/libosimMyPlugin.so run-tool Forward_setup.xml
+  opensim-cmd --library=libosimMyCustomForce.dylib run-tool CMC_setup.xml
+
+[2023-09-04 04:06:15.541] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml
+[2023-09-04 04:06:15.542] [error] Use --help to get more information.
+[2023-09-04 04:12:52.939] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml
+[2023-09-04 04:12:52.940] [error] Use --help to get more information.
+[2023-09-04 04:12:53.125] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml
+[2023-09-04 04:12:53.126] [error] Use --help to get more information.
+[2023-09-04 04:12:53.947] [error] Unexpected argument: run-tool, -S, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Model_Pose2Sim_Body25.osim, -I, G:\2023work\NTKCAP_1.0.0\patient\Ben\2023_9_2\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Body25.xml
+[2023-09-04 04:12:53.948] [error] Use --help to get more information.
+[2023-12-21 18:38:50.184] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 18:38:50.186] [error] InverseKinematicsTool Failed: Object: Cannot open file Model_Pose2Sim_Halpe26_scaled.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:39:05.384] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 18:39:05.385] [error] InverseKinematicsTool Failed: Object: Cannot open file Model_Pose2Sim_Halpe26_scaled.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:50:18.639] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 18:50:18.639] [error] InverseKinematicsTool Failed: Object: Cannot open file Model_Pose2Sim_Halpe26_scaled.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:53:30.937] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 18:53:30.938] [error] InverseKinematicsTool Failed: Object: Cannot open file Model_Pose2Sim_Halpe26_scaled.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:54:58.279] [info] Preparing to run ScaleTool.
+[2023-12-21 18:54:58.280] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 18:54:58.280] [info] Step 1: Loading generic model
+[2023-12-21 18:54:58.281] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:54:58.281] [error] Unable to load the generic model or marker set file.
+[2023-12-21 18:54:58.282] [error] ScaleTool: No model specified.
+[2023-12-21 18:54:58.282] [error] ScaleTool: No model specified.
+[2023-12-21 18:55:22.401] [info] Preparing to run ScaleTool.
+[2023-12-21 18:55:22.401] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 18:55:22.402] [info] Step 1: Loading generic model
+[2023-12-21 18:55:22.402] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:55:22.402] [error] Unable to load the generic model or marker set file.
+[2023-12-21 18:55:22.403] [error] ScaleTool: No model specified.
+[2023-12-21 18:55:22.404] [error] ScaleTool: No model specified.
+[2023-12-21 18:55:30.388] [info] Preparing to run ScaleTool.
+[2023-12-21 18:55:30.389] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 18:55:30.390] [info] Step 1: Loading generic model
+[2023-12-21 18:55:30.390] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:55:30.391] [error] Unable to load the generic model or marker set file.
+[2023-12-21 18:55:30.392] [error] ScaleTool: No model specified.
+[2023-12-21 18:55:30.392] [error] ScaleTool: No model specified.
+[2023-12-21 18:57:42.552] [info] Preparing to run ScaleTool.
+[2023-12-21 18:57:42.553] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 18:57:42.555] [info] Step 1: Loading generic model
+[2023-12-21 18:57:42.555] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 18:57:42.556] [error] Unable to load the generic model or marker set file.
+[2023-12-21 18:57:42.557] [error] ScaleTool: No model specified.
+[2023-12-21 18:57:42.557] [error] ScaleTool: No model specified.
+[2023-12-21 19:03:44.677] [info] Preparing to run ScaleTool.
+[2023-12-21 19:03:44.678] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:03:44.678] [info] Step 1: Loading generic model
+[2023-12-21 19:03:44.678] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 19:03:44.679] [error] Unable to load the generic model or marker set file.
+[2023-12-21 19:03:44.679] [error] ScaleTool: No model specified.
+[2023-12-21 19:03:44.679] [error] ScaleTool: No model specified.
+[2023-12-21 19:05:27.472] [info] Preparing to run ScaleTool.
+[2023-12-21 19:05:27.473] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:05:27.474] [info] Step 1: Loading generic model
+[2023-12-21 19:05:27.474] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Unassigned. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 19:05:27.474] [error] Unable to load the generic model or marker set file.
+[2023-12-21 19:05:27.475] [error] ScaleTool: No model specified.
+[2023-12-21 19:05:27.475] [error] ScaleTool: No model specified.
+[2023-12-21 19:06:03.213] [info] Preparing to run ScaleTool.
+[2023-12-21 19:06:03.214] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:06:03.214] [info] Step 1: Loading generic model
+[2023-12-21 19:06:03.215] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Halpe26.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 19:06:03.215] [error] Unable to load the generic model or marker set file.
+[2023-12-21 19:06:03.215] [error] ScaleTool: No model specified.
+[2023-12-21 19:06:03.216] [error] ScaleTool: No model specified.
+[2023-12-21 19:11:13.509] [info] Preparing to run ScaleTool.
+[2023-12-21 19:11:13.510] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:11:13.511] [info] Step 1: Loading generic model
+[2023-12-21 19:11:13.512] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Halpe26.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-21 19:11:13.513] [error] Unable to load the generic model or marker set file.
+[2023-12-21 19:11:13.513] [error] ScaleTool: No model specified.
+[2023-12-21 19:11:13.514] [error] ScaleTool: No model specified.
+[2023-12-21 19:15:14.806] [info] Preparing to run ScaleTool.
+[2023-12-21 19:15:14.807] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:15:14.808] [info] Step 1: Loading generic model
+[2023-12-21 19:15:14.829] [info] Loaded model Pose2Sim_AlphaPose from file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Halpe26.osim
+[2023-12-21 19:15:14.830] [warning] Couldn't find file 'r_pelvis.vtp'.
+[2023-12-21 19:15:14.830] [warning] Couldn't find file 'l_pelvis.vtp'.
+[2023-12-21 19:15:14.831] [warning] Couldn't find file 'sacrum.vtp'.
+[2023-12-21 19:15:14.831] [warning] Couldn't find file 'femur_r.vtp'.
+[2023-12-21 19:15:14.832] [warning] Couldn't find file 'r_patella.vtp'.
+[2023-12-21 19:15:14.832] [warning] Couldn't find file 'tibia_r.vtp'.
+[2023-12-21 19:15:14.833] [warning] Couldn't find file 'fibula_r.vtp'.
+[2023-12-21 19:15:14.833] [warning] Couldn't find file 'talus_rv.vtp'.
+[2023-12-21 19:15:14.833] [warning] Couldn't find file 'foot.vtp'.
+[2023-12-21 19:15:14.834] [warning] Couldn't find file 'bofoot.vtp'.
+[2023-12-21 19:15:14.834] [warning] Couldn't find file 'femur_l.vtp'.
+[2023-12-21 19:15:14.835] [warning] Couldn't find file 'l_patella.vtp'.
+[2023-12-21 19:15:14.835] [warning] Couldn't find file 'tibia_l.vtp'.
+[2023-12-21 19:15:14.836] [warning] Couldn't find file 'fibula_l.vtp'.
+[2023-12-21 19:15:14.836] [warning] Couldn't find file 'talus_lv.vtp'.
+[2023-12-21 19:15:14.836] [warning] Couldn't find file 'l_foot.vtp'.
+[2023-12-21 19:15:14.837] [warning] Couldn't find file 'l_bofoot.vtp'.
+[2023-12-21 19:15:14.837] [warning] Couldn't find file 'lumbar5.vtp'.
+[2023-12-21 19:15:14.837] [warning] Couldn't find file 'lumbar4.vtp'.
+[2023-12-21 19:15:14.838] [warning] Couldn't find file 'lumbar3.vtp'.
+[2023-12-21 19:15:14.840] [warning] Couldn't find file 'lumbar2.vtp'.
+[2023-12-21 19:15:14.840] [warning] Couldn't find file 'lumbar1.vtp'.
+[2023-12-21 19:15:14.840] [warning] Couldn't find file 'cerv1sm.vtp'.
+[2023-12-21 19:15:14.841] [warning] Couldn't find file 'cerv2sm.vtp'.
+[2023-12-21 19:15:14.841] [warning] Couldn't find file 'cerv3sm.vtp'.
+[2023-12-21 19:15:14.842] [warning] Couldn't find file 'cerv4sm.vtp'.
+[2023-12-21 19:15:14.842] [warning] Couldn't find file 'cerv5sm.vtp'.
+[2023-12-21 19:15:14.842] [warning] Couldn't find file 'cerv6sm.vtp'.
+[2023-12-21 19:15:14.843] [warning] Couldn't find file 'cerv7.vtp'.
+[2023-12-21 19:15:14.843] [warning] Couldn't find file 'thoracic12_s.vtp'.
+[2023-12-21 19:15:14.843] [warning] Couldn't find file 'thoracic11_s.vtp'.
+[2023-12-21 19:15:14.844] [warning] Couldn't find file 'thoracic10_s.vtp'.
+[2023-12-21 19:15:14.844] [warning] Couldn't find file 'thoracic9_s.vtp'.
+[2023-12-21 19:15:14.844] [warning] Couldn't find file 'thoracic8_s.vtp'.
+[2023-12-21 19:15:14.845] [warning] Couldn't find file 'thoracic7_s.vtp'.
+[2023-12-21 19:15:14.845] [warning] Couldn't find file 'thoracic6_s.vtp'.
+[2023-12-21 19:15:14.845] [warning] Couldn't find file 'thoracic5_s.vtp'.
+[2023-12-21 19:15:14.846] [warning] Couldn't find file 'thoracic4_s.vtp'.
+[2023-12-21 19:15:14.846] [warning] Couldn't find file 'thoracic3_s.vtp'.
+[2023-12-21 19:15:14.846] [warning] Couldn't find file 'thoracic2_s.vtp'.
+[2023-12-21 19:15:14.847] [warning] Couldn't find file 'thoracic1_s.vtp'.
+[2023-12-21 19:15:14.847] [warning] Couldn't find file 'hat_ribs_scap.vtp'.
+[2023-12-21 19:15:14.848] [warning] Couldn't find file 'hat_jaw.vtp'.
+[2023-12-21 19:15:14.848] [warning] Couldn't find file 'hat_skull.vtp'.
+[2023-12-21 19:15:14.848] [warning] Couldn't find file 'humerus_rv.vtp'.
+[2023-12-21 19:15:14.849] [warning] Couldn't find file 'ulna_rv.vtp'.
+[2023-12-21 19:15:14.849] [warning] Couldn't find file 'radius_rv.vtp'.
+[2023-12-21 19:15:14.849] [warning] Couldn't find file 'pisiform_rvs.vtp'.
+[2023-12-21 19:15:14.850] [warning] Couldn't find file 'lunate_rvs.vtp'.
+[2023-12-21 19:15:14.850] [warning] Couldn't find file 'scaphoid_rvs.vtp'.
+[2023-12-21 19:15:14.851] [warning] Couldn't find file 'triquetrum_rvs.vtp'.
+[2023-12-21 19:15:14.851] [warning] Couldn't find file 'hamate_rvs.vtp'.
+[2023-12-21 19:15:14.852] [warning] Couldn't find file 'capitate_rvs.vtp'.
+[2023-12-21 19:15:14.852] [warning] Couldn't find file 'trapezoid_rvs.vtp'.
+[2023-12-21 19:15:14.852] [warning] Couldn't find file 'trapezium_rvs.vtp'.
+[2023-12-21 19:15:14.852] [warning] Couldn't find file 'metacarpal2_rvs.vtp'.
+[2023-12-21 19:15:14.853] [warning] Couldn't find file 'index_proximal_rvs.vtp'.
+[2023-12-21 19:15:14.853] [warning] Couldn't find file 'index_medial_rvs.vtp'.
+[2023-12-21 19:15:14.853] [warning] Couldn't find file 'index_distal_rvs.vtp'.
+[2023-12-21 19:15:14.854] [warning] Couldn't find file 'metacarpal3_rvs.vtp'.
+[2023-12-21 19:15:14.856] [warning] Couldn't find file 'middle_proximal_rvs.vtp'.
+[2023-12-21 19:15:14.856] [warning] Couldn't find file 'middle_medial_rvs.vtp'.
+[2023-12-21 19:15:14.856] [warning] Couldn't find file 'middle_distal_rvs.vtp'.
+[2023-12-21 19:15:14.856] [warning] Couldn't find file 'metacarpal4_rvs.vtp'.
+[2023-12-21 19:15:14.857] [warning] Couldn't find file 'ring_proximal_rvs.vtp'.
+[2023-12-21 19:15:14.857] [warning] Couldn't find file 'ring_medial_rvs.vtp'.
+[2023-12-21 19:15:14.857] [warning] Couldn't find file 'ring_distal_rvs.vtp'.
+[2023-12-21 19:15:14.857] [warning] Couldn't find file 'metacarpal5_rvs.vtp'.
+[2023-12-21 19:15:14.858] [warning] Couldn't find file 'little_proximal_rvs.vtp'.
+[2023-12-21 19:15:14.858] [warning] Couldn't find file 'little_medial_rvs.vtp'.
+[2023-12-21 19:15:14.859] [warning] Couldn't find file 'little_distal_rvs.vtp'.
+[2023-12-21 19:15:14.859] [warning] Couldn't find file 'metacarpal1_rvs.vtp'.
+[2023-12-21 19:15:14.859] [warning] Couldn't find file 'thumb_proximal_rvs.vtp'.
+[2023-12-21 19:15:14.859] [warning] Couldn't find file 'thumb_distal_rvs.vtp'.
+[2023-12-21 19:15:14.859] [warning] Couldn't find file 'humerus_lv.vtp'.
+[2023-12-21 19:15:14.860] [warning] Couldn't find file 'ulna_lv.vtp'.
+[2023-12-21 19:15:14.860] [warning] Couldn't find file 'radius_lv.vtp'.
+[2023-12-21 19:15:14.860] [warning] Couldn't find file 'pisiform_lvs.vtp'.
+[2023-12-21 19:15:14.860] [warning] Couldn't find file 'lunate_lvs.vtp'.
+[2023-12-21 19:15:14.861] [warning] Couldn't find file 'scaphoid_lvs.vtp'.
+[2023-12-21 19:15:14.861] [warning] Couldn't find file 'triquetrum_lvs.vtp'.
+[2023-12-21 19:15:14.861] [warning] Couldn't find file 'hamate_lvs.vtp'.
+[2023-12-21 19:15:14.861] [warning] Couldn't find file 'capitate_lvs.vtp'.
+[2023-12-21 19:15:14.861] [warning] Couldn't find file 'trapezoid_lvs.vtp'.
+[2023-12-21 19:15:14.862] [warning] Couldn't find file 'trapezium_lvs.vtp'.
+[2023-12-21 19:15:14.862] [warning] Couldn't find file 'metacarpal2_lvs.vtp'.
+[2023-12-21 19:15:14.862] [warning] Couldn't find file 'index_proximal_lvs.vtp'.
+[2023-12-21 19:15:14.862] [warning] Couldn't find file 'index_medial_lvs.vtp'.
+[2023-12-21 19:15:14.863] [warning] Couldn't find file 'index_distal_lvs.vtp'.
+[2023-12-21 19:15:14.863] [warning] Couldn't find file 'metacarpal3_lvs.vtp'.
+[2023-12-21 19:15:14.863] [warning] Couldn't find file 'middle_proximal_lvs.vtp'.
+[2023-12-21 19:15:14.863] [warning] Couldn't find file 'middle_medial_lvs.vtp'.
+[2023-12-21 19:15:14.863] [warning] Couldn't find file 'middle_distal_lvs.vtp'.
+[2023-12-21 19:15:14.864] [warning] Couldn't find file 'metacarpal4_lvs.vtp'.
+[2023-12-21 19:15:14.864] [warning] Couldn't find file 'ring_proximal_lvs.vtp'.
+[2023-12-21 19:15:14.864] [warning] Couldn't find file 'ring_medial_lvs.vtp'.
+[2023-12-21 19:15:14.864] [warning] Couldn't find file 'ring_distal_lvs.vtp'.
+[2023-12-21 19:15:14.865] [warning] Couldn't find file 'metacarpal5_lvs.vtp'.
+[2023-12-21 19:15:14.865] [warning] Couldn't find file 'little_proximal_lvs.vtp'.
+[2023-12-21 19:15:14.865] [warning] Couldn't find file 'little_medial_lvs.vtp'.
+[2023-12-21 19:15:14.865] [warning] Couldn't find file 'little_distal_lvs.vtp'.
+[2023-12-21 19:15:14.865] [warning] Couldn't find file 'metacarpal1_lvs.vtp'.
+[2023-12-21 19:15:14.866] [warning] Couldn't find file 'thumb_proximal_lvs.vtp'.
+[2023-12-21 19:15:14.866] [warning] Couldn't find file 'thumb_distal_lvs.vtp'.
+[2023-12-21 19:15:14.890] [info] Step 2: Scaling generic model
+[2023-12-21 19:15:14.898] [error] Unable to open marker file Empty_project_filt_0-30.trc
+[2023-12-21 19:19:11.320] [error] SimTK Exception thrown at Xml.cpp:108:
+  Error detected by Simbody method Xml::readFromFile(): Failed to load the Xml file 'C:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Halpe26.xml' with error 'Failed to open file (line=0, col=0)'.
+  (Required condition 'loadOK' was not met.)
+
+[2023-12-21 19:19:11.320] [error] A problem occurred when trying to load file 'C:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\Apose\Empty_project\opensim\Scaling_Setup_Pose2Sim_Halpe26.xml'.
+[2023-12-21 19:21:12.012] [info] Preparing to run ScaleTool.
+[2023-12-21 19:21:12.012] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:21:12.013] [info] Step 1: Loading generic model
+[2023-12-21 19:21:12.030] [info] Loaded model Pose2Sim_AlphaPose from file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Halpe26.osim
+[2023-12-21 19:21:12.513] [info] Step 2: Scaling generic model
+[2023-12-21 19:21:12.520] [error] Unable to open marker file Empty_project_filt_0-30.trc
+[2023-12-21 19:21:46.595] [info] Preparing to run ScaleTool.
+[2023-12-21 19:21:46.595] [info] Processing subject Pose2Sim_scaled...
+[2023-12-21 19:21:46.596] [info] Step 1: Loading generic model
+[2023-12-21 19:21:46.613] [info] Loaded model Pose2Sim_AlphaPose from file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Halpe26.osim
+[2023-12-21 19:21:46.629] [info] Step 2: Scaling generic model
+[2023-12-21 19:21:46.642] [info] Loaded marker file Empty_project_filt_0-30.trc (22 markers, 173 frames)
+[2023-12-21 19:21:46.642] [info] Measurement 'torso'
+[2023-12-21 19:21:46.643] [info] 	pair 0 (LShoulder, LHip): model = 0.553062, experimental = 0.588268
+[2023-12-21 19:21:46.643] [info] 	pair 1 (RShoulder, RHip): model = 0.553062, experimental = 0.587946
+[2023-12-21 19:21:46.643] [info] 	overall scale factor = 1.06337
+[2023-12-21 19:21:46.644] [info] Measurement 'arm'
+[2023-12-21 19:21:46.644] [info] 	pair 0 (LShoulder, LElbow): model = 0.269526, experimental = 0.306835
+[2023-12-21 19:21:46.645] [info] 	pair 1 (RShoulder, RElbow): model = 0.269526, experimental = 0.308831
+[2023-12-21 19:21:46.645] [info] 	overall scale factor = 1.14213
+[2023-12-21 19:21:46.645] [info] Measurement 'forearm'
+[2023-12-21 19:21:46.645] [info] 	pair 0 (LElbow, LWrist): model = 0.237488, experimental = 0.278876
+[2023-12-21 19:21:46.645] [info] 	pair 1 (RElbow, RWrist): model = 0.237488, experimental = 0.261016
+[2023-12-21 19:21:46.646] [info] 	overall scale factor = 1.13667
+[2023-12-21 19:21:46.646] [info] Measurement 'thigh'
+[2023-12-21 19:21:46.646] [info] 	pair 0 (LHip, LKnee): model = 0.371469, experimental = 0.397974
+[2023-12-21 19:21:46.646] [info] 	pair 1 (RHip, RKnee): model = 0.371469, experimental = 0.399639
+[2023-12-21 19:21:46.647] [info] 	overall scale factor = 1.07359
+[2023-12-21 19:21:46.647] [info] Measurement 'shank'
+[2023-12-21 19:21:46.647] [info] 	pair 0 (LKnee, LAnkle): model = 0.388261, experimental = 0.403161
+[2023-12-21 19:21:46.647] [info] 	pair 1 (RKnee, RAnkle): model = 0.388261, experimental = 0.411554
+[2023-12-21 19:21:46.648] [info] 	overall scale factor = 1.04918
+[2023-12-21 19:21:46.648] [info] Measurement 'foot'
+[2023-12-21 19:21:46.648] [info] 	pair 0 (LHeel, LBigToe): model = 0.230688, experimental = 0.225486
+[2023-12-21 19:21:46.648] [info] 	pair 1 (RHeel, RBigToe): model = 0.230688, experimental = 0.238187
+[2023-12-21 19:21:46.649] [info] 	overall scale factor = 1.00498
+[2023-12-21 19:21:46.649] [info] Measurement 'head'
+[2023-12-21 19:21:46.649] [info] 	pair 0 (Head, Nose): model = 0.131925, experimental = 0.170360
+[2023-12-21 19:21:46.649] [info] 	pair 1 (Head, Neck): model = 0.230765, experimental = 0.244515
+[2023-12-21 19:21:46.649] [info] 	overall scale factor = 1.17546
+[2023-12-21 19:21:46.650] [info] Measurement 'pelvis'
+[2023-12-21 19:21:46.650] [info] 	pair 0 (RHip, LHip): model = 0.210813, experimental = 0.160547
+[2023-12-21 19:21:46.650] [info] 	overall scale factor = 0.761562
+[2023-12-21 19:21:46.692] [info] Wrote model file 'Model_Pose2Sim_Halpe26_scaled.osim' from model.
+[2023-12-21 19:27:19.631] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 19:27:19.649] [info] Loaded model Pose2Sim_scaled from file Model_Pose2Sim_Halpe26_scaled.osim
+[2023-12-21 19:27:19.659] [cout] [info] 
+               MODEL: Pose2Sim_scaled
+         coordinates: 62
+              forces: 0
+           actuators: 0
+             muscles: 0
+            analyses: 0
+              probes: 0
+              bodies: 30
+              joints: 30
+         constraints: 20
+             markers: 22
+         controllers: 0
+  contact geometries: 0
+misc modelcomponents: 0
+[2023-12-21 19:27:19.660] [info] Running tool .
+[2023-12-21 19:27:19.670] [error] InverseKinematicsTool Failed: File 'Empty_project_filt_0-30.trc' does not exist.
+	Thrown at TRCFileAdapter.cpp:47 in extendRead().
+[2023-12-21 19:27:19.670] [error] InverseKinematicsTool Failed, please see messages window for details...
+[2023-12-21 19:29:53.380] [info] Preparing to run InverseKinematicsTool.
+[2023-12-21 19:29:53.398] [info] Loaded model Pose2Sim_scaled from file Model_Pose2Sim_Halpe26_scaled.osim
+[2023-12-21 19:29:53.408] [cout] [info] 
+               MODEL: Pose2Sim_scaled
+         coordinates: 62
+              forces: 0
+           actuators: 0
+             muscles: 0
+            analyses: 0
+              probes: 0
+              bodies: 30
+              joints: 30
+         constraints: 20
+             markers: 22
+         controllers: 0
+  contact geometries: 0
+misc modelcomponents: 0
+[2023-12-21 19:29:53.409] [info] Running tool .
+[2023-12-21 19:29:53.671] [info] Frame 0 (t = 0.0333333):	 total squared error = 0.0172199, marker error: RMS = 0.0293427, max = 0.0548153 (LShoulder)
+[2023-12-21 19:29:53.761] [info] Frame 1 (t = 0.0666667):	 total squared error = 0.0182838, marker error: RMS = 0.0302356, max = 0.0545133 (LShoulder)
+[2023-12-21 19:29:53.812] [info] Frame 2 (t = 0.1):	 total squared error = 0.0193276, marker error: RMS = 0.0310867, max = 0.0547426 (LShoulder)
+[2023-12-21 19:29:53.922] [info] Frame 3 (t = 0.133333):	 total squared error = 0.0200629, marker error: RMS = 0.0316724, max = 0.0571932 (LElbow)
+[2023-12-21 19:29:54.030] [info] Frame 4 (t = 0.166667):	 total squared error = 0.0203925, marker error: RMS = 0.0319315, max = 0.0593975 (LElbow)
+[2023-12-21 19:29:54.116] [info] Frame 5 (t = 0.2):	 total squared error = 0.0204067, marker error: RMS = 0.0319427, max = 0.0602688 (LElbow)
+[2023-12-21 19:29:54.198] [info] Frame 6 (t = 0.233333):	 total squared error = 0.0202418, marker error: RMS = 0.0318134, max = 0.0603921 (LElbow)
+[2023-12-21 19:29:54.268] [info] Frame 7 (t = 0.266667):	 total squared error = 0.0200061, marker error: RMS = 0.0316276, max = 0.0602402 (LElbow)
+[2023-12-21 19:29:54.343] [info] Frame 8 (t = 0.3):	 total squared error = 0.0197774, marker error: RMS = 0.0314463, max = 0.0599884 (LElbow)
+[2023-12-21 19:29:54.516] [info] Frame 9 (t = 0.333333):	 total squared error = 0.0195854, marker error: RMS = 0.0312933, max = 0.0598817 (LElbow)
+[2023-12-21 19:29:54.603] [info] Frame 10 (t = 0.366667):	 total squared error = 0.0195347, marker error: RMS = 0.0312528, max = 0.0598932 (LElbow)
+[2023-12-21 19:29:54.682] [info] Frame 11 (t = 0.4):	 total squared error = 0.0196020, marker error: RMS = 0.0313066, max = 0.0602248 (LElbow)
+[2023-12-21 19:29:54.765] [info] Frame 12 (t = 0.433333):	 total squared error = 0.0197725, marker error: RMS = 0.0314424, max = 0.0605051 (LElbow)
+[2023-12-21 19:29:54.844] [info] Frame 13 (t = 0.466667):	 total squared error = 0.0199351, marker error: RMS = 0.0315715, max = 0.0608010 (LElbow)
+[2023-12-21 19:29:54.940] [info] Frame 14 (t = 0.5):	 total squared error = 0.0200697, marker error: RMS = 0.0316778, max = 0.0608387 (LElbow)
+[2023-12-21 19:29:55.059] [info] Frame 15 (t = 0.533333):	 total squared error = 0.0201553, marker error: RMS = 0.0317453, max = 0.0607154 (LElbow)
+[2023-12-21 19:29:55.167] [info] Frame 16 (t = 0.566667):	 total squared error = 0.0202078, marker error: RMS = 0.0317866, max = 0.0604553 (LElbow)
+[2023-12-21 19:29:55.262] [info] Frame 17 (t = 0.6):	 total squared error = 0.0202524, marker error: RMS = 0.0318217, max = 0.0601786 (LElbow)
+[2023-12-21 19:29:55.441] [info] Frame 18 (t = 0.633333):	 total squared error = 0.0203026, marker error: RMS = 0.0318611, max = 0.0598607 (LElbow)
+[2023-12-21 19:29:55.628] [info] Frame 19 (t = 0.666667):	 total squared error = 0.0204062, marker error: RMS = 0.0319423, max = 0.0596621 (LElbow)
+[2023-12-21 19:29:55.707] [info] Frame 20 (t = 0.7):	 total squared error = 0.0205302, marker error: RMS = 0.0320392, max = 0.059663 (LElbow)
+[2023-12-21 19:29:55.802] [info] Frame 21 (t = 0.733333):	 total squared error = 0.0205818, marker error: RMS = 0.0320794, max = 0.0597346 (LElbow)
+[2023-12-21 19:29:55.916] [info] Frame 22 (t = 0.766667):	 total squared error = 0.0205757, marker error: RMS = 0.0320747, max = 0.0599524 (LElbow)
+[2023-12-21 19:29:56.033] [info] Frame 23 (t = 0.8):	 total squared error = 0.0205498, marker error: RMS = 0.0320545, max = 0.0602505 (LElbow)
+[2023-12-21 19:29:56.111] [info] Frame 24 (t = 0.833333):	 total squared error = 0.0205113, marker error: RMS = 0.0320244, max = 0.0605103 (LElbow)
+[2023-12-21 19:29:56.228] [info] Frame 25 (t = 0.866667):	 total squared error = 0.0204442, marker error: RMS = 0.031972, max = 0.0606385 (LElbow)
+[2023-12-21 19:29:56.340] [info] Frame 26 (t = 0.9):	 total squared error = 0.0203353, marker error: RMS = 0.0318867, max = 0.0605941 (LElbow)
+[2023-12-21 19:29:56.433] [info] Frame 27 (t = 0.933333):	 total squared error = 0.0201974, marker error: RMS = 0.0317784, max = 0.0604936 (LElbow)
+[2023-12-21 19:29:56.505] [info] Frame 28 (t = 0.966667):	 total squared error = 0.0201082, marker error: RMS = 0.0317082, max = 0.0602902 (LElbow)
+[2023-12-21 19:29:56.612] [info] Frame 29 (t = 1.0):	 total squared error = 0.0200972, marker error: RMS = 0.0316995, max = 0.0604311 (LElbow)
+[2023-12-21 19:29:56.713] [info] Frame 30 (t = 1.03333):	 total squared error = 0.0201644, marker error: RMS = 0.0317525, max = 0.0606027 (LElbow)
+[2023-12-21 19:29:56.847] [info] Frame 31 (t = 1.06667):	 total squared error = 0.0202138, marker error: RMS = 0.0317914, max = 0.0607518 (LElbow)
+[2023-12-21 19:29:56.928] [info] Frame 32 (t = 1.1):	 total squared error = 0.0201919, marker error: RMS = 0.0317741, max = 0.0608051 (LElbow)
+[2023-12-21 19:29:57.018] [info] Frame 33 (t = 1.13333):	 total squared error = 0.0200732, marker error: RMS = 0.0316806, max = 0.0606587 (LElbow)
+[2023-12-21 19:29:57.091] [info] Frame 34 (t = 1.16667):	 total squared error = 0.0199363, marker error: RMS = 0.0315724, max = 0.0605485 (LElbow)
+[2023-12-21 19:29:57.219] [info] Frame 35 (t = 1.2):	 total squared error = 0.0198004, marker error: RMS = 0.0314646, max = 0.0603444 (LElbow)
+[2023-12-21 19:29:57.313] [info] Frame 36 (t = 1.23333):	 total squared error = 0.019753, marker error: RMS = 0.0314269, max = 0.0602322 (LElbow)
+[2023-12-21 19:29:57.432] [info] Frame 37 (t = 1.26667):	 total squared error = 0.0197457, marker error: RMS = 0.0314211, max = 0.0602616 (LElbow)
+[2023-12-21 19:29:57.535] [info] Frame 38 (t = 1.3):	 total squared error = 0.0197402, marker error: RMS = 0.0314168, max = 0.0604111 (LElbow)
+[2023-12-21 19:29:57.636] [info] Frame 39 (t = 1.33333):	 total squared error = 0.0197304, marker error: RMS = 0.0314089, max = 0.0605295 (LElbow)
+[2023-12-21 19:29:57.713] [info] Frame 40 (t = 1.36667):	 total squared error = 0.0197154, marker error: RMS = 0.031397, max = 0.0606686 (LElbow)
+[2023-12-21 19:29:57.792] [info] Frame 41 (t = 1.4):	 total squared error = 0.0196862, marker error: RMS = 0.0313737, max = 0.0607035 (LElbow)
+[2023-12-21 19:29:57.901] [info] Frame 42 (t = 1.43333):	 total squared error = 0.0196186, marker error: RMS = 0.0313198, max = 0.0603642 (LElbow)
+[2023-12-21 19:29:58.025] [info] Frame 43 (t = 1.46667):	 total squared error = 0.0195702, marker error: RMS = 0.0312811, max = 0.0600374 (LElbow)
+[2023-12-21 19:29:58.113] [info] Frame 44 (t = 1.5):	 total squared error = 0.0195674, marker error: RMS = 0.0312789, max = 0.0598106 (LElbow)
+[2023-12-21 19:29:58.268] [info] Frame 45 (t = 1.53333):	 total squared error = 0.0195936, marker error: RMS = 0.0312998, max = 0.0596516 (LElbow)
+[2023-12-21 19:29:58.339] [info] Frame 46 (t = 1.56667):	 total squared error = 0.0196776, marker error: RMS = 0.0313669, max = 0.0596323 (LElbow)
+[2023-12-21 19:29:58.387] [info] Frame 47 (t = 1.6):	 total squared error = 0.0197503, marker error: RMS = 0.0314247, max = 0.0598342 (LElbow)
+[2023-12-21 19:29:58.484] [info] Frame 48 (t = 1.63333):	 total squared error = 0.019779, marker error: RMS = 0.0314476, max = 0.0600511 (LElbow)
+[2023-12-21 19:29:58.584] [info] Frame 49 (t = 1.66667):	 total squared error = 0.0198241, marker error: RMS = 0.0314834, max = 0.0602626 (LElbow)
+[2023-12-21 19:29:58.698] [info] Frame 50 (t = 1.7):	 total squared error = 0.0198886, marker error: RMS = 0.0315346, max = 0.0604220 (LElbow)
+[2023-12-21 19:29:58.776] [info] Frame 51 (t = 1.73333):	 total squared error = 0.0199721, marker error: RMS = 0.0316007, max = 0.0606085 (LElbow)
+[2023-12-21 19:29:58.887] [info] Frame 52 (t = 1.76667):	 total squared error = 0.0200203, marker error: RMS = 0.0316388, max = 0.0603941 (LElbow)
+[2023-12-21 19:29:58.984] [info] Frame 53 (t = 1.8):	 total squared error = 0.0200602, marker error: RMS = 0.0316703, max = 0.0602819 (LElbow)
+[2023-12-21 19:29:59.084] [info] Frame 54 (t = 1.83333):	 total squared error = 0.0201132, marker error: RMS = 0.0317122, max = 0.0600467 (LElbow)
+[2023-12-21 19:29:59.197] [info] Frame 55 (t = 1.86667):	 total squared error = 0.0201934, marker error: RMS = 0.0317753, max = 0.0598182 (LElbow)
+[2023-12-21 19:29:59.268] [info] Frame 56 (t = 1.9):	 total squared error = 0.0202894, marker error: RMS = 0.0318507, max = 0.0597325 (LElbow)
+[2023-12-21 19:29:59.350] [info] Frame 57 (t = 1.93333):	 total squared error = 0.0203105, marker error: RMS = 0.0318673, max = 0.0596491 (LElbow)
+[2023-12-21 19:29:59.433] [info] Frame 58 (t = 1.96667):	 total squared error = 0.0202849, marker error: RMS = 0.0318472, max = 0.0596202 (LElbow)
+[2023-12-21 19:29:59.605] [info] Frame 59 (t = 2.0):	 total squared error = 0.0201918, marker error: RMS = 0.0317741, max = 0.0597506 (LElbow)
+[2023-12-21 19:29:59.666] [info] Frame 60 (t = 2.03333):	 total squared error = 0.0201714, marker error: RMS = 0.031758, max = 0.0598518 (LElbow)
+[2023-12-21 19:29:59.833] [info] Frame 61 (t = 2.06667):	 total squared error = 0.0201614, marker error: RMS = 0.0317501, max = 0.0602651 (LElbow)
+[2023-12-21 19:29:59.936] [info] Frame 62 (t = 2.1):	 total squared error = 0.0202074, marker error: RMS = 0.0317863, max = 0.0605824 (LElbow)
+[2023-12-21 19:30:00.042] [info] Frame 63 (t = 2.13333):	 total squared error = 0.0202963, marker error: RMS = 0.0318562, max = 0.0609151 (LElbow)
+[2023-12-21 19:30:00.129] [info] Frame 64 (t = 2.16667):	 total squared error = 0.0204382, marker error: RMS = 0.0319673, max = 0.0611966 (LElbow)
+[2023-12-21 19:30:00.217] [info] Frame 65 (t = 2.2):	 total squared error = 0.0206219, marker error: RMS = 0.0321106, max = 0.0614155 (LElbow)
+[2023-12-21 19:30:00.288] [info] Frame 66 (t = 2.23333):	 total squared error = 0.0208097, marker error: RMS = 0.0322565, max = 0.0615186 (LElbow)
+[2023-12-21 19:30:00.354] [info] Frame 67 (t = 2.26667):	 total squared error = 0.0209559, marker error: RMS = 0.0323697, max = 0.0616857 (LElbow)
+[2023-12-21 19:30:00.428] [info] Frame 68 (t = 2.3):	 total squared error = 0.0210166, marker error: RMS = 0.0324165, max = 0.0616526 (LElbow)
+[2023-12-21 19:30:00.587] [info] Frame 69 (t = 2.33333):	 total squared error = 0.0209410, marker error: RMS = 0.0323581, max = 0.0615368 (LElbow)
+[2023-12-21 19:30:00.662] [info] Frame 70 (t = 2.36667):	 total squared error = 0.0208242, marker error: RMS = 0.0322678, max = 0.0614348 (LElbow)
+[2023-12-21 19:30:00.761] [info] Frame 71 (t = 2.4):	 total squared error = 0.0206445, marker error: RMS = 0.0321282, max = 0.0613548 (LElbow)
+[2023-12-21 19:30:00.841] [info] Frame 72 (t = 2.43333):	 total squared error = 0.0205028, marker error: RMS = 0.0320178, max = 0.0613178 (LElbow)
+[2023-12-21 19:30:00.926] [info] Frame 73 (t = 2.46667):	 total squared error = 0.0204212, marker error: RMS = 0.031954, max = 0.0612461 (LElbow)
+[2023-12-21 19:30:00.999] [info] Frame 74 (t = 2.5):	 total squared error = 0.0204178, marker error: RMS = 0.0319513, max = 0.0611784 (LElbow)
+[2023-12-21 19:30:01.070] [info] Frame 75 (t = 2.53333):	 total squared error = 0.0204759, marker error: RMS = 0.0319968, max = 0.0610406 (LElbow)
+[2023-12-21 19:30:01.206] [info] Frame 76 (t = 2.56667):	 total squared error = 0.0205553, marker error: RMS = 0.0320588, max = 0.0607760 (LElbow)
+[2023-12-21 19:30:01.272] [info] Frame 77 (t = 2.6):	 total squared error = 0.0206691, marker error: RMS = 0.0321474, max = 0.0604563 (LElbow)
+[2023-12-21 19:30:01.341] [info] Frame 78 (t = 2.63333):	 total squared error = 0.0207244, marker error: RMS = 0.0321904, max = 0.0601536 (LElbow)
+[2023-12-21 19:30:01.413] [info] Frame 79 (t = 2.66667):	 total squared error = 0.0207241, marker error: RMS = 0.0321901, max = 0.0599023 (LElbow)
+[2023-12-21 19:30:01.469] [info] Frame 80 (t = 2.7):	 total squared error = 0.0206583, marker error: RMS = 0.032139, max = 0.0596949 (LElbow)
+[2023-12-21 19:30:01.561] [info] Frame 81 (t = 2.73333):	 total squared error = 0.0205560, marker error: RMS = 0.0320594, max = 0.0595911 (LElbow)
+[2023-12-21 19:30:01.628] [info] Frame 82 (t = 2.76667):	 total squared error = 0.0205221, marker error: RMS = 0.0320329, max = 0.0596239 (LElbow)
+[2023-12-21 19:30:01.753] [info] Frame 83 (t = 2.8):	 total squared error = 0.0204940, marker error: RMS = 0.0320110, max = 0.0597691 (LElbow)
+[2023-12-21 19:30:01.873] [info] Frame 84 (t = 2.83333):	 total squared error = 0.0205377, marker error: RMS = 0.0320450, max = 0.0600699 (LElbow)
+[2023-12-21 19:30:01.961] [info] Frame 85 (t = 2.86667):	 total squared error = 0.0206139, marker error: RMS = 0.0321044, max = 0.0602852 (LElbow)
+[2023-12-21 19:30:02.063] [info] Frame 86 (t = 2.9):	 total squared error = 0.0206955, marker error: RMS = 0.0321679, max = 0.0604331 (LElbow)
+[2023-12-21 19:30:02.156] [info] Frame 87 (t = 2.93333):	 total squared error = 0.0207642, marker error: RMS = 0.0322213, max = 0.0601859 (LElbow)
+[2023-12-21 19:30:02.230] [info] Frame 88 (t = 2.96667):	 total squared error = 0.0207973, marker error: RMS = 0.0322469, max = 0.0598887 (LElbow)
+[2023-12-21 19:30:02.390] [info] Frame 89 (t = 3.0):	 total squared error = 0.0207567, marker error: RMS = 0.0322154, max = 0.0593074 (LElbow)
+[2023-12-21 19:30:02.494] [info] Frame 90 (t = 3.03333):	 total squared error = 0.0207100, marker error: RMS = 0.0321791, max = 0.058694 (LElbow)
+[2023-12-21 19:30:02.544] [info] Frame 91 (t = 3.06667):	 total squared error = 0.0206476, marker error: RMS = 0.0321307, max = 0.0581941 (LElbow)
+[2023-12-21 19:30:02.637] [info] Frame 92 (t = 3.1):	 total squared error = 0.0205701, marker error: RMS = 0.0320703, max = 0.0576868 (LElbow)
+[2023-12-21 19:30:02.718] [info] Frame 93 (t = 3.13333):	 total squared error = 0.0205441, marker error: RMS = 0.0320500, max = 0.057436 (RElbow)
+[2023-12-21 19:30:02.806] [info] Frame 94 (t = 3.16667):	 total squared error = 0.0205585, marker error: RMS = 0.0320613, max = 0.0577122 (RElbow)
+[2023-12-21 19:30:02.876] [info] Frame 95 (t = 3.2):	 total squared error = 0.0205890, marker error: RMS = 0.0320850, max = 0.057872 (RElbow)
+[2023-12-21 19:30:02.953] [info] Frame 96 (t = 3.23333):	 total squared error = 0.0205737, marker error: RMS = 0.0320731, max = 0.0579579 (LElbow)
+[2023-12-21 19:30:03.104] [info] Frame 97 (t = 3.26667):	 total squared error = 0.0204520, marker error: RMS = 0.0319781, max = 0.058439 (LElbow)
+[2023-12-21 19:30:03.188] [info] Frame 98 (t = 3.3):	 total squared error = 0.0203039, marker error: RMS = 0.0318621, max = 0.0589885 (LElbow)
+[2023-12-21 19:30:03.263] [info] Frame 99 (t = 3.33333):	 total squared error = 0.0201754, marker error: RMS = 0.0317611, max = 0.0595468 (LElbow)
+[2023-12-21 19:30:03.362] [info] Frame 100 (t = 3.36667):	 total squared error = 0.0200854, marker error: RMS = 0.0316902, max = 0.0597314 (LElbow)
+[2023-12-21 19:30:03.456] [info] Frame 101 (t = 3.4):	 total squared error = 0.0200608, marker error: RMS = 0.0316708, max = 0.0598275 (LElbow)
+[2023-12-21 19:30:03.561] [info] Frame 102 (t = 3.43333):	 total squared error = 0.0200787, marker error: RMS = 0.0316849, max = 0.0596691 (LElbow)
+[2023-12-21 19:30:03.640] [info] Frame 103 (t = 3.46667):	 total squared error = 0.0201306, marker error: RMS = 0.0317259, max = 0.059255 (LElbow)
+[2023-12-21 19:30:03.743] [info] Frame 104 (t = 3.5):	 total squared error = 0.0201707, marker error: RMS = 0.0317574, max = 0.0587478 (LElbow)
+[2023-12-21 19:30:03.795] [info] Frame 105 (t = 3.53333):	 total squared error = 0.0202082, marker error: RMS = 0.0317869, max = 0.0584159 (LElbow)
+[2023-12-21 19:30:03.943] [info] Frame 106 (t = 3.56667):	 total squared error = 0.0201874, marker error: RMS = 0.0317706, max = 0.0582938 (LElbow)
+[2023-12-21 19:30:04.031] [info] Frame 107 (t = 3.6):	 total squared error = 0.0201665, marker error: RMS = 0.0317542, max = 0.0585524 (LElbow)
+[2023-12-21 19:30:04.127] [info] Frame 108 (t = 3.63333):	 total squared error = 0.0201694, marker error: RMS = 0.0317564, max = 0.0591198 (LElbow)
+[2023-12-21 19:30:04.223] [info] Frame 109 (t = 3.66667):	 total squared error = 0.0202281, marker error: RMS = 0.0318026, max = 0.0597169 (LElbow)
+[2023-12-21 19:30:04.344] [info] Frame 110 (t = 3.7):	 total squared error = 0.0203376, marker error: RMS = 0.0318885, max = 0.0603048 (LElbow)
+[2023-12-21 19:30:04.442] [info] Frame 111 (t = 3.73333):	 total squared error = 0.0204981, marker error: RMS = 0.0320141, max = 0.0607836 (LElbow)
+[2023-12-21 19:30:04.535] [info] Frame 112 (t = 3.76667):	 total squared error = 0.0206659, marker error: RMS = 0.0321449, max = 0.0611044 (LElbow)
+[2023-12-21 19:30:04.616] [info] Frame 113 (t = 3.8):	 total squared error = 0.0208221, marker error: RMS = 0.0322662, max = 0.0612681 (LElbow)
+[2023-12-21 19:30:04.721] [info] Frame 114 (t = 3.83333):	 total squared error = 0.0208951, marker error: RMS = 0.0323227, max = 0.0613486 (LElbow)
+[2023-12-21 19:30:04.842] [info] Frame 115 (t = 3.86667):	 total squared error = 0.0209296, marker error: RMS = 0.0323494, max = 0.061319 (LElbow)
+[2023-12-21 19:30:04.980] [info] Frame 116 (t = 3.9):	 total squared error = 0.0208843, marker error: RMS = 0.0323143, max = 0.0610863 (LElbow)
+[2023-12-21 19:30:05.044] [info] Frame 117 (t = 3.93333):	 total squared error = 0.0208360, marker error: RMS = 0.0322769, max = 0.0608370 (LElbow)
+[2023-12-21 19:30:05.106] [info] Frame 118 (t = 3.96667):	 total squared error = 0.0207420, marker error: RMS = 0.0322040, max = 0.0603872 (LElbow)
+[2023-12-21 19:30:05.189] [info] Frame 119 (t = 4.0):	 total squared error = 0.0205793, marker error: RMS = 0.0320775, max = 0.0598208 (LElbow)
+[2023-12-21 19:30:05.341] [info] Frame 120 (t = 4.03333):	 total squared error = 0.0203810, marker error: RMS = 0.0319226, max = 0.0591226 (LElbow)
+[2023-12-21 19:30:05.388] [info] Frame 121 (t = 4.06667):	 total squared error = 0.0201930, marker error: RMS = 0.031775, max = 0.0586803 (LElbow)
+[2023-12-21 19:30:05.453] [info] Frame 122 (t = 4.1):	 total squared error = 0.0199981, marker error: RMS = 0.0316213, max = 0.0584801 (LElbow)
+[2023-12-21 19:30:05.550] [info] Frame 123 (t = 4.13333):	 total squared error = 0.0198313, marker error: RMS = 0.0314892, max = 0.0585377 (LElbow)
+[2023-12-21 19:30:05.617] [info] Frame 124 (t = 4.16667):	 total squared error = 0.0197716, marker error: RMS = 0.0314417, max = 0.058635 (LElbow)
+[2023-12-21 19:30:05.711] [info] Frame 125 (t = 4.2):	 total squared error = 0.0198431, marker error: RMS = 0.0314985, max = 0.0586316 (LElbow)
+[2023-12-21 19:30:05.784] [info] Frame 126 (t = 4.23333):	 total squared error = 0.0200203, marker error: RMS = 0.0316388, max = 0.0584726 (LElbow)
+[2023-12-21 19:30:05.855] [info] Frame 127 (t = 4.26667):	 total squared error = 0.0202263, marker error: RMS = 0.0318011, max = 0.058178 (LElbow)
+[2023-12-21 19:30:05.901] [info] Frame 128 (t = 4.3):	 total squared error = 0.0203820, marker error: RMS = 0.0319233, max = 0.0579752 (LElbow)
+[2023-12-21 19:30:05.964] [info] Frame 129 (t = 4.33333):	 total squared error = 0.0204513, marker error: RMS = 0.0319775, max = 0.0575629 (LElbow)
+[2023-12-21 19:30:06.023] [info] Frame 130 (t = 4.36667):	 total squared error = 0.0204426, marker error: RMS = 0.0319707, max = 0.0575383 (LElbow)
+[2023-12-21 19:30:06.189] [info] Frame 131 (t = 4.4):	 total squared error = 0.0203825, marker error: RMS = 0.0319237, max = 0.0579143 (LElbow)
+[2023-12-21 19:30:06.282] [info] Frame 132 (t = 4.43333):	 total squared error = 0.0203383, marker error: RMS = 0.0318891, max = 0.0585116 (LElbow)
+[2023-12-21 19:30:06.361] [info] Frame 133 (t = 4.46667):	 total squared error = 0.0203045, marker error: RMS = 0.0318626, max = 0.0591728 (LElbow)
+[2023-12-21 19:30:06.489] [info] Frame 134 (t = 4.5):	 total squared error = 0.0202189, marker error: RMS = 0.0317954, max = 0.0594886 (LElbow)
+[2023-12-21 19:30:06.614] [info] Frame 135 (t = 4.53333):	 total squared error = 0.0201869, marker error: RMS = 0.0317702, max = 0.0596799 (LElbow)
+[2023-12-21 19:30:06.736] [info] Frame 136 (t = 4.56667):	 total squared error = 0.0201717, marker error: RMS = 0.0317583, max = 0.0598051 (LElbow)
+[2023-12-21 19:30:06.856] [info] Frame 137 (t = 4.6):	 total squared error = 0.0201853, marker error: RMS = 0.0317689, max = 0.0598732 (LElbow)
+[2023-12-21 19:30:06.992] [info] Frame 138 (t = 4.63333):	 total squared error = 0.0202224, marker error: RMS = 0.0317981, max = 0.0599635 (LElbow)
+[2023-12-21 19:30:07.059] [info] Frame 139 (t = 4.66667):	 total squared error = 0.0203192, marker error: RMS = 0.0318741, max = 0.0600695 (LElbow)
+[2023-12-21 19:30:07.156] [info] Frame 140 (t = 4.7):	 total squared error = 0.0204329, marker error: RMS = 0.0319631, max = 0.0601121 (LElbow)
+[2023-12-21 19:30:07.229] [info] Frame 141 (t = 4.73333):	 total squared error = 0.0205658, marker error: RMS = 0.0320669, max = 0.0599472 (LElbow)
+[2023-12-21 19:30:07.292] [info] Frame 142 (t = 4.76667):	 total squared error = 0.0206733, marker error: RMS = 0.0321506, max = 0.0595153 (LElbow)
+[2023-12-21 19:30:07.390] [info] Frame 143 (t = 4.8):	 total squared error = 0.0207202, marker error: RMS = 0.0321871, max = 0.0589513 (LElbow)
+[2023-12-21 19:30:07.488] [info] Frame 144 (t = 4.83333):	 total squared error = 0.0207170, marker error: RMS = 0.0321846, max = 0.0581151 (LElbow)
+[2023-12-21 19:30:07.564] [info] Frame 145 (t = 4.86667):	 total squared error = 0.0206720, marker error: RMS = 0.0321496, max = 0.0569857 (LElbow)
+[2023-12-21 19:30:07.646] [info] Frame 146 (t = 4.9):	 total squared error = 0.0206098, marker error: RMS = 0.0321013, max = 0.0563458 (RElbow)
+[2023-12-21 19:30:07.693] [info] Frame 147 (t = 4.93333):	 total squared error = 0.0206349, marker error: RMS = 0.0321208, max = 0.0567173 (RElbow)
+[2023-12-21 19:30:07.846] [info] Frame 148 (t = 4.96667):	 total squared error = 0.0207174, marker error: RMS = 0.0321849, max = 0.0570604 (RElbow)
+[2023-12-21 19:30:07.926] [info] Frame 149 (t = 5.0):	 total squared error = 0.0209102, marker error: RMS = 0.0323344, max = 0.0576132 (RElbow)
+[2023-12-21 19:30:07.979] [info] Frame 150 (t = 5.03333):	 total squared error = 0.0210945, marker error: RMS = 0.0324765, max = 0.0579482 (RElbow)
+[2023-12-21 19:30:08.031] [info] Frame 151 (t = 5.06667):	 total squared error = 0.0211944, marker error: RMS = 0.0325533, max = 0.0580672 (LElbow)
+[2023-12-21 19:30:08.095] [info] Frame 152 (t = 5.1):	 total squared error = 0.0211969, marker error: RMS = 0.0325553, max = 0.0586144 (LElbow)
+[2023-12-21 19:30:08.208] [info] Frame 153 (t = 5.13333):	 total squared error = 0.0210972, marker error: RMS = 0.0324786, max = 0.0585836 (LElbow)
+[2023-12-21 19:30:08.283] [info] Frame 154 (t = 5.16667):	 total squared error = 0.0209360, marker error: RMS = 0.0323543, max = 0.0584189 (LElbow)
+[2023-12-21 19:30:08.337] [info] Frame 155 (t = 5.2):	 total squared error = 0.0206958, marker error: RMS = 0.0321682, max = 0.0580415 (LElbow)
+[2023-12-21 19:30:08.389] [info] Frame 156 (t = 5.23333):	 total squared error = 0.0204016, marker error: RMS = 0.0319387, max = 0.0577578 (LElbow)
+[2023-12-21 19:30:08.454] [info] Frame 157 (t = 5.26667):	 total squared error = 0.0201248, marker error: RMS = 0.0317213, max = 0.0574905 (LElbow)
+[2023-12-21 19:30:08.572] [info] Frame 158 (t = 5.3):	 total squared error = 0.0198955, marker error: RMS = 0.0315401, max = 0.0571761 (LElbow)
+[2023-12-21 19:30:08.615] [info] Frame 159 (t = 5.33333):	 total squared error = 0.0197552, marker error: RMS = 0.0314287, max = 0.0570168 (LElbow)
+[2023-12-21 19:30:08.673] [info] Frame 160 (t = 5.36667):	 total squared error = 0.0196871, marker error: RMS = 0.0313744, max = 0.0568614 (LElbow)
+[2023-12-21 19:30:08.729] [info] Frame 161 (t = 5.4):	 total squared error = 0.0196441, marker error: RMS = 0.0313402, max = 0.0570141 (LElbow)
+[2023-12-21 19:30:08.781] [info] Frame 162 (t = 5.43333):	 total squared error = 0.0196091, marker error: RMS = 0.0313122, max = 0.05731 (LElbow)
+[2023-12-21 19:30:08.835] [info] Frame 163 (t = 5.46667):	 total squared error = 0.0195891, marker error: RMS = 0.0312963, max = 0.0573339 (LElbow)
+[2023-12-21 19:30:08.907] [info] Frame 164 (t = 5.5):	 total squared error = 0.0195386, marker error: RMS = 0.0312558, max = 0.0571608 (LElbow)
+[2023-12-21 19:30:08.966] [info] Frame 165 (t = 5.53333):	 total squared error = 0.0194721, marker error: RMS = 0.0312026, max = 0.0562548 (LElbow)
+[2023-12-21 19:30:09.040] [info] Frame 166 (t = 5.56667):	 total squared error = 0.0193774, marker error: RMS = 0.0311267, max = 0.0550875 (LElbow)
+[2023-12-21 19:30:09.192] [info] Frame 167 (t = 5.6):	 total squared error = 0.0192814, marker error: RMS = 0.0310495, max = 0.0533916 (RElbow)
+[2023-12-21 19:30:09.303] [info] Frame 168 (t = 5.63333):	 total squared error = 0.0192277, marker error: RMS = 0.0310062, max = 0.053416 (RElbow)
+[2023-12-21 19:30:09.408] [info] Frame 169 (t = 5.66667):	 total squared error = 0.0191971, marker error: RMS = 0.0309815, max = 0.053663 (RElbow)
+[2023-12-21 19:30:09.525] [info] Frame 170 (t = 5.7):	 total squared error = 0.0192184, marker error: RMS = 0.0309987, max = 0.0542628 (RElbow)
+[2023-12-21 19:30:09.617] [info] Frame 171 (t = 5.73333):	 total squared error = 0.0193463, marker error: RMS = 0.0311017, max = 0.0553203 (RElbow)
+[2023-12-21 19:30:09.706] [info] Frame 172 (t = 5.76667):	 total squared error = 0.0196303, marker error: RMS = 0.0313291, max = 0.0581715 (LElbow)
+[2023-12-21 19:30:09.713] [info] InverseKinematicsTool completed 173 frames in 16 second(s).
+[2023-12-22 14:43:49.289] [info] Preparing to run ScaleTool.
+[2023-12-22 14:43:49.289] [info] Processing subject Pose2Sim_scaled...
+[2023-12-22 14:43:49.290] [info] Step 1: Loading generic model
+[2023-12-22 14:43:49.293] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Body25.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-22 14:43:49.293] [error] Unable to load the generic model or marker set file.
+[2023-12-22 14:43:49.293] [error] ScaleTool: No model specified.
+[2023-12-22 14:43:49.294] [error] ScaleTool: No model specified.
+[2023-12-22 14:44:16.901] [info] Preparing to run ScaleTool.
+[2023-12-22 14:44:16.902] [info] Processing subject Pose2Sim_scaled...
+[2023-12-22 14:44:16.903] [info] Step 1: Loading generic model
+[2023-12-22 14:44:16.904] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Body25.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-22 14:44:16.904] [error] Unable to load the generic model or marker set file.
+[2023-12-22 14:44:16.904] [error] ScaleTool: No model specified.
+[2023-12-22 14:44:16.905] [error] ScaleTool: No model specified.
+[2023-12-22 15:49:55.876] [info] Preparing to run ScaleTool.
+[2023-12-22 15:49:55.877] [info] Processing subject Pose2Sim_scaled...
+[2023-12-22 15:49:55.878] [info] Step 1: Loading generic model
+[2023-12-22 15:49:55.878] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Body25.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-22 15:49:55.879] [error] Unable to load the generic model or marker set file.
+[2023-12-22 15:49:55.879] [error] ScaleTool: No model specified.
+[2023-12-22 15:49:55.880] [error] ScaleTool: No model specified.
+[2023-12-22 15:51:02.701] [info] Preparing to run ScaleTool.
+[2023-12-22 15:51:02.702] [info] Processing subject Pose2Sim_scaled...
+[2023-12-22 15:51:02.703] [info] Step 1: Loading generic model
+[2023-12-22 15:51:02.704] [error] Object: Cannot open file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\NTK_CAP\ThirdParty\OpenSim\bin\Model_Pose2Sim_Body25.osim. It may not exist or you do not have permission to read it.
+	Thrown at Object.cpp:105 in Object().
+[2023-12-22 15:51:02.704] [error] Unable to load the generic model or marker set file.
+[2023-12-22 15:51:02.704] [error] ScaleTool: No model specified.
+[2023-12-22 15:51:02.705] [error] ScaleTool: No model specified.
+[2023-12-22 15:51:22.333] [info] Preparing to run ScaleTool.
+[2023-12-22 15:51:22.333] [info] Processing subject Pose2Sim_scaled...
+[2023-12-22 15:51:22.334] [info] Step 1: Loading generic model
+[2023-12-22 15:51:22.351] [info] Loaded model Pose2Sim_AlphaPose from file c:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\walking\Empty_project\opensim\Model_Pose2Sim_Halpe26.osim
+[2023-12-22 15:51:22.352] [warning] Couldn't find file 'r_pelvis.vtp'.
+[2023-12-22 15:51:22.352] [warning] Couldn't find file 'l_pelvis.vtp'.
+[2023-12-22 15:51:22.353] [warning] Couldn't find file 'sacrum.vtp'.
+[2023-12-22 15:51:22.353] [warning] Couldn't find file 'femur_r.vtp'.
+[2023-12-22 15:51:22.353] [warning] Couldn't find file 'r_patella.vtp'.
+[2023-12-22 15:51:22.354] [warning] Couldn't find file 'tibia_r.vtp'.
+[2023-12-22 15:51:22.354] [warning] Couldn't find file 'fibula_r.vtp'.
+[2023-12-22 15:51:22.354] [warning] Couldn't find file 'talus_rv.vtp'.
+[2023-12-22 15:51:22.354] [warning] Couldn't find file 'foot.vtp'.
+[2023-12-22 15:51:22.355] [warning] Couldn't find file 'bofoot.vtp'.
+[2023-12-22 15:51:22.355] [warning] Couldn't find file 'femur_l.vtp'.
+[2023-12-22 15:51:22.355] [warning] Couldn't find file 'l_patella.vtp'.
+[2023-12-22 15:51:22.355] [warning] Couldn't find file 'tibia_l.vtp'.
+[2023-12-22 15:51:22.355] [warning] Couldn't find file 'fibula_l.vtp'.
+[2023-12-22 15:51:22.356] [warning] Couldn't find file 'talus_lv.vtp'.
+[2023-12-22 15:51:22.356] [warning] Couldn't find file 'l_foot.vtp'.
+[2023-12-22 15:51:22.356] [warning] Couldn't find file 'l_bofoot.vtp'.
+[2023-12-22 15:51:22.356] [warning] Couldn't find file 'lumbar5.vtp'.
+[2023-12-22 15:51:22.356] [warning] Couldn't find file 'lumbar4.vtp'.
+[2023-12-22 15:51:22.357] [warning] Couldn't find file 'lumbar3.vtp'.
+[2023-12-22 15:51:22.357] [warning] Couldn't find file 'lumbar2.vtp'.
+[2023-12-22 15:51:22.357] [warning] Couldn't find file 'lumbar1.vtp'.
+[2023-12-22 15:51:22.357] [warning] Couldn't find file 'cerv1sm.vtp'.
+[2023-12-22 15:51:22.358] [warning] Couldn't find file 'cerv2sm.vtp'.
+[2023-12-22 15:51:22.358] [warning] Couldn't find file 'cerv3sm.vtp'.
+[2023-12-22 15:51:22.358] [warning] Couldn't find file 'cerv4sm.vtp'.
+[2023-12-22 15:51:22.358] [warning] Couldn't find file 'cerv5sm.vtp'.
+[2023-12-22 15:51:22.358] [warning] Couldn't find file 'cerv6sm.vtp'.
+[2023-12-22 15:51:22.359] [warning] Couldn't find file 'cerv7.vtp'.
+[2023-12-22 15:51:22.359] [warning] Couldn't find file 'thoracic12_s.vtp'.
+[2023-12-22 15:51:22.359] [warning] Couldn't find file 'thoracic11_s.vtp'.
+[2023-12-22 15:51:22.359] [warning] Couldn't find file 'thoracic10_s.vtp'.
+[2023-12-22 15:51:22.359] [warning] Couldn't find file 'thoracic9_s.vtp'.
+[2023-12-22 15:51:22.360] [warning] Couldn't find file 'thoracic8_s.vtp'.
+[2023-12-22 15:51:22.360] [warning] Couldn't find file 'thoracic7_s.vtp'.
+[2023-12-22 15:51:22.360] [warning] Couldn't find file 'thoracic6_s.vtp'.
+[2023-12-22 15:51:22.360] [warning] Couldn't find file 'thoracic5_s.vtp'.
+[2023-12-22 15:51:22.360] [warning] Couldn't find file 'thoracic4_s.vtp'.
+[2023-12-22 15:51:22.361] [warning] Couldn't find file 'thoracic3_s.vtp'.
+[2023-12-22 15:51:22.361] [warning] Couldn't find file 'thoracic2_s.vtp'.
+[2023-12-22 15:51:22.361] [warning] Couldn't find file 'thoracic1_s.vtp'.
+[2023-12-22 15:51:22.361] [warning] Couldn't find file 'hat_ribs_scap.vtp'.
+[2023-12-22 15:51:22.362] [warning] Couldn't find file 'hat_jaw.vtp'.
+[2023-12-22 15:51:22.362] [warning] Couldn't find file 'hat_skull.vtp'.
+[2023-12-22 15:51:22.362] [warning] Couldn't find file 'humerus_rv.vtp'.
+[2023-12-22 15:51:22.362] [warning] Couldn't find file 'ulna_rv.vtp'.
+[2023-12-22 15:51:22.362] [warning] Couldn't find file 'radius_rv.vtp'.
+[2023-12-22 15:51:22.363] [warning] Couldn't find file 'pisiform_rvs.vtp'.
+[2023-12-22 15:51:22.363] [warning] Couldn't find file 'lunate_rvs.vtp'.
+[2023-12-22 15:51:22.363] [warning] Couldn't find file 'scaphoid_rvs.vtp'.
+[2023-12-22 15:51:22.363] [warning] Couldn't find file 'triquetrum_rvs.vtp'.
+[2023-12-22 15:51:22.365] [warning] Couldn't find file 'hamate_rvs.vtp'.
+[2023-12-22 15:51:22.365] [warning] Couldn't find file 'capitate_rvs.vtp'.
+[2023-12-22 15:51:22.366] [warning] Couldn't find file 'trapezoid_rvs.vtp'.
+[2023-12-22 15:51:22.366] [warning] Couldn't find file 'trapezium_rvs.vtp'.
+[2023-12-22 15:51:22.366] [warning] Couldn't find file 'metacarpal2_rvs.vtp'.
+[2023-12-22 15:51:22.366] [warning] Couldn't find file 'index_proximal_rvs.vtp'.
+[2023-12-22 15:51:22.367] [warning] Couldn't find file 'index_medial_rvs.vtp'.
+[2023-12-22 15:51:22.367] [warning] Couldn't find file 'index_distal_rvs.vtp'.
+[2023-12-22 15:51:22.367] [warning] Couldn't find file 'metacarpal3_rvs.vtp'.
+[2023-12-22 15:51:22.367] [warning] Couldn't find file 'middle_proximal_rvs.vtp'.
+[2023-12-22 15:51:22.368] [warning] Couldn't find file 'middle_medial_rvs.vtp'.
+[2023-12-22 15:51:22.368] [warning] Couldn't find file 'middle_distal_rvs.vtp'.
+[2023-12-22 15:51:22.368] [warning] Couldn't find file 'metacarpal4_rvs.vtp'.
+[2023-12-22 15:51:22.368] [warning] Couldn't find file 'ring_proximal_rvs.vtp'.
+[2023-12-22 15:51:22.368] [warning] Couldn't find file 'ring_medial_rvs.vtp'.
+[2023-12-22 15:51:22.369] [warning] Couldn't find file 'ring_distal_rvs.vtp'.
+[2023-12-22 15:51:22.369] [warning] Couldn't find file 'metacarpal5_rvs.vtp'.
+[2023-12-22 15:51:22.369] [warning] Couldn't find file 'little_proximal_rvs.vtp'.
+[2023-12-22 15:51:22.369] [warning] Couldn't find file 'little_medial_rvs.vtp'.
+[2023-12-22 15:51:22.370] [warning] Couldn't find file 'little_distal_rvs.vtp'.
+[2023-12-22 15:51:22.370] [warning] Couldn't find file 'metacarpal1_rvs.vtp'.
+[2023-12-22 15:51:22.370] [warning] Couldn't find file 'thumb_proximal_rvs.vtp'.
+[2023-12-22 15:51:22.370] [warning] Couldn't find file 'thumb_distal_rvs.vtp'.
+[2023-12-22 15:51:22.370] [warning] Couldn't find file 'humerus_lv.vtp'.
+[2023-12-22 15:51:22.371] [warning] Couldn't find file 'ulna_lv.vtp'.
+[2023-12-22 15:51:22.371] [warning] Couldn't find file 'radius_lv.vtp'.
+[2023-12-22 15:51:22.371] [warning] Couldn't find file 'pisiform_lvs.vtp'.
+[2023-12-22 15:51:22.371] [warning] Couldn't find file 'lunate_lvs.vtp'.
+[2023-12-22 15:51:22.371] [warning] Couldn't find file 'scaphoid_lvs.vtp'.
+[2023-12-22 15:51:22.372] [warning] Couldn't find file 'triquetrum_lvs.vtp'.
+[2023-12-22 15:51:22.372] [warning] Couldn't find file 'hamate_lvs.vtp'.
+[2023-12-22 15:51:22.372] [warning] Couldn't find file 'capitate_lvs.vtp'.
+[2023-12-22 15:51:22.372] [warning] Couldn't find file 'trapezoid_lvs.vtp'.
+[2023-12-22 15:51:22.373] [warning] Couldn't find file 'trapezium_lvs.vtp'.
+[2023-12-22 15:51:22.373] [warning] Couldn't find file 'metacarpal2_lvs.vtp'.
+[2023-12-22 15:51:22.373] [warning] Couldn't find file 'index_proximal_lvs.vtp'.
+[2023-12-22 15:51:22.373] [warning] Couldn't find file 'index_medial_lvs.vtp'.
+[2023-12-22 15:51:22.374] [warning] Couldn't find file 'index_distal_lvs.vtp'.
+[2023-12-22 15:51:22.374] [warning] Couldn't find file 'metacarpal3_lvs.vtp'.
+[2023-12-22 15:51:22.374] [warning] Couldn't find file 'middle_proximal_lvs.vtp'.
+[2023-12-22 15:51:22.375] [warning] Couldn't find file 'middle_medial_lvs.vtp'.
+[2023-12-22 15:51:22.375] [warning] Couldn't find file 'middle_distal_lvs.vtp'.
+[2023-12-22 15:51:22.375] [warning] Couldn't find file 'metacarpal4_lvs.vtp'.
+[2023-12-22 15:51:22.375] [warning] Couldn't find file 'ring_proximal_lvs.vtp'.
+[2023-12-22 15:51:22.375] [warning] Couldn't find file 'ring_medial_lvs.vtp'.
+[2023-12-22 15:51:22.376] [warning] Couldn't find file 'ring_distal_lvs.vtp'.
+[2023-12-22 15:51:22.376] [warning] Couldn't find file 'metacarpal5_lvs.vtp'.
+[2023-12-22 15:51:22.376] [warning] Couldn't find file 'little_proximal_lvs.vtp'.
+[2023-12-22 15:51:22.376] [warning] Couldn't find file 'little_medial_lvs.vtp'.
+[2023-12-22 15:51:22.377] [warning] Couldn't find file 'little_distal_lvs.vtp'.
+[2023-12-22 15:51:22.377] [warning] Couldn't find file 'metacarpal1_lvs.vtp'.
+[2023-12-22 15:51:22.377] [warning] Couldn't find file 'thumb_proximal_lvs.vtp'.
+[2023-12-22 15:51:22.377] [warning] Couldn't find file 'thumb_distal_lvs.vtp'.
+[2023-12-22 15:51:22.385] [info] Step 2: Scaling generic model
+[2023-12-22 15:51:22.402] [info] Loaded marker file C:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\walking\Empty_project\opensim\Empty_project_filt_0-30.trc (22 markers, 348 frames)
+[2023-12-22 15:51:22.403] [info] Measurement 'torso'
+[2023-12-22 15:51:22.403] [info] 	pair 0 (LShoulder, LHip): model = 0.553062, experimental = 0.587058
+[2023-12-22 15:51:22.403] [info] 	pair 1 (RShoulder, RHip): model = 0.553062, experimental = 0.571566
+[2023-12-22 15:51:22.403] [info] 	overall scale factor = 1.04746
+[2023-12-22 15:51:22.404] [info] Measurement 'arm'
+[2023-12-22 15:51:22.404] [info] 	pair 0 (LShoulder, LElbow): model = 0.269526, experimental = 0.303114
+[2023-12-22 15:51:22.404] [info] 	pair 1 (RShoulder, RElbow): model = 0.269526, experimental = 0.307297
+[2023-12-22 15:51:22.405] [info] 	overall scale factor = 1.13238
+[2023-12-22 15:51:22.405] [info] Measurement 'forearm'
+[2023-12-22 15:51:22.405] [info] 	pair 0 (LElbow, LWrist): model = 0.237488, experimental = 0.2647
+[2023-12-22 15:51:22.405] [info] 	pair 1 (RElbow, RWrist): model = 0.237488, experimental = 0.270741
+[2023-12-22 15:51:22.406] [info] 	overall scale factor = 1.1273
+[2023-12-22 15:51:22.406] [info] Measurement 'thigh'
+[2023-12-22 15:51:22.406] [info] 	pair 0 (LHip, LKnee): model = 0.371469, experimental = 0.400656
+[2023-12-22 15:51:22.406] [info] 	pair 1 (RHip, RKnee): model = 0.371469, experimental = 0.396794
+[2023-12-22 15:51:22.407] [info] 	overall scale factor = 1.07337
+[2023-12-22 15:51:22.407] [info] Measurement 'shank'
+[2023-12-22 15:51:22.407] [info] 	pair 0 (LKnee, LAnkle): model = 0.388261, experimental = 0.384619
+[2023-12-22 15:51:22.407] [info] 	pair 1 (RKnee, RAnkle): model = 0.388261, experimental = 0.400331
+[2023-12-22 15:51:22.407] [info] 	overall scale factor = 1.01085
+[2023-12-22 15:51:22.408] [info] Measurement 'foot'
+[2023-12-22 15:51:22.408] [info] 	pair 0 (LHeel, LBigToe): model = 0.230688, experimental = 0.230489
+[2023-12-22 15:51:22.408] [info] 	pair 1 (RHeel, RBigToe): model = 0.230688, experimental = 0.223005
+[2023-12-22 15:51:22.408] [info] 	overall scale factor = 0.982914
+[2023-12-22 15:51:22.408] [info] Measurement 'head'
+[2023-12-22 15:51:22.409] [info] 	pair 0 (Head, Nose): model = 0.131925, experimental = 0.184835
+[2023-12-22 15:51:22.409] [info] 	pair 1 (Head, Neck): model = 0.230765, experimental = 0.262738
+[2023-12-22 15:51:22.409] [info] 	overall scale factor = 1.2698
+[2023-12-22 15:51:22.409] [info] Measurement 'pelvis'
+[2023-12-22 15:51:22.410] [info] 	pair 0 (RHip, LHip): model = 0.210813, experimental = 0.195684
+[2023-12-22 15:51:22.410] [info] 	overall scale factor = 0.928238
+[2023-12-22 15:51:22.450] [info] Wrote model file 'C:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\walking\Empty_project\opensim\Model_Pose2Sim_Halpe26_scaled.osim' from model.
+[2023-12-22 15:51:39.483] [info] Preparing to run InverseKinematicsTool.
+[2023-12-22 15:51:39.500] [info] Loaded model Pose2Sim_scaled from file C:\Users\Hermes\Desktop\mmpose\py_file_yyver1\NTKCAP_1.1.1\NTKCAP_1.1.1\patient\mau_vicon\2023_11_28\walking\Empty_project\opensim\Model_Pose2Sim_Halpe26_scaled.osim
+[2023-12-22 15:51:39.501] [warning] Couldn't find file 'r_pelvis.vtp'.
+[2023-12-22 15:51:39.501] [warning] Couldn't find file 'l_pelvis.vtp'.
+[2023-12-22 15:51:39.502] [warning] Couldn't find file 'sacrum.vtp'.
+[2023-12-22 15:51:39.502] [warning] Couldn't find file 'femur_r.vtp'.
+[2023-12-22 15:51:39.503] [warning] Couldn't find file 'r_patella.vtp'.
+[2023-12-22 15:51:39.503] [warning] Couldn't find file 'tibia_r.vtp'.
+[2023-12-22 15:51:39.503] [warning] Couldn't find file 'fibula_r.vtp'.
+[2023-12-22 15:51:39.504] [warning] Couldn't find file 'talus_rv.vtp'.
+[2023-12-22 15:51:39.504] [warning] Couldn't find file 'foot.vtp'.
+[2023-12-22 15:51:39.504] [warning] Couldn't find file 'bofoot.vtp'.
+[2023-12-22 15:51:39.504] [warning] Couldn't find file 'femur_l.vtp'.
+[2023-12-22 15:51:39.504] [warning] Couldn't find file 'l_patella.vtp'.
+[2023-12-22 15:51:39.505] [warning] Couldn't find file 'tibia_l.vtp'.
+[2023-12-22 15:51:39.505] [warning] Couldn't find file 'fibula_l.vtp'.
+[2023-12-22 15:51:39.505] [warning] Couldn't find file 'talus_lv.vtp'.
+[2023-12-22 15:51:39.505] [warning] Couldn't find file 'l_foot.vtp'.
+[2023-12-22 15:51:39.506] [warning] Couldn't find file 'l_bofoot.vtp'.
+[2023-12-22 15:51:39.506] [warning] Couldn't find file 'lumbar5.vtp'.
+[2023-12-22 15:51:39.506] [warning] Couldn't find file 'lumbar4.vtp'.
+[2023-12-22 15:51:39.506] [warning] Couldn't find file 'lumbar3.vtp'.
+[2023-12-22 15:51:39.506] [warning] Couldn't find file 'lumbar2.vtp'.
+[2023-12-22 15:51:39.507] [warning] Couldn't find file 'lumbar1.vtp'.
+[2023-12-22 15:51:39.507] [warning] Couldn't find file 'cerv1sm.vtp'.
+[2023-12-22 15:51:39.507] [warning] Couldn't find file 'cerv2sm.vtp'.
+[2023-12-22 15:51:39.507] [warning] Couldn't find file 'cerv3sm.vtp'.
+[2023-12-22 15:51:39.508] [warning] Couldn't find file 'cerv4sm.vtp'.
+[2023-12-22 15:51:39.508] [warning] Couldn't find file 'cerv5sm.vtp'.
+[2023-12-22 15:51:39.508] [warning] Couldn't find file 'cerv6sm.vtp'.
+[2023-12-22 15:51:39.508] [warning] Couldn't find file 'cerv7.vtp'.
+[2023-12-22 15:51:39.508] [warning] Couldn't find file 'thoracic12_s.vtp'.
+[2023-12-22 15:51:39.509] [warning] Couldn't find file 'thoracic11_s.vtp'.
+[2023-12-22 15:51:39.509] [warning] Couldn't find file 'thoracic10_s.vtp'.
+[2023-12-22 15:51:39.509] [warning] Couldn't find file 'thoracic9_s.vtp'.
+[2023-12-22 15:51:39.509] [warning] Couldn't find file 'thoracic8_s.vtp'.
+[2023-12-22 15:51:39.510] [warning] Couldn't find file 'thoracic7_s.vtp'.
+[2023-12-22 15:51:39.510] [warning] Couldn't find file 'thoracic6_s.vtp'.
+[2023-12-22 15:51:39.510] [warning] Couldn't find file 'thoracic5_s.vtp'.
+[2023-12-22 15:51:39.510] [warning] Couldn't find file 'thoracic4_s.vtp'.
+[2023-12-22 15:51:39.510] [warning] Couldn't find file 'thoracic3_s.vtp'.
+[2023-12-22 15:51:39.511] [warning] Couldn't find file 'thoracic2_s.vtp'.
+[2023-12-22 15:51:39.511] [warning] Couldn't find file 'thoracic1_s.vtp'.
+[2023-12-22 15:51:39.511] [warning] Couldn't find file 'hat_ribs_scap.vtp'.
+[2023-12-22 15:51:39.511] [warning] Couldn't find file 'hat_jaw.vtp'.
+[2023-12-22 15:51:39.511] [warning] Couldn't find file 'hat_skull.vtp'.
+[2023-12-22 15:51:39.512] [warning] Couldn't find file 'humerus_rv.vtp'.
+[2023-12-22 15:51:39.512] [warning] Couldn't find file 'ulna_rv.vtp'.
+[2023-12-22 15:51:39.512] [warning] Couldn't find file 'radius_rv.vtp'.
+[2023-12-22 15:51:39.514] [warning] Couldn't find file 'pisiform_rvs.vtp'.
+[2023-12-22 15:51:39.514] [warning] Couldn't find file 'lunate_rvs.vtp'.
+[2023-12-22 15:51:39.514] [warning] Couldn't find file 'scaphoid_rvs.vtp'.
+[2023-12-22 15:51:39.515] [warning] Couldn't find file 'triquetrum_rvs.vtp'.
+[2023-12-22 15:51:39.515] [warning] Couldn't find file 'hamate_rvs.vtp'.
+[2023-12-22 15:51:39.515] [warning] Couldn't find file 'capitate_rvs.vtp'.
+[2023-12-22 15:51:39.515] [warning] Couldn't find file 'trapezoid_rvs.vtp'.
+[2023-12-22 15:51:39.516] [warning] Couldn't find file 'trapezium_rvs.vtp'.
+[2023-12-22 15:51:39.516] [warning] Couldn't find file 'metacarpal2_rvs.vtp'.
+[2023-12-22 15:51:39.516] [warning] Couldn't find file 'index_proximal_rvs.vtp'.
+[2023-12-22 15:51:39.516] [warning] Couldn't find file 'index_medial_rvs.vtp'.
+[2023-12-22 15:51:39.519] [warning] Couldn't find file 'index_distal_rvs.vtp'.
+[2023-12-22 15:51:39.520] [warning] Couldn't find file 'metacarpal3_rvs.vtp'.
+[2023-12-22 15:51:39.520] [warning] Couldn't find file 'middle_proximal_rvs.vtp'.
+[2023-12-22 15:51:39.520] [warning] Couldn't find file 'middle_medial_rvs.vtp'.
+[2023-12-22 15:51:39.521] [warning] Couldn't find file 'middle_distal_rvs.vtp'.
+[2023-12-22 15:51:39.521] [warning] Couldn't find file 'metacarpal4_rvs.vtp'.
+[2023-12-22 15:51:39.521] [warning] Couldn't find file 'ring_proximal_rvs.vtp'.
+[2023-12-22 15:51:39.521] [warning] Couldn't find file 'ring_medial_rvs.vtp'.
+[2023-12-22 15:51:39.522] [warning] Couldn't find file 'ring_distal_rvs.vtp'.
+[2023-12-22 15:51:39.522] [warning] Couldn't find file 'metacarpal5_rvs.vtp'.
+[2023-12-22 15:51:39.522] [warning] Couldn't find file 'little_proximal_rvs.vtp'.
+[2023-12-22 15:51:39.522] [warning] Couldn't find file 'little_medial_rvs.vtp'.
+[2023-12-22 15:51:39.523] [warning] Couldn't find file 'little_distal_rvs.vtp'.
+[2023-12-22 15:51:39.523] [warning] Couldn't find file 'metacarpal1_rvs.vtp'.
+[2023-12-22 15:51:39.523] [warning] Couldn't find file 'thumb_proximal_rvs.vtp'.
+[2023-12-22 15:51:39.523] [warning] Couldn't find file 'thumb_distal_rvs.vtp'.
+[2023-12-22 15:51:39.524] [warning] Couldn't find file 'humerus_lv.vtp'.
+[2023-12-22 15:51:39.524] [warning] Couldn't find file 'ulna_lv.vtp'.
+[2023-12-22 15:51:39.524] [warning] Couldn't find file 'radius_lv.vtp'.
+[2023-12-22 15:51:39.524] [warning] Couldn't find file 'pisiform_lvs.vtp'.
+[2023-12-22 15:51:39.525] [warning] Couldn't find file 'lunate_lvs.vtp'.
+[2023-12-22 15:51:39.525] [warning] Couldn't find file 'scaphoid_lvs.vtp'.
+[2023-12-22 15:51:39.525] [warning] Couldn't find file 'triquetrum_lvs.vtp'.
+[2023-12-22 15:51:39.525] [warning] Couldn't find file 'hamate_lvs.vtp'.
+[2023-12-22 15:51:39.526] [warning] Couldn't find file 'capitate_lvs.vtp'.
+[2023-12-22 15:51:39.526] [warning] Couldn't find file 'trapezoid_lvs.vtp'.
+[2023-12-22 15:51:39.526] [warning] Couldn't find file 'trapezium_lvs.vtp'.
+[2023-12-22 15:51:39.526] [warning] Couldn't find file 'metacarpal2_lvs.vtp'.
+[2023-12-22 15:51:39.526] [warning] Couldn't find file 'index_proximal_lvs.vtp'.
+[2023-12-22 15:51:39.527] [warning] Couldn't find file 'index_medial_lvs.vtp'.
+[2023-12-22 15:51:39.527] [warning] Couldn't find file 'index_distal_lvs.vtp'.
+[2023-12-22 15:51:39.527] [warning] Couldn't find file 'metacarpal3_lvs.vtp'.
+[2023-12-22 15:51:39.527] [warning] Couldn't find file 'middle_proximal_lvs.vtp'.
+[2023-12-22 15:51:39.528] [warning] Couldn't find file 'middle_medial_lvs.vtp'.
+[2023-12-22 15:51:39.529] [warning] Couldn't find file 'middle_distal_lvs.vtp'.
+[2023-12-22 15:51:39.530] [warning] Couldn't find file 'metacarpal4_lvs.vtp'.
+[2023-12-22 15:51:39.530] [warning] Couldn't find file 'ring_proximal_lvs.vtp'.
+[2023-12-22 15:51:39.530] [warning] Couldn't find file 'ring_medial_lvs.vtp'.
+[2023-12-22 15:51:39.530] [warning] Couldn't find file 'ring_distal_lvs.vtp'.
+[2023-12-22 15:51:39.530] [warning] Couldn't find file 'metacarpal5_lvs.vtp'.
+[2023-12-22 15:51:39.531] [warning] Couldn't find file 'little_proximal_lvs.vtp'.
+[2023-12-22 15:51:39.531] [warning] Couldn't find file 'little_medial_lvs.vtp'.
+[2023-12-22 15:51:39.531] [warning] Couldn't find file 'little_distal_lvs.vtp'.
+[2023-12-22 15:51:39.531] [warning] Couldn't find file 'metacarpal1_lvs.vtp'.
+[2023-12-22 15:51:39.532] [warning] Couldn't find file 'thumb_proximal_lvs.vtp'.
+[2023-12-22 15:51:39.532] [warning] Couldn't find file 'thumb_distal_lvs.vtp'.
+[2023-12-22 15:51:39.534] [cout] [info] 
+               MODEL: Pose2Sim_scaled
+         coordinates: 62
+              forces: 0
+           actuators: 0
+             muscles: 0
+            analyses: 0
+              probes: 0
+              bodies: 30
+              joints: 30
+         constraints: 20
+             markers: 22
+         controllers: 0
+  contact geometries: 0
+misc modelcomponents: 0
+[2023-12-22 15:51:39.535] [info] Running tool .
+[2023-12-22 15:51:39.904] [info] Frame 0 (t = 0.0333333):	 total squared error = 0.0120447, marker error: RMS = 0.0233985, max = 0.0552821 (Hip)
+[2023-12-22 15:51:40.051] [info] Frame 1 (t = 0.0666667):	 total squared error = 0.0115684, marker error: RMS = 0.0229311, max = 0.0562618 (Hip)
+[2023-12-22 15:51:40.260] [info] Frame 2 (t = 0.1):	 total squared error = 0.0125779, marker error: RMS = 0.0239107, max = 0.0604196 (Hip)
+[2023-12-22 15:51:40.352] [info] Frame 3 (t = 0.133333):	 total squared error = 0.0130522, marker error: RMS = 0.0243574, max = 0.0605792 (Hip)
+[2023-12-22 15:51:40.461] [info] Frame 4 (t = 0.166667):	 total squared error = 0.0124117, marker error: RMS = 0.0237522, max = 0.0609000 (Hip)
+[2023-12-22 15:51:40.591] [info] Frame 5 (t = 0.2):	 total squared error = 0.01342, marker error: RMS = 0.0246982, max = 0.0614461 (Hip)
+[2023-12-22 15:51:40.648] [info] Frame 6 (t = 0.233333):	 total squared error = 0.0121967, marker error: RMS = 0.0235456, max = 0.0563245 (Hip)
+[2023-12-22 15:51:40.807] [info] Frame 7 (t = 0.266667):	 total squared error = 0.0118185, marker error: RMS = 0.0231776, max = 0.0555135 (Hip)
+[2023-12-22 15:51:40.907] [info] Frame 8 (t = 0.3):	 total squared error = 0.0132723, marker error: RMS = 0.0245619, max = 0.0638537 (Hip)
+[2023-12-22 15:51:40.951] [info] Frame 9 (t = 0.333333):	 total squared error = 0.0121894, marker error: RMS = 0.0235386, max = 0.0559603 (Hip)
+[2023-12-22 15:51:40.986] [info] Frame 10 (t = 0.366667):	 total squared error = 0.0120556, marker error: RMS = 0.0234090, max = 0.0564134 (Hip)
+[2023-12-22 15:51:41.088] [info] Frame 11 (t = 0.4):	 total squared error = 0.0117696, marker error: RMS = 0.0231297, max = 0.0557679 (Hip)
+[2023-12-22 15:51:41.195] [info] Frame 12 (t = 0.433333):	 total squared error = 0.0115053, marker error: RMS = 0.0228685, max = 0.0575202 (Hip)
+[2023-12-22 15:51:41.229] [info] Frame 13 (t = 0.466667):	 total squared error = 0.011565, marker error: RMS = 0.0229277, max = 0.0571847 (Hip)
+[2023-12-22 15:51:41.303] [info] Frame 14 (t = 0.5):	 total squared error = 0.0111263, marker error: RMS = 0.0224887, max = 0.0569942 (Hip)
+[2023-12-22 15:51:41.337] [info] Frame 15 (t = 0.533333):	 total squared error = 0.0116348, marker error: RMS = 0.0229969, max = 0.0606143 (Hip)
+[2023-12-22 15:51:41.443] [info] Frame 16 (t = 0.566667):	 total squared error = 0.0129594, marker error: RMS = 0.0242707, max = 0.061349 (Hip)
+[2023-12-22 15:51:41.600] [info] Frame 17 (t = 0.6):	 total squared error = 0.0154137, marker error: RMS = 0.0264693, max = 0.0605428 (Hip)
+[2023-12-22 15:51:41.688] [info] Frame 18 (t = 0.633333):	 total squared error = 0.0147893, marker error: RMS = 0.0259276, max = 0.0572258 (Hip)
+[2023-12-22 15:51:41.738] [info] Frame 19 (t = 0.666667):	 total squared error = 0.0154183, marker error: RMS = 0.0264732, max = 0.0592017 (Hip)
+[2023-12-22 15:51:41.838] [info] Frame 20 (t = 0.7):	 total squared error = 0.014753, marker error: RMS = 0.0258958, max = 0.0573562 (Hip)
+[2023-12-22 15:51:41.882] [info] Frame 21 (t = 0.733333):	 total squared error = 0.0144474, marker error: RMS = 0.0256262, max = 0.0587919 (Hip)
+[2023-12-22 15:51:42.011] [info] Frame 22 (t = 0.766667):	 total squared error = 0.0136184, marker error: RMS = 0.0248801, max = 0.0574873 (Hip)
+[2023-12-22 15:51:42.087] [info] Frame 23 (t = 0.8):	 total squared error = 0.0131798, marker error: RMS = 0.0244762, max = 0.0581325 (Hip)
+[2023-12-22 15:51:42.167] [info] Frame 24 (t = 0.833333):	 total squared error = 0.0118575, marker error: RMS = 0.0232159, max = 0.0572034 (Hip)
+[2023-12-22 15:51:42.225] [info] Frame 25 (t = 0.866667):	 total squared error = 0.0134579, marker error: RMS = 0.024733, max = 0.0579696 (Hip)
+[2023-12-22 15:51:42.278] [info] Frame 26 (t = 0.9):	 total squared error = 0.0125882, marker error: RMS = 0.0239206, max = 0.0563565 (Hip)
+[2023-12-22 15:51:42.332] [info] Frame 27 (t = 0.933333):	 total squared error = 0.012996, marker error: RMS = 0.0243049, max = 0.0591709 (Hip)
+[2023-12-22 15:51:42.420] [info] Frame 28 (t = 0.966667):	 total squared error = 0.0139384, marker error: RMS = 0.0251707, max = 0.0591803 (Hip)
+[2023-12-22 15:51:42.511] [info] Frame 29 (t = 1.0):	 total squared error = 0.0135735, marker error: RMS = 0.024839, max = 0.0585113 (Hip)
+[2023-12-22 15:51:42.558] [info] Frame 30 (t = 1.03333):	 total squared error = 0.0127981, marker error: RMS = 0.0241191, max = 0.0542363 (Hip)
+[2023-12-22 15:51:42.653] [info] Frame 31 (t = 1.06667):	 total squared error = 0.013549, marker error: RMS = 0.0248166, max = 0.0548606 (Hip)
+[2023-12-22 15:51:42.705] [info] Frame 32 (t = 1.1):	 total squared error = 0.0141082, marker error: RMS = 0.0253236, max = 0.0568602 (Hip)
+[2023-12-22 15:51:42.789] [info] Frame 33 (t = 1.13333):	 total squared error = 0.0140466, marker error: RMS = 0.0252682, max = 0.0557178 (Hip)
+[2023-12-22 15:51:42.828] [info] Frame 34 (t = 1.16667):	 total squared error = 0.0129176, marker error: RMS = 0.0242315, max = 0.0523969 (Hip)
+[2023-12-22 15:51:42.868] [info] Frame 35 (t = 1.2):	 total squared error = 0.0130175, marker error: RMS = 0.0243249, max = 0.0518808 (Hip)
+[2023-12-22 15:51:42.946] [info] Frame 36 (t = 1.23333):	 total squared error = 0.0130632, marker error: RMS = 0.0243676, max = 0.0524228 (Hip)
+[2023-12-22 15:51:43.026] [info] Frame 37 (t = 1.26667):	 total squared error = 0.0130462, marker error: RMS = 0.0243518, max = 0.0532702 (Hip)
+[2023-12-22 15:51:43.127] [info] Frame 38 (t = 1.3):	 total squared error = 0.0140836, marker error: RMS = 0.0253015, max = 0.0542492 (Hip)
+[2023-12-22 15:51:43.231] [info] Frame 39 (t = 1.33333):	 total squared error = 0.0149529, marker error: RMS = 0.0260706, max = 0.053742 (Hip)
+[2023-12-22 15:51:43.364] [info] Frame 40 (t = 1.36667):	 total squared error = 0.0139090, marker error: RMS = 0.0251441, max = 0.0616486 (Hip)
+[2023-12-22 15:51:43.429] [info] Frame 41 (t = 1.4):	 total squared error = 0.0134293, marker error: RMS = 0.0247067, max = 0.0609562 (Hip)
+[2023-12-22 15:51:43.532] [info] Frame 42 (t = 1.43333):	 total squared error = 0.0156571, marker error: RMS = 0.0266775, max = 0.0609603 (Nose)
+[2023-12-22 15:51:43.667] [info] Frame 43 (t = 1.46667):	 total squared error = 0.0144913, marker error: RMS = 0.025665, max = 0.0560243 (Hip)
+[2023-12-22 15:51:43.763] [info] Frame 44 (t = 1.5):	 total squared error = 0.0153293, marker error: RMS = 0.0263967, max = 0.0613788 (Nose)
+[2023-12-22 15:51:43.876] [info] Frame 45 (t = 1.53333):	 total squared error = 0.0151616, marker error: RMS = 0.0262519, max = 0.0600196 (Nose)
+[2023-12-22 15:51:43.949] [info] Frame 46 (t = 1.56667):	 total squared error = 0.016651, marker error: RMS = 0.0275112, max = 0.0587785 (Nose)
+[2023-12-22 15:51:44.048] [info] Frame 47 (t = 1.6):	 total squared error = 0.0144844, marker error: RMS = 0.0256589, max = 0.0609706 (Nose)
+[2023-12-22 15:51:44.126] [info] Frame 48 (t = 1.63333):	 total squared error = 0.0146964, marker error: RMS = 0.025846, max = 0.0610921 (Nose)
+[2023-12-22 15:51:44.203] [info] Frame 49 (t = 1.66667):	 total squared error = 0.014999, marker error: RMS = 0.0261107, max = 0.0624294 (Nose)
+[2023-12-22 15:51:44.288] [info] Frame 50 (t = 1.7):	 total squared error = 0.0132612, marker error: RMS = 0.0245516, max = 0.0637512 (Nose)
+[2023-12-22 15:51:44.359] [info] Frame 51 (t = 1.73333):	 total squared error = 0.0139134, marker error: RMS = 0.0251481, max = 0.0631704 (Nose)
+[2023-12-22 15:51:44.431] [info] Frame 52 (t = 1.76667):	 total squared error = 0.0138111, marker error: RMS = 0.0250555, max = 0.0646332 (Nose)
+[2023-12-22 15:51:44.506] [info] Frame 53 (t = 1.8):	 total squared error = 0.0134256, marker error: RMS = 0.0247033, max = 0.063872 (Nose)
+[2023-12-22 15:51:44.599] [info] Frame 54 (t = 1.83333):	 total squared error = 0.0124583, marker error: RMS = 0.0237968, max = 0.0592696 (Nose)
+[2023-12-22 15:51:44.642] [info] Frame 55 (t = 1.86667):	 total squared error = 0.0110486, marker error: RMS = 0.02241, max = 0.0432906 (Nose)
+[2023-12-22 15:51:44.717] [info] Frame 56 (t = 1.9):	 total squared error = 0.0107133, marker error: RMS = 0.0220673, max = 0.0413228 (Nose)
+[2023-12-22 15:51:44.759] [info] Frame 57 (t = 1.93333):	 total squared error = 0.0111789, marker error: RMS = 0.0225418, max = 0.0412766 (Nose)
+[2023-12-22 15:51:44.811] [info] Frame 58 (t = 1.96667):	 total squared error = 0.0120115, marker error: RMS = 0.0233661, max = 0.0439626 (Nose)
+[2023-12-22 15:51:44.872] [info] Frame 59 (t = 2.0):	 total squared error = 0.0122327, marker error: RMS = 0.0235803, max = 0.0473888 (Nose)
+[2023-12-22 15:51:44.953] [info] Frame 60 (t = 2.03333):	 total squared error = 0.0117608, marker error: RMS = 0.023121, max = 0.0438667 (Nose)
+[2023-12-22 15:51:45.033] [info] Frame 61 (t = 2.06667):	 total squared error = 0.0125463, marker error: RMS = 0.0238807, max = 0.0601288 (Nose)
+[2023-12-22 15:51:45.106] [info] Frame 62 (t = 2.1):	 total squared error = 0.0122614, marker error: RMS = 0.0236080, max = 0.0552318 (Nose)
+[2023-12-22 15:51:45.143] [info] Frame 63 (t = 2.13333):	 total squared error = 0.0105937, marker error: RMS = 0.0219438, max = 0.0553513 (Nose)
+[2023-12-22 15:51:45.218] [info] Frame 64 (t = 2.16667):	 total squared error = 0.0101274, marker error: RMS = 0.0214554, max = 0.0533749 (Nose)
+[2023-12-22 15:51:45.313] [info] Frame 65 (t = 2.2):	 total squared error = 0.00998606, marker error: RMS = 0.0213052, max = 0.0480398 (Nose)
+[2023-12-22 15:51:45.415] [info] Frame 66 (t = 2.23333):	 total squared error = 0.0102991, marker error: RMS = 0.0216366, max = 0.0483519 (Nose)
+[2023-12-22 15:51:45.465] [info] Frame 67 (t = 2.26667):	 total squared error = 0.0110220, marker error: RMS = 0.022383, max = 0.0535751 (Nose)
+[2023-12-22 15:51:45.523] [info] Frame 68 (t = 2.3):	 total squared error = 0.0100061, marker error: RMS = 0.0213266, max = 0.0519195 (Nose)
+[2023-12-22 15:51:45.625] [info] Frame 69 (t = 2.33333):	 total squared error = 0.00959411, marker error: RMS = 0.0208829, max = 0.0351122 (Hip)
+[2023-12-22 15:51:45.726] [info] Frame 70 (t = 2.36667):	 total squared error = 0.00954904, marker error: RMS = 0.0208338, max = 0.0481476 (Nose)
+[2023-12-22 15:51:45.826] [info] Frame 71 (t = 2.4):	 total squared error = 0.0168229, marker error: RMS = 0.0276528, max = 0.0590373 (LSmallToe)
+[2023-12-22 15:51:45.944] [info] Frame 72 (t = 2.43333):	 total squared error = 0.013777, marker error: RMS = 0.0250246, max = 0.0555279 (Nose)
+[2023-12-22 15:51:46.015] [info] Frame 73 (t = 2.46667):	 total squared error = 0.016843, marker error: RMS = 0.0276693, max = 0.0629741 (Nose)
+[2023-12-22 15:51:46.125] [info] Frame 74 (t = 2.5):	 total squared error = 0.0113605, marker error: RMS = 0.0227241, max = 0.0427147 (Hip)
+[2023-12-22 15:51:46.259] [info] Frame 75 (t = 2.53333):	 total squared error = 0.0104424, marker error: RMS = 0.0217865, max = 0.0493748 (Hip)
+[2023-12-22 15:51:46.332] [info] Frame 76 (t = 2.56667):	 total squared error = 0.00899363, marker error: RMS = 0.0202188, max = 0.0425747 (Hip)
+[2023-12-22 15:51:46.385] [info] Frame 77 (t = 2.6):	 total squared error = 0.00890992, marker error: RMS = 0.0201245, max = 0.0410314 (RElbow)
+[2023-12-22 15:51:46.440] [info] Frame 78 (t = 2.63333):	 total squared error = 0.00972317, marker error: RMS = 0.0210229, max = 0.0426968 (RElbow)
+[2023-12-22 15:51:46.525] [info] Frame 79 (t = 2.66667):	 total squared error = 0.0104861, marker error: RMS = 0.0218322, max = 0.0451131 (RElbow)
+[2023-12-22 15:51:46.636] [info] Frame 80 (t = 2.7):	 total squared error = 0.0105757, marker error: RMS = 0.0219252, max = 0.044976 (RElbow)
+[2023-12-22 15:51:46.712] [info] Frame 81 (t = 2.73333):	 total squared error = 0.0105059, marker error: RMS = 0.0218528, max = 0.044691 (RElbow)
+[2023-12-22 15:51:46.833] [info] Frame 82 (t = 2.76667):	 total squared error = 0.0120220, marker error: RMS = 0.0233764, max = 0.0445122 (Hip)
+[2023-12-22 15:51:46.953] [info] Frame 83 (t = 2.8):	 total squared error = 0.0102080, marker error: RMS = 0.0215406, max = 0.0440089 (Hip)
+[2023-12-22 15:51:47.084] [info] Frame 84 (t = 2.83333):	 total squared error = 0.0104631, marker error: RMS = 0.0218081, max = 0.0497076 (Hip)
+[2023-12-22 15:51:47.172] [info] Frame 85 (t = 2.86667):	 total squared error = 0.00967612, marker error: RMS = 0.0209720, max = 0.0417705 (Hip)
+[2023-12-22 15:51:47.252] [info] Frame 86 (t = 2.9):	 total squared error = 0.0108692, marker error: RMS = 0.0222274, max = 0.034447 (RKnee)
+[2023-12-22 15:51:47.324] [info] Frame 87 (t = 2.93333):	 total squared error = 0.0112539, marker error: RMS = 0.0226172, max = 0.0366705 (RKnee)
+[2023-12-22 15:51:47.387] [info] Frame 88 (t = 2.96667):	 total squared error = 0.0122918, marker error: RMS = 0.0236372, max = 0.052154 (Hip)
+[2023-12-22 15:51:47.483] [info] Frame 89 (t = 3.0):	 total squared error = 0.0112257, marker error: RMS = 0.0225889, max = 0.0354623 (Neck)
+[2023-12-22 15:51:47.575] [info] Frame 90 (t = 3.03333):	 total squared error = 0.0106967, marker error: RMS = 0.0220502, max = 0.0429966 (Hip)
+[2023-12-22 15:51:47.705] [info] Frame 91 (t = 3.06667):	 total squared error = 0.0115497, marker error: RMS = 0.0229126, max = 0.0404874 (Hip)
+[2023-12-22 15:51:47.795] [info] Frame 92 (t = 3.1):	 total squared error = 0.0109761, marker error: RMS = 0.0223364, max = 0.0406018 (Hip)
+[2023-12-22 15:51:47.914] [info] Frame 93 (t = 3.13333):	 total squared error = 0.0117616, marker error: RMS = 0.0231218, max = 0.0443216 (Hip)
+[2023-12-22 15:51:48.046] [info] Frame 94 (t = 3.16667):	 total squared error = 0.0100157, marker error: RMS = 0.0213368, max = 0.039621 (Hip)
+[2023-12-22 15:51:48.109] [info] Frame 95 (t = 3.2):	 total squared error = 0.0111958, marker error: RMS = 0.0225588, max = 0.0422702 (Hip)
+[2023-12-22 15:51:48.197] [info] Frame 96 (t = 3.23333):	 total squared error = 0.00943693, marker error: RMS = 0.0207111, max = 0.0419073 (Hip)
+[2023-12-22 15:51:48.307] [info] Frame 97 (t = 3.26667):	 total squared error = 0.00980435, marker error: RMS = 0.0211105, max = 0.0405248 (Hip)
+[2023-12-22 15:51:48.427] [info] Frame 98 (t = 3.3):	 total squared error = 0.0121971, marker error: RMS = 0.023546, max = 0.041472 (Hip)
+[2023-12-22 15:51:48.535] [info] Frame 99 (t = 3.33333):	 total squared error = 0.013733, marker error: RMS = 0.0249846, max = 0.0447201 (LElbow)
+[2023-12-22 15:51:48.608] [info] Frame 100 (t = 3.36667):	 total squared error = 0.0134811, marker error: RMS = 0.0247544, max = 0.0471933 (LElbow)
+[2023-12-22 15:51:48.698] [info] Frame 101 (t = 3.4):	 total squared error = 0.0140955, marker error: RMS = 0.0253122, max = 0.0466253 (LElbow)
+[2023-12-22 15:51:48.824] [info] Frame 102 (t = 3.43333):	 total squared error = 0.0143528, marker error: RMS = 0.0255421, max = 0.0490631 (LElbow)
+[2023-12-22 15:51:48.926] [info] Frame 103 (t = 3.46667):	 total squared error = 0.012635, marker error: RMS = 0.0239649, max = 0.0461357 (LElbow)
+[2023-12-22 15:51:49.030] [info] Frame 104 (t = 3.5):	 total squared error = 0.0129968, marker error: RMS = 0.0243056, max = 0.0458711 (LElbow)
+[2023-12-22 15:51:49.095] [info] Frame 105 (t = 3.53333):	 total squared error = 0.0128391, marker error: RMS = 0.0241577, max = 0.0508669 (Hip)
+[2023-12-22 15:51:49.174] [info] Frame 106 (t = 3.56667):	 total squared error = 0.0100116, marker error: RMS = 0.0213325, max = 0.0461623 (Hip)
+[2023-12-22 15:51:49.247] [info] Frame 107 (t = 3.6):	 total squared error = 0.00916088, marker error: RMS = 0.0204060, max = 0.0449004 (Hip)
+[2023-12-22 15:51:49.348] [info] Frame 108 (t = 3.63333):	 total squared error = 0.00949331, marker error: RMS = 0.0207729, max = 0.0451366 (Hip)
+[2023-12-22 15:51:49.432] [info] Frame 109 (t = 3.66667):	 total squared error = 0.0110993, marker error: RMS = 0.0224614, max = 0.0436773 (Hip)
+[2023-12-22 15:51:49.495] [info] Frame 110 (t = 3.7):	 total squared error = 0.0102757, marker error: RMS = 0.021612, max = 0.0356238 (Hip)
+[2023-12-22 15:51:49.600] [info] Frame 111 (t = 3.73333):	 total squared error = 0.0127431, marker error: RMS = 0.0240672, max = 0.0425433 (LSmallToe)
+[2023-12-22 15:51:49.683] [info] Frame 112 (t = 3.76667):	 total squared error = 0.0134061, marker error: RMS = 0.0246854, max = 0.047342 (LAnkle)
+[2023-12-22 15:51:49.752] [info] Frame 113 (t = 3.8):	 total squared error = 0.0141338, marker error: RMS = 0.0253465, max = 0.0487292 (LBigToe)
+[2023-12-22 15:51:49.818] [info] Frame 114 (t = 3.83333):	 total squared error = 0.0128235, marker error: RMS = 0.0241431, max = 0.0368227 (LBigToe)
+[2023-12-22 15:51:50.030] [info] Frame 115 (t = 3.86667):	 total squared error = 0.0133919, marker error: RMS = 0.0246723, max = 0.0358396 (Hip)
+[2023-12-22 15:51:50.133] [info] Frame 116 (t = 3.9):	 total squared error = 0.0113717, marker error: RMS = 0.0227353, max = 0.0404848 (RElbow)
+[2023-12-22 15:51:50.228] [info] Frame 117 (t = 3.93333):	 total squared error = 0.0113507, marker error: RMS = 0.0227144, max = 0.0435455 (RElbow)
+[2023-12-22 15:51:50.282] [info] Frame 118 (t = 3.96667):	 total squared error = 0.015942, marker error: RMS = 0.0269191, max = 0.0583231 (LHeel)
+[2023-12-22 15:51:50.370] [info] Frame 119 (t = 4.0):	 total squared error = 0.0165477, marker error: RMS = 0.0274257, max = 0.0528101 (LHeel)
+[2023-12-22 15:51:50.489] [info] Frame 120 (t = 4.03333):	 total squared error = 0.0158343, marker error: RMS = 0.026828, max = 0.0606743 (RElbow)
+[2023-12-22 15:51:50.574] [info] Frame 121 (t = 4.06667):	 total squared error = 0.01514, marker error: RMS = 0.0262332, max = 0.0577095 (RElbow)
+[2023-12-22 15:51:50.655] [info] Frame 122 (t = 4.1):	 total squared error = 0.0140893, marker error: RMS = 0.0253066, max = 0.0524938 (RElbow)
+[2023-12-22 15:51:50.753] [info] Frame 123 (t = 4.13333):	 total squared error = 0.0164845, marker error: RMS = 0.0273733, max = 0.0554123 (Hip)
+[2023-12-22 15:51:50.827] [info] Frame 124 (t = 4.16667):	 total squared error = 0.0143355, marker error: RMS = 0.0255267, max = 0.0545402 (Hip)
+[2023-12-22 15:51:50.914] [info] Frame 125 (t = 4.2):	 total squared error = 0.0111973, marker error: RMS = 0.0225604, max = 0.0408226 (Hip)
+[2023-12-22 15:51:51.084] [info] Frame 126 (t = 4.23333):	 total squared error = 0.00947953, marker error: RMS = 0.0207578, max = 0.0428864 (Hip)
+[2023-12-22 15:51:51.183] [info] Frame 127 (t = 4.26667):	 total squared error = 0.00923647, marker error: RMS = 0.0204900, max = 0.0391171 (Hip)
+[2023-12-22 15:51:51.292] [info] Frame 128 (t = 4.3):	 total squared error = 0.0117917, marker error: RMS = 0.0231514, max = 0.0423011 (Hip)
+[2023-12-22 15:51:51.349] [info] Frame 129 (t = 4.33333):	 total squared error = 0.013398, marker error: RMS = 0.0246779, max = 0.0412958 (Hip)
+[2023-12-22 15:51:51.486] [info] Frame 130 (t = 4.36667):	 total squared error = 0.0152187, marker error: RMS = 0.0263013, max = 0.047276 (RSmallToe)
+[2023-12-22 15:51:51.602] [info] Frame 131 (t = 4.4):	 total squared error = 0.0152695, marker error: RMS = 0.0263452, max = 0.0515714 (RSmallToe)
+[2023-12-22 15:51:51.691] [info] Frame 132 (t = 4.43333):	 total squared error = 0.0156272, marker error: RMS = 0.026652, max = 0.0492913 (RBigToe)
+[2023-12-22 15:51:51.760] [info] Frame 133 (t = 4.46667):	 total squared error = 0.0123144, marker error: RMS = 0.0236589, max = 0.0424011 (LElbow)
+[2023-12-22 15:51:51.857] [info] Frame 134 (t = 4.5):	 total squared error = 0.0140928, marker error: RMS = 0.0253097, max = 0.0431126 (Neck)
+[2023-12-22 15:51:51.932] [info] Frame 135 (t = 4.53333):	 total squared error = 0.0124782, marker error: RMS = 0.0238158, max = 0.0446497 (Nose)
+[2023-12-22 15:51:52.006] [info] Frame 136 (t = 4.56667):	 total squared error = 0.0153046, marker error: RMS = 0.0263754, max = 0.0568802 (Nose)
+[2023-12-22 15:51:52.124] [info] Frame 137 (t = 4.6):	 total squared error = 0.0147024, marker error: RMS = 0.0258513, max = 0.0492663 (Nose)
+[2023-12-22 15:51:52.240] [info] Frame 138 (t = 4.63333):	 total squared error = 0.0169346, marker error: RMS = 0.0277445, max = 0.0534307 (Nose)
+[2023-12-22 15:51:52.308] [info] Frame 139 (t = 4.66667):	 total squared error = 0.0178425, marker error: RMS = 0.0284784, max = 0.0546605 (Nose)
+[2023-12-22 15:51:52.381] [info] Frame 140 (t = 4.7):	 total squared error = 0.0163463, marker error: RMS = 0.0272583, max = 0.0522434 (Nose)
+[2023-12-22 15:51:52.441] [info] Frame 141 (t = 4.73333):	 total squared error = 0.016142, marker error: RMS = 0.0270874, max = 0.0531597 (Nose)
+[2023-12-22 15:51:52.541] [info] Frame 142 (t = 4.76667):	 total squared error = 0.0148573, marker error: RMS = 0.0259872, max = 0.0545012 (Nose)
+[2023-12-22 15:51:52.629] [info] Frame 143 (t = 4.8):	 total squared error = 0.0140942, marker error: RMS = 0.0253109, max = 0.0502351 (Neck)
+[2023-12-22 15:51:52.801] [info] Frame 144 (t = 4.83333):	 total squared error = 0.0155361, marker error: RMS = 0.0265742, max = 0.0469851 (Neck)
+[2023-12-22 15:51:52.960] [info] Frame 145 (t = 4.86667):	 total squared error = 0.0145096, marker error: RMS = 0.0256812, max = 0.0474375 (Neck)
+[2023-12-22 15:51:53.059] [info] Frame 146 (t = 4.9):	 total squared error = 0.0146745, marker error: RMS = 0.0258268, max = 0.0436582 (Neck)
+[2023-12-22 15:51:53.216] [info] Frame 147 (t = 4.93333):	 total squared error = 0.012322, marker error: RMS = 0.0236662, max = 0.0410458 (Hip)
+[2023-12-22 15:51:53.295] [info] Frame 148 (t = 4.96667):	 total squared error = 0.0143247, marker error: RMS = 0.0255171, max = 0.0466224 (Hip)
+[2023-12-22 15:51:53.377] [info] Frame 149 (t = 5.0):	 total squared error = 0.0137732, marker error: RMS = 0.0250211, max = 0.0403873 (Nose)
+[2023-12-22 15:51:53.493] [info] Frame 150 (t = 5.03333):	 total squared error = 0.0129364, marker error: RMS = 0.0242491, max = 0.041721 (Neck)
+[2023-12-22 15:51:53.599] [info] Frame 151 (t = 5.06667):	 total squared error = 0.0117974, marker error: RMS = 0.023157, max = 0.0421274 (Neck)
+[2023-12-22 15:51:53.649] [info] Frame 152 (t = 5.1):	 total squared error = 0.0123456, marker error: RMS = 0.0236889, max = 0.0448879 (Hip)
+[2023-12-22 15:51:53.748] [info] Frame 153 (t = 5.13333):	 total squared error = 0.0136607, marker error: RMS = 0.0249186, max = 0.0449742 (Hip)
+[2023-12-22 15:51:53.896] [info] Frame 154 (t = 5.16667):	 total squared error = 0.0134139, marker error: RMS = 0.0246926, max = 0.0408481 (Hip)
+[2023-12-22 15:51:53.955] [info] Frame 155 (t = 5.2):	 total squared error = 0.0140830, marker error: RMS = 0.0253010, max = 0.0453704 (Hip)
+[2023-12-22 15:51:54.019] [info] Frame 156 (t = 5.23333):	 total squared error = 0.0141385, marker error: RMS = 0.0253508, max = 0.0411586 (Hip)
+[2023-12-22 15:51:54.093] [info] Frame 157 (t = 5.26667):	 total squared error = 0.0131823, marker error: RMS = 0.0244784, max = 0.0482669 (Hip)
+[2023-12-22 15:51:54.156] [info] Frame 158 (t = 5.3):	 total squared error = 0.0108194, marker error: RMS = 0.0221764, max = 0.0453308 (Hip)
+[2023-12-22 15:51:54.245] [info] Frame 159 (t = 5.33333):	 total squared error = 0.011867, marker error: RMS = 0.0232252, max = 0.0384053 (Hip)
+[2023-12-22 15:51:54.330] [info] Frame 160 (t = 5.36667):	 total squared error = 0.0111554, marker error: RMS = 0.0225181, max = 0.0477933 (Hip)
+[2023-12-22 15:51:54.385] [info] Frame 161 (t = 5.4):	 total squared error = 0.0113679, marker error: RMS = 0.0227316, max = 0.0461748 (Hip)
+[2023-12-22 15:51:54.482] [info] Frame 162 (t = 5.43333):	 total squared error = 0.0114697, marker error: RMS = 0.0228331, max = 0.0468832 (Hip)
+[2023-12-22 15:51:54.568] [info] Frame 163 (t = 5.46667):	 total squared error = 0.0114744, marker error: RMS = 0.0228377, max = 0.0529832 (Hip)
+[2023-12-22 15:51:54.644] [info] Frame 164 (t = 5.5):	 total squared error = 0.0122797, marker error: RMS = 0.0236256, max = 0.0527082 (Hip)
+[2023-12-22 15:51:54.710] [info] Frame 165 (t = 5.53333):	 total squared error = 0.0124503, marker error: RMS = 0.0237892, max = 0.0522743 (Hip)
+[2023-12-22 15:51:54.748] [info] Frame 166 (t = 5.56667):	 total squared error = 0.0117331, marker error: RMS = 0.0230938, max = 0.0462216 (Hip)
+[2023-12-22 15:51:54.937] [info] Frame 167 (t = 5.6):	 total squared error = 0.0103777, marker error: RMS = 0.0217189, max = 0.0456299 (Hip)
+[2023-12-22 15:51:55.005] [info] Frame 168 (t = 5.63333):	 total squared error = 0.0104664, marker error: RMS = 0.0218116, max = 0.0494103 (Hip)
+[2023-12-22 15:51:55.047] [info] Frame 169 (t = 5.66667):	 total squared error = 0.0108498, marker error: RMS = 0.0222075, max = 0.0492853 (Hip)
+[2023-12-22 15:51:55.152] [info] Frame 170 (t = 5.7):	 total squared error = 0.0106219, marker error: RMS = 0.021973, max = 0.0474478 (Hip)
+[2023-12-22 15:51:55.202] [info] Frame 171 (t = 5.73333):	 total squared error = 0.0105067, marker error: RMS = 0.0218535, max = 0.0458957 (Hip)
+[2023-12-22 15:51:55.305] [info] Frame 172 (t = 5.76667):	 total squared error = 0.0121047, marker error: RMS = 0.0234566, max = 0.0485155 (Hip)
+[2023-12-22 15:51:55.361] [info] Frame 173 (t = 5.8):	 total squared error = 0.0114574, marker error: RMS = 0.0228209, max = 0.0460319 (Hip)
+[2023-12-22 15:51:55.464] [info] Frame 174 (t = 5.83333):	 total squared error = 0.0104801, marker error: RMS = 0.0218259, max = 0.0499777 (Hip)
+[2023-12-22 15:51:55.540] [info] Frame 175 (t = 5.86667):	 total squared error = 0.0106769, marker error: RMS = 0.0220298, max = 0.0497503 (Hip)
+[2023-12-22 15:51:55.595] [info] Frame 176 (t = 5.9):	 total squared error = 0.0107090, marker error: RMS = 0.0220629, max = 0.0499313 (Hip)
+[2023-12-22 15:51:55.694] [info] Frame 177 (t = 5.93333):	 total squared error = 0.0110635, marker error: RMS = 0.0224252, max = 0.0502251 (Hip)
+[2023-12-22 15:51:55.794] [info] Frame 178 (t = 5.96667):	 total squared error = 0.0101453, marker error: RMS = 0.0214744, max = 0.0457983 (Hip)
+[2023-12-22 15:51:55.843] [info] Frame 179 (t = 6.0):	 total squared error = 0.0102969, marker error: RMS = 0.0216343, max = 0.0488059 (Hip)
+[2023-12-22 15:51:55.891] [info] Frame 180 (t = 6.03333):	 total squared error = 0.0107098, marker error: RMS = 0.0220637, max = 0.048664 (Hip)
+[2023-12-22 15:51:55.991] [info] Frame 181 (t = 6.06667):	 total squared error = 0.0106173, marker error: RMS = 0.0219682, max = 0.0492969 (Hip)
+[2023-12-22 15:51:56.094] [info] Frame 182 (t = 6.1):	 total squared error = 0.0104742, marker error: RMS = 0.0218197, max = 0.0514942 (Hip)
+[2023-12-22 15:51:56.190] [info] Frame 183 (t = 6.13333):	 total squared error = 0.0111637, marker error: RMS = 0.0225265, max = 0.0522791 (Hip)
+[2023-12-22 15:51:56.232] [info] Frame 184 (t = 6.16667):	 total squared error = 0.0110979, marker error: RMS = 0.02246, max = 0.0509945 (Hip)
+[2023-12-22 15:51:56.330] [info] Frame 185 (t = 6.2):	 total squared error = 0.0118148, marker error: RMS = 0.023174, max = 0.0533752 (Hip)
+[2023-12-22 15:51:56.440] [info] Frame 186 (t = 6.23333):	 total squared error = 0.0118685, marker error: RMS = 0.0232266, max = 0.0521072 (Hip)
+[2023-12-22 15:51:56.481] [info] Frame 187 (t = 6.26667):	 total squared error = 0.0119803, marker error: RMS = 0.0233358, max = 0.0535783 (Hip)
+[2023-12-22 15:51:56.552] [info] Frame 188 (t = 6.3):	 total squared error = 0.011962, marker error: RMS = 0.023318, max = 0.0536631 (Hip)
+[2023-12-22 15:51:56.598] [info] Frame 189 (t = 6.33333):	 total squared error = 0.0119127, marker error: RMS = 0.0232699, max = 0.0515703 (Hip)
+[2023-12-22 15:51:56.638] [info] Frame 190 (t = 6.36667):	 total squared error = 0.0119927, marker error: RMS = 0.0233478, max = 0.0519106 (Hip)
+[2023-12-22 15:51:56.681] [info] Frame 191 (t = 6.4):	 total squared error = 0.0116932, marker error: RMS = 0.0230545, max = 0.0472050 (Hip)
+[2023-12-22 15:51:56.740] [info] Frame 192 (t = 6.43333):	 total squared error = 0.0117631, marker error: RMS = 0.0231233, max = 0.0545123 (Hip)
+[2023-12-22 15:51:56.795] [info] Frame 193 (t = 6.46667):	 total squared error = 0.0116083, marker error: RMS = 0.0229706, max = 0.0534039 (Hip)
+[2023-12-22 15:51:56.876] [info] Frame 194 (t = 6.5):	 total squared error = 0.0112032, marker error: RMS = 0.0225663, max = 0.0520360 (Hip)
+[2023-12-22 15:51:56.950] [info] Frame 195 (t = 6.53333):	 total squared error = 0.0106958, marker error: RMS = 0.0220493, max = 0.0511921 (Hip)
+[2023-12-22 15:51:57.009] [info] Frame 196 (t = 6.56667):	 total squared error = 0.0110082, marker error: RMS = 0.022369, max = 0.0516423 (Hip)
+[2023-12-22 15:51:57.045] [info] Frame 197 (t = 6.6):	 total squared error = 0.0106732, marker error: RMS = 0.0220260, max = 0.0516713 (Hip)
+[2023-12-22 15:51:57.131] [info] Frame 198 (t = 6.63333):	 total squared error = 0.0105216, marker error: RMS = 0.021869, max = 0.0517163 (Hip)
+[2023-12-22 15:51:57.204] [info] Frame 199 (t = 6.66667):	 total squared error = 0.0102508, marker error: RMS = 0.0215857, max = 0.0520495 (Hip)
+[2023-12-22 15:51:57.258] [info] Frame 200 (t = 6.7):	 total squared error = 0.0108025, marker error: RMS = 0.022159, max = 0.0514217 (Hip)
+[2023-12-22 15:51:57.308] [info] Frame 201 (t = 6.73333):	 total squared error = 0.0106244, marker error: RMS = 0.0219756, max = 0.0493824 (Hip)
+[2023-12-22 15:51:57.397] [info] Frame 202 (t = 6.76667):	 total squared error = 0.0110511, marker error: RMS = 0.0224126, max = 0.048469 (Hip)
+[2023-12-22 15:51:57.441] [info] Frame 203 (t = 6.8):	 total squared error = 0.0106941, marker error: RMS = 0.0220475, max = 0.0481529 (Hip)
+[2023-12-22 15:51:57.507] [info] Frame 204 (t = 6.83333):	 total squared error = 0.0106436, marker error: RMS = 0.0219955, max = 0.0520256 (Hip)
+[2023-12-22 15:51:57.587] [info] Frame 205 (t = 6.86667):	 total squared error = 0.0105408, marker error: RMS = 0.021889, max = 0.0505890 (Hip)
+[2023-12-22 15:51:57.654] [info] Frame 206 (t = 6.9):	 total squared error = 0.0103499, marker error: RMS = 0.0216899, max = 0.0504286 (Hip)
+[2023-12-22 15:51:57.745] [info] Frame 207 (t = 6.93333):	 total squared error = 0.0110146, marker error: RMS = 0.0223755, max = 0.0531064 (Hip)
+[2023-12-22 15:51:57.811] [info] Frame 208 (t = 6.96667):	 total squared error = 0.0105291, marker error: RMS = 0.0218769, max = 0.0517093 (Hip)
+[2023-12-22 15:51:57.906] [info] Frame 209 (t = 7.0):	 total squared error = 0.0103616, marker error: RMS = 0.0217022, max = 0.0498334 (Hip)
+[2023-12-22 15:51:57.986] [info] Frame 210 (t = 7.03333):	 total squared error = 0.0101326, marker error: RMS = 0.021461, max = 0.0485748 (Hip)
+[2023-12-22 15:51:58.065] [info] Frame 211 (t = 7.06667):	 total squared error = 0.0105979, marker error: RMS = 0.0219481, max = 0.0515037 (Hip)
+[2023-12-22 15:51:58.158] [info] Frame 212 (t = 7.1):	 total squared error = 0.0105556, marker error: RMS = 0.0219043, max = 0.0512793 (Hip)
+[2023-12-22 15:51:58.272] [info] Frame 213 (t = 7.13333):	 total squared error = 0.0101540, marker error: RMS = 0.0214836, max = 0.0486608 (Hip)
+[2023-12-22 15:51:58.318] [info] Frame 214 (t = 7.16667):	 total squared error = 0.0103160, marker error: RMS = 0.0216543, max = 0.0501098 (Hip)
+[2023-12-22 15:51:58.362] [info] Frame 215 (t = 7.2):	 total squared error = 0.0104153, marker error: RMS = 0.0217583, max = 0.0510297 (Hip)
+[2023-12-22 15:51:58.406] [info] Frame 216 (t = 7.23333):	 total squared error = 0.0106996, marker error: RMS = 0.0220532, max = 0.0516213 (Hip)
+[2023-12-22 15:51:58.454] [info] Frame 217 (t = 7.26667):	 total squared error = 0.0102850, marker error: RMS = 0.0216218, max = 0.0502575 (Hip)
+[2023-12-22 15:51:58.496] [info] Frame 218 (t = 7.3):	 total squared error = 0.0104348, marker error: RMS = 0.0217786, max = 0.0514651 (Hip)
+[2023-12-22 15:51:58.571] [info] Frame 219 (t = 7.33333):	 total squared error = 0.0103215, marker error: RMS = 0.0216601, max = 0.0505125 (Hip)
+[2023-12-22 15:51:58.662] [info] Frame 220 (t = 7.36667):	 total squared error = 0.0106922, marker error: RMS = 0.0220456, max = 0.0513022 (Hip)
+[2023-12-22 15:51:58.723] [info] Frame 221 (t = 7.4):	 total squared error = 0.0107239, marker error: RMS = 0.0220783, max = 0.0518395 (Hip)
+[2023-12-22 15:51:58.771] [info] Frame 222 (t = 7.43333):	 total squared error = 0.0103314, marker error: RMS = 0.0216705, max = 0.0517394 (Hip)
+[2023-12-22 15:51:58.805] [info] Frame 223 (t = 7.46667):	 total squared error = 0.0106836, marker error: RMS = 0.0220367, max = 0.0520679 (Hip)
+[2023-12-22 15:51:58.870] [info] Frame 224 (t = 7.5):	 total squared error = 0.0108351, marker error: RMS = 0.0221924, max = 0.0516952 (Hip)
+[2023-12-22 15:51:58.968] [info] Frame 225 (t = 7.53333):	 total squared error = 0.0103953, marker error: RMS = 0.0217374, max = 0.0524302 (Hip)
+[2023-12-22 15:51:59.070] [info] Frame 226 (t = 7.56667):	 total squared error = 0.0106279, marker error: RMS = 0.0219793, max = 0.0508363 (Hip)
+[2023-12-22 15:51:59.130] [info] Frame 227 (t = 7.6):	 total squared error = 0.0103151, marker error: RMS = 0.0216534, max = 0.049139 (Hip)
+[2023-12-22 15:51:59.172] [info] Frame 228 (t = 7.63333):	 total squared error = 0.0107930, marker error: RMS = 0.0221493, max = 0.0533151 (Hip)
+[2023-12-22 15:51:59.265] [info] Frame 229 (t = 7.66667):	 total squared error = 0.0105911, marker error: RMS = 0.0219411, max = 0.0521043 (Hip)
+[2023-12-22 15:51:59.308] [info] Frame 230 (t = 7.7):	 total squared error = 0.0109505, marker error: RMS = 0.0223104, max = 0.0524403 (Hip)
+[2023-12-22 15:51:59.386] [info] Frame 231 (t = 7.73333):	 total squared error = 0.0107914, marker error: RMS = 0.0221476, max = 0.0526569 (Hip)
+[2023-12-22 15:51:59.481] [info] Frame 232 (t = 7.76667):	 total squared error = 0.0110463, marker error: RMS = 0.0224077, max = 0.0534921 (Hip)
+[2023-12-22 15:51:59.578] [info] Frame 233 (t = 7.8):	 total squared error = 0.0108263, marker error: RMS = 0.0221834, max = 0.052669 (Hip)
+[2023-12-22 15:51:59.669] [info] Frame 234 (t = 7.83333):	 total squared error = 0.0110840, marker error: RMS = 0.0224459, max = 0.0526837 (Hip)
+[2023-12-22 15:51:59.712] [info] Frame 235 (t = 7.86667):	 total squared error = 0.0110237, marker error: RMS = 0.0223847, max = 0.0519734 (Hip)
+[2023-12-22 15:51:59.744] [info] Frame 236 (t = 7.9):	 total squared error = 0.0108694, marker error: RMS = 0.0222276, max = 0.0525757 (Hip)
+[2023-12-22 15:51:59.794] [info] Frame 237 (t = 7.93333):	 total squared error = 0.0107789, marker error: RMS = 0.0221348, max = 0.0517043 (Hip)
+[2023-12-22 15:51:59.871] [info] Frame 238 (t = 7.96667):	 total squared error = 0.0106328, marker error: RMS = 0.0219843, max = 0.0512693 (Hip)
+[2023-12-22 15:51:59.913] [info] Frame 239 (t = 8.0):	 total squared error = 0.0106878, marker error: RMS = 0.0220411, max = 0.0513141 (Hip)
+[2023-12-22 15:51:59.953] [info] Frame 240 (t = 8.03333):	 total squared error = 0.0111334, marker error: RMS = 0.0224959, max = 0.052569 (Hip)
+[2023-12-22 15:52:00.058] [info] Frame 241 (t = 8.06667):	 total squared error = 0.0110151, marker error: RMS = 0.022376, max = 0.0524564 (Hip)
+[2023-12-22 15:52:00.098] [info] Frame 242 (t = 8.1):	 total squared error = 0.0109601, marker error: RMS = 0.02232, max = 0.0527 (Hip)
+[2023-12-22 15:52:00.151] [info] Frame 243 (t = 8.13333):	 total squared error = 0.0109283, marker error: RMS = 0.0222876, max = 0.0534917 (Hip)
+[2023-12-22 15:52:00.242] [info] Frame 244 (t = 8.16667):	 total squared error = 0.0108688, marker error: RMS = 0.0222269, max = 0.0532047 (Hip)
+[2023-12-22 15:52:00.317] [info] Frame 245 (t = 8.2):	 total squared error = 0.0108145, marker error: RMS = 0.0221714, max = 0.0510394 (Hip)
+[2023-12-22 15:52:00.368] [info] Frame 246 (t = 8.23333):	 total squared error = 0.0105624, marker error: RMS = 0.0219114, max = 0.0488209 (Hip)
+[2023-12-22 15:52:00.399] [info] Frame 247 (t = 8.26667):	 total squared error = 0.0107734, marker error: RMS = 0.0221292, max = 0.051147 (Hip)
+[2023-12-22 15:52:00.451] [info] Frame 248 (t = 8.3):	 total squared error = 0.0105039, marker error: RMS = 0.0218507, max = 0.0506233 (Hip)
+[2023-12-22 15:52:00.504] [info] Frame 249 (t = 8.33333):	 total squared error = 0.0104639, marker error: RMS = 0.0218090, max = 0.0520234 (Hip)
+[2023-12-22 15:52:00.542] [info] Frame 250 (t = 8.36667):	 total squared error = 0.0103687, marker error: RMS = 0.0217095, max = 0.0501999 (Hip)
+[2023-12-22 15:52:00.613] [info] Frame 251 (t = 8.4):	 total squared error = 0.0102695, marker error: RMS = 0.0216054, max = 0.0519925 (Hip)
+[2023-12-22 15:52:00.669] [info] Frame 252 (t = 8.43333):	 total squared error = 0.0112639, marker error: RMS = 0.0226273, max = 0.0542811 (Hip)
+[2023-12-22 15:52:00.719] [info] Frame 253 (t = 8.46667):	 total squared error = 0.0109455, marker error: RMS = 0.0223052, max = 0.0535229 (Hip)
+[2023-12-22 15:52:00.821] [info] Frame 254 (t = 8.5):	 total squared error = 0.0102599, marker error: RMS = 0.0215953, max = 0.0504606 (Hip)
+[2023-12-22 15:52:00.920] [info] Frame 255 (t = 8.53333):	 total squared error = 0.0107949, marker error: RMS = 0.0221512, max = 0.0533615 (Hip)
+[2023-12-22 15:52:00.974] [info] Frame 256 (t = 8.56667):	 total squared error = 0.0104182, marker error: RMS = 0.0217613, max = 0.0510077 (Hip)
+[2023-12-22 15:52:01.063] [info] Frame 257 (t = 8.6):	 total squared error = 0.0102500, marker error: RMS = 0.0215849, max = 0.0496178 (Hip)
+[2023-12-22 15:52:01.107] [info] Frame 258 (t = 8.63333):	 total squared error = 0.0105852, marker error: RMS = 0.0219351, max = 0.0509095 (Hip)
+[2023-12-22 15:52:01.159] [info] Frame 259 (t = 8.66667):	 total squared error = 0.0103153, marker error: RMS = 0.0216536, max = 0.0498593 (Hip)
+[2023-12-22 15:52:01.241] [info] Frame 260 (t = 8.7):	 total squared error = 0.0104779, marker error: RMS = 0.0218236, max = 0.0495305 (Hip)
+[2023-12-22 15:52:01.310] [info] Frame 261 (t = 8.73333):	 total squared error = 0.0104235, marker error: RMS = 0.0217668, max = 0.0504238 (Hip)
+[2023-12-22 15:52:01.348] [info] Frame 262 (t = 8.76667):	 total squared error = 0.0106909, marker error: RMS = 0.0220443, max = 0.0519177 (Hip)
+[2023-12-22 15:52:01.407] [info] Frame 263 (t = 8.8):	 total squared error = 0.0104412, marker error: RMS = 0.0217853, max = 0.0506250 (Hip)
+[2023-12-22 15:52:01.467] [info] Frame 264 (t = 8.83333):	 total squared error = 0.0108765, marker error: RMS = 0.0222348, max = 0.0544813 (Hip)
+[2023-12-22 15:52:01.514] [info] Frame 265 (t = 8.86667):	 total squared error = 0.0108810, marker error: RMS = 0.0222394, max = 0.0542468 (Hip)
+[2023-12-22 15:52:01.548] [info] Frame 266 (t = 8.9):	 total squared error = 0.0106142, marker error: RMS = 0.0219651, max = 0.0527334 (Hip)
+[2023-12-22 15:52:01.635] [info] Frame 267 (t = 8.93333):	 total squared error = 0.0107807, marker error: RMS = 0.0221366, max = 0.0528037 (Hip)
+[2023-12-22 15:52:01.671] [info] Frame 268 (t = 8.96667):	 total squared error = 0.0109628, marker error: RMS = 0.0223228, max = 0.0526225 (Hip)
+[2023-12-22 15:52:01.699] [info] Frame 269 (t = 9.0):	 total squared error = 0.0104810, marker error: RMS = 0.0218267, max = 0.0516782 (Hip)
+[2023-12-22 15:52:01.745] [info] Frame 270 (t = 9.03333):	 total squared error = 0.0109128, marker error: RMS = 0.0222719, max = 0.0524858 (Hip)
+[2023-12-22 15:52:01.784] [info] Frame 271 (t = 9.06667):	 total squared error = 0.0103863, marker error: RMS = 0.0217279, max = 0.0506223 (Hip)
+[2023-12-22 15:52:01.831] [info] Frame 272 (t = 9.1):	 total squared error = 0.0105182, marker error: RMS = 0.0218655, max = 0.0504498 (Hip)
+[2023-12-22 15:52:01.880] [info] Frame 273 (t = 9.13333):	 total squared error = 0.0106866, marker error: RMS = 0.0220398, max = 0.0503404 (Hip)
+[2023-12-22 15:52:01.990] [info] Frame 274 (t = 9.16667):	 total squared error = 0.0109150, marker error: RMS = 0.0222741, max = 0.0506640 (Hip)
+[2023-12-22 15:52:02.064] [info] Frame 275 (t = 9.2):	 total squared error = 0.0107178, marker error: RMS = 0.0220720, max = 0.0510450 (Hip)
+[2023-12-22 15:52:02.140] [info] Frame 276 (t = 9.23333):	 total squared error = 0.0108879, marker error: RMS = 0.0222464, max = 0.052438 (Hip)
+[2023-12-22 15:52:02.252] [info] Frame 277 (t = 9.26667):	 total squared error = 0.0116873, marker error: RMS = 0.0230486, max = 0.0527924 (Hip)
+[2023-12-22 15:52:02.341] [info] Frame 278 (t = 9.3):	 total squared error = 0.0112050, marker error: RMS = 0.022568, max = 0.0524516 (Hip)
+[2023-12-22 15:52:02.418] [info] Frame 279 (t = 9.33333):	 total squared error = 0.0109931, marker error: RMS = 0.0223536, max = 0.0509603 (Hip)
+[2023-12-22 15:52:02.507] [info] Frame 280 (t = 9.36667):	 total squared error = 0.0112065, marker error: RMS = 0.0225696, max = 0.0521246 (Hip)
+[2023-12-22 15:52:02.605] [info] Frame 281 (t = 9.4):	 total squared error = 0.0111812, marker error: RMS = 0.0225441, max = 0.0520778 (Hip)
+[2023-12-22 15:52:02.657] [info] Frame 282 (t = 9.43333):	 total squared error = 0.0114551, marker error: RMS = 0.0228185, max = 0.0525602 (Hip)
+[2023-12-22 15:52:02.715] [info] Frame 283 (t = 9.46667):	 total squared error = 0.0113338, marker error: RMS = 0.0226974, max = 0.0514805 (Hip)
+[2023-12-22 15:52:02.750] [info] Frame 284 (t = 9.5):	 total squared error = 0.0109107, marker error: RMS = 0.0222697, max = 0.0513693 (Hip)
+[2023-12-22 15:52:02.870] [info] Frame 285 (t = 9.53333):	 total squared error = 0.0103213, marker error: RMS = 0.0216598, max = 0.0495384 (Hip)
+[2023-12-22 15:52:02.972] [info] Frame 286 (t = 9.56667):	 total squared error = 0.0107589, marker error: RMS = 0.0221143, max = 0.0501943 (Hip)
+[2023-12-22 15:52:03.012] [info] Frame 287 (t = 9.6):	 total squared error = 0.0110543, marker error: RMS = 0.0224158, max = 0.0501765 (Hip)
+[2023-12-22 15:52:03.102] [info] Frame 288 (t = 9.63333):	 total squared error = 0.0111002, marker error: RMS = 0.0224623, max = 0.0528492 (Hip)
+[2023-12-22 15:52:03.174] [info] Frame 289 (t = 9.66667):	 total squared error = 0.0108484, marker error: RMS = 0.0222061, max = 0.0515986 (Hip)
+[2023-12-22 15:52:03.226] [info] Frame 290 (t = 9.7):	 total squared error = 0.0107552, marker error: RMS = 0.0221104, max = 0.0516058 (Hip)
+[2023-12-22 15:52:03.303] [info] Frame 291 (t = 9.73333):	 total squared error = 0.0108699, marker error: RMS = 0.022228, max = 0.0525707 (Hip)
+[2023-12-22 15:52:03.381] [info] Frame 292 (t = 9.76667):	 total squared error = 0.0106003, marker error: RMS = 0.0219506, max = 0.0521054 (Hip)
+[2023-12-22 15:52:03.422] [info] Frame 293 (t = 9.8):	 total squared error = 0.0106693, marker error: RMS = 0.0220220, max = 0.0525556 (Hip)
+[2023-12-22 15:52:03.517] [info] Frame 294 (t = 9.83333):	 total squared error = 0.0105998, marker error: RMS = 0.0219501, max = 0.0523623 (Hip)
+[2023-12-22 15:52:03.600] [info] Frame 295 (t = 9.86667):	 total squared error = 0.0106341, marker error: RMS = 0.0219857, max = 0.0526111 (Hip)
+[2023-12-22 15:52:03.688] [info] Frame 296 (t = 9.9):	 total squared error = 0.0103516, marker error: RMS = 0.0216916, max = 0.0523387 (Hip)
+[2023-12-22 15:52:03.783] [info] Frame 297 (t = 9.93333):	 total squared error = 0.0107832, marker error: RMS = 0.0221393, max = 0.0520049 (Hip)
+[2023-12-22 15:52:03.826] [info] Frame 298 (t = 9.96667):	 total squared error = 0.0109358, marker error: RMS = 0.0222954, max = 0.0521007 (Hip)
+[2023-12-22 15:52:03.868] [info] Frame 299 (t = 10.0):	 total squared error = 0.0109270, marker error: RMS = 0.0222863, max = 0.0519095 (Hip)
+[2023-12-22 15:52:03.937] [info] Frame 300 (t = 10.0333):	 total squared error = 0.0118292, marker error: RMS = 0.0231882, max = 0.052965 (Hip)
+[2023-12-22 15:52:04.012] [info] Frame 301 (t = 10.0667):	 total squared error = 0.0109205, marker error: RMS = 0.0222797, max = 0.0522405 (Hip)
+[2023-12-22 15:52:04.110] [info] Frame 302 (t = 10.1):	 total squared error = 0.0104074, marker error: RMS = 0.0217501, max = 0.0522326 (Hip)
+[2023-12-22 15:52:04.230] [info] Frame 303 (t = 10.1333):	 total squared error = 0.0119949, marker error: RMS = 0.02335, max = 0.0548936 (Hip)
+[2023-12-22 15:52:04.297] [info] Frame 304 (t = 10.1667):	 total squared error = 0.0115414, marker error: RMS = 0.0229043, max = 0.0522587 (Hip)
+[2023-12-22 15:52:04.392] [info] Frame 305 (t = 10.2):	 total squared error = 0.0113786, marker error: RMS = 0.0227422, max = 0.0523384 (Hip)
+[2023-12-22 15:52:04.461] [info] Frame 306 (t = 10.2333):	 total squared error = 0.0109404, marker error: RMS = 0.0223, max = 0.0525175 (Hip)
+[2023-12-22 15:52:04.502] [info] Frame 307 (t = 10.2667):	 total squared error = 0.0109876, marker error: RMS = 0.0223481, max = 0.05288 (Hip)
+[2023-12-22 15:52:04.576] [info] Frame 308 (t = 10.3):	 total squared error = 0.0105858, marker error: RMS = 0.0219356, max = 0.0523881 (Hip)
+[2023-12-22 15:52:04.673] [info] Frame 309 (t = 10.3333):	 total squared error = 0.0106655, marker error: RMS = 0.0220181, max = 0.051564 (Hip)
+[2023-12-22 15:52:04.724] [info] Frame 310 (t = 10.3667):	 total squared error = 0.0109368, marker error: RMS = 0.0222963, max = 0.0513162 (Hip)
+[2023-12-22 15:52:04.767] [info] Frame 311 (t = 10.4):	 total squared error = 0.0105827, marker error: RMS = 0.0219325, max = 0.0511379 (Hip)
+[2023-12-22 15:52:04.836] [info] Frame 312 (t = 10.4333):	 total squared error = 0.0106826, marker error: RMS = 0.0220357, max = 0.0509711 (Hip)
+[2023-12-22 15:52:04.889] [info] Frame 313 (t = 10.4667):	 total squared error = 0.0109394, marker error: RMS = 0.022299, max = 0.0517025 (Hip)
+[2023-12-22 15:52:04.918] [info] Frame 314 (t = 10.5):	 total squared error = 0.0110896, marker error: RMS = 0.0224515, max = 0.0522562 (Hip)
+[2023-12-22 15:52:04.955] [info] Frame 315 (t = 10.5333):	 total squared error = 0.0109697, marker error: RMS = 0.0223298, max = 0.0513382 (Hip)
+[2023-12-22 15:52:05.017] [info] Frame 316 (t = 10.5667):	 total squared error = 0.0106184, marker error: RMS = 0.0219694, max = 0.0503230 (Hip)
+[2023-12-22 15:52:05.110] [info] Frame 317 (t = 10.6):	 total squared error = 0.0105884, marker error: RMS = 0.0219383, max = 0.0503018 (Hip)
+[2023-12-22 15:52:05.194] [info] Frame 318 (t = 10.6333):	 total squared error = 0.0106255, marker error: RMS = 0.0219768, max = 0.0483771 (Hip)
+[2023-12-22 15:52:05.276] [info] Frame 319 (t = 10.6667):	 total squared error = 0.0106373, marker error: RMS = 0.0219889, max = 0.0484043 (Hip)
+[2023-12-22 15:52:05.379] [info] Frame 320 (t = 10.7):	 total squared error = 0.0109944, marker error: RMS = 0.022355, max = 0.0497201 (Hip)
+[2023-12-22 15:52:05.460] [info] Frame 321 (t = 10.7333):	 total squared error = 0.0105870, marker error: RMS = 0.0219369, max = 0.0489089 (Hip)
+[2023-12-22 15:52:05.527] [info] Frame 322 (t = 10.7667):	 total squared error = 0.0106501, marker error: RMS = 0.0220021, max = 0.0477988 (Hip)
+[2023-12-22 15:52:05.563] [info] Frame 323 (t = 10.8):	 total squared error = 0.0103526, marker error: RMS = 0.0216926, max = 0.047173 (Hip)
+[2023-12-22 15:52:05.651] [info] Frame 324 (t = 10.8333):	 total squared error = 0.0115735, marker error: RMS = 0.0229362, max = 0.0521688 (Hip)
+[2023-12-22 15:52:05.683] [info] Frame 325 (t = 10.8667):	 total squared error = 0.0113012, marker error: RMS = 0.0226648, max = 0.052456 (Hip)
+[2023-12-22 15:52:05.726] [info] Frame 326 (t = 10.9):	 total squared error = 0.0110529, marker error: RMS = 0.0224144, max = 0.0507150 (Hip)
+[2023-12-22 15:52:05.807] [info] Frame 327 (t = 10.9333):	 total squared error = 0.0108060, marker error: RMS = 0.0221626, max = 0.0506204 (Hip)
+[2023-12-22 15:52:05.848] [info] Frame 328 (t = 10.9667):	 total squared error = 0.0104427, marker error: RMS = 0.0217869, max = 0.0491608 (Hip)
+[2023-12-22 15:52:05.892] [info] Frame 329 (t = 11.0):	 total squared error = 0.0110719, marker error: RMS = 0.0224336, max = 0.0497133 (Hip)
+[2023-12-22 15:52:05.931] [info] Frame 330 (t = 11.0333):	 total squared error = 0.0108183, marker error: RMS = 0.0221753, max = 0.0502575 (Hip)
+[2023-12-22 15:52:06.000] [info] Frame 331 (t = 11.0667):	 total squared error = 0.0110697, marker error: RMS = 0.0224314, max = 0.0517155 (Hip)
+[2023-12-22 15:52:06.096] [info] Frame 332 (t = 11.1):	 total squared error = 0.0118367, marker error: RMS = 0.0231955, max = 0.0519252 (Hip)
+[2023-12-22 15:52:06.177] [info] Frame 333 (t = 11.1333):	 total squared error = 0.0113837, marker error: RMS = 0.0227473, max = 0.052348 (Hip)
+[2023-12-22 15:52:06.237] [info] Frame 334 (t = 11.1667):	 total squared error = 0.0106766, marker error: RMS = 0.0220296, max = 0.0502371 (Hip)
+[2023-12-22 15:52:06.278] [info] Frame 335 (t = 11.2):	 total squared error = 0.0108789, marker error: RMS = 0.0222372, max = 0.0501753 (Hip)
+[2023-12-22 15:52:06.393] [info] Frame 336 (t = 11.2333):	 total squared error = 0.0110321, marker error: RMS = 0.0223932, max = 0.0526554 (Hip)
+[2023-12-22 15:52:06.464] [info] Frame 337 (t = 11.2667):	 total squared error = 0.0106107, marker error: RMS = 0.0219614, max = 0.0509052 (Hip)
+[2023-12-22 15:52:06.546] [info] Frame 338 (t = 11.3):	 total squared error = 0.0108018, marker error: RMS = 0.0221583, max = 0.0507138 (Hip)
+[2023-12-22 15:52:06.634] [info] Frame 339 (t = 11.3333):	 total squared error = 0.0105548, marker error: RMS = 0.0219035, max = 0.0498055 (Hip)
+[2023-12-22 15:52:06.718] [info] Frame 340 (t = 11.3667):	 total squared error = 0.0106121, marker error: RMS = 0.0219629, max = 0.0490220 (Hip)
+[2023-12-22 15:52:06.792] [info] Frame 341 (t = 11.4):	 total squared error = 0.0103324, marker error: RMS = 0.0216715, max = 0.0499258 (Hip)
+[2023-12-22 15:52:06.887] [info] Frame 342 (t = 11.4333):	 total squared error = 0.0106614, marker error: RMS = 0.0220138, max = 0.0497649 (Hip)
+[2023-12-22 15:52:06.975] [info] Frame 343 (t = 11.4667):	 total squared error = 0.0102875, marker error: RMS = 0.0216244, max = 0.0499324 (Hip)
+[2023-12-22 15:52:07.016] [info] Frame 344 (t = 11.5):	 total squared error = 0.0100764, marker error: RMS = 0.0214013, max = 0.0481209 (Hip)
+[2023-12-22 15:52:07.107] [info] Frame 345 (t = 11.5333):	 total squared error = 0.0103222, marker error: RMS = 0.0216608, max = 0.0488773 (Hip)
+[2023-12-22 15:52:07.147] [info] Frame 346 (t = 11.5667):	 total squared error = 0.0103600, marker error: RMS = 0.0217005, max = 0.0492067 (Hip)
+[2023-12-22 15:52:07.203] [info] Frame 347 (t = 11.6):	 total squared error = 0.0102400, marker error: RMS = 0.0215744, max = 0.0490282 (Hip)
+[2023-12-22 15:52:07.213] [info] InverseKinematicsTool completed 348 frames in 27 second(s).

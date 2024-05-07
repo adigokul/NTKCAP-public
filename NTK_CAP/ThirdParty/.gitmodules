@@ -1,0 +1,6 @@
+[submodule "pose2sim"]
+	path = pose2sim
+	url = https://github.com/eddLai/NTKpose2sim.git
+[submodule "mmpose"]
+	path = mmpose
+	url = git@github.com:eddLai/NTKmmpose.git

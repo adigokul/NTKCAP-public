@@ -1,0 +1,16 @@
+{
+    "cam": {
+        "number": 4,
+        "list": [
+            0,
+            1,
+            2,
+            3
+        ],
+        "resolution": [
+            1920,
+            1080
+        ],
+        "name": "HD camera"
+    }
+}
