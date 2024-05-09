@@ -9,6 +9,7 @@ call pip install -U openmim
 call mim install mmengine
 call mim install "mmcv>=2.0.1"
 call mim install "mmdet>=3.3.0"
+call cd ..
 call cd mmpose
 call pip install -r requirements.txt
 call pip install -v -e .
