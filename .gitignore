@@ -5,5 +5,6 @@ __pycache__/
 patient/testing/
 /*venv*/
 Patient_data/
+!Patient_data/Patient_ID/*
 calibration/
 
