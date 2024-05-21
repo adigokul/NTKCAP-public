@@ -144,7 +144,7 @@ class NTK_CapApp(App):
 
         # path setting
         self.current_directory = os.getcwd()
-        
+        self.language = 'Chinese'
         self.config_path = os.path.join(self.current_directory, "config")
         self.time_file_path = os.path.join(self.current_directory, "cali_time.txt")
         
@@ -252,12 +252,47 @@ class NTK_CapApp(App):
         self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
         layout.add_widget(self.err_calib_extri)
 
+        btn_toggle_language = Button(
+            text='Switch Language',
+            size_hint=(0.15, 0.1),
+            pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[6]},
+            on_release=lambda instance: self.toggle_language(btn_calibration_folder,btn_config, btn_check_cam, btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance)
+        )
+        layout.add_widget(btn_toggle_language)
+
 
         return layout
     
        
       
-
+    def toggle_language(self,btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance):
+        self.language = 'Chinese' if self.language == 'English' else 'English'
+        self.update_ui_language(btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit)
+        
+    def update_ui_language(self,btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit):
+        # Update all UI text based on current language
+        if self.language == 'English':
+            btn_calibration_folder.text = '1-1Create New \nParameters'
+            btn_config.text = '1-2Detect camera'
+            btn_check_cam.text = '1-3Check Camera'
+            btn_extrinsic_record.text ='2-1Record Extri'
+            btn_extrinsic_calculate.text = '2-2Calculate Extri'
+            btn_Apose_record.text = '3-1Record A-pose'
+            btn_task_record.text = '3-2Record task'
+            btn_calculate_Marker.text = '4Calculate Marker & IK '
+            btn_exit.text ='Exit'
+            # Update all other widgets similarly
+        else:
+            btn_calibration_folder.text = '1-1建立新參數'
+            btn_config.text = '1-2偵測相機'
+            btn_check_cam.text = '1-3檢查相機'
+            btn_extrinsic_record.text ='2-1拍攝外參'
+            btn_extrinsic_calculate.text = '2-2計算外參'
+            btn_Apose_record.text = '3-1拍攝A-pose'
+            btn_task_record.text = '3-2拍攝動作'
+            btn_calculate_Marker.text = '4計算Marker以及IK'
+            btn_exit.text ='結束程式'
+            # Update all other widgets similarly
     # log
     def add_log(self, message):
         print('hi')
