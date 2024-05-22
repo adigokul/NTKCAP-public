@@ -14,12 +14,14 @@ import subprocess
 import easymocap
 import import_ipynb
 
-from .full_process import rtm2json,rtm2json_rpjerror
+from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
 from .xml_update import *
 from Pose2Sim import Pose2Sim
 from ultralytics import YOLO
 import inspect;inspect.getfile(Pose2Sim)
-
+import  serial
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 ######################################################
 
 #Version = '1.0.2'
@@ -450,9 +452,12 @@ def camera_Apose_record(config_path, save_path, patientID, date, button_capture=
         p.join()
 
 ######################################################
-# Motion
-def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
+# Motion maximum 55minutes
+def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop,start_time,button_start=False, button_stop=False):
+    # Define the shape of the array
+    time_stamp= np.empty((100000, 2))
     cap = cv2.VideoCapture(camera_id)
+    
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -475,10 +480,14 @@ def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_sto
         cv2.waitKey(1) 
         if event_start.is_set() | button_start:
             break
-
     # while True:
+    count = 0
     while True:
+
+        dt_str1 =time.time() - start_time
+
         ret, frame = cap.read()
+        dt_str2 = time.time() - start_time
         if not ret:
             break
         k = cv2.waitKey(1)
@@ -493,11 +502,103 @@ def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_sto
         frame = cv2.resize(frame, (640, 480))
         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+        time_stamp[count] =[np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
+        count = count+1
 
     video_writers.release()
     cap.release()
+    np.save(os.path.join(save_path, f"{now_cam_num}_dates.npy"), time_stamp)
 
-def camera_Motion_record(config_path, save_path, patientID, task, date, button_capture=False, button_stop=False):
+# def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
+#     cap = cv2.VideoCapture(camera_id)
+#     width = 1920
+#     height = 1080
+#     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+#     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+#     fps = 30
+#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#     # 創建寫入影像的video writer物件
+#     video_writers = cv2.VideoWriter(os.path.join(save_path, f"{now_cam_num}.mp4"), fourcc, fps, (width, height))
+#     # 讀取攝像機影像，並將影像寫入mp4檔案中
+#     time.sleep(0.00001)
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         cv2.putText(frame, "press s to start recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+#         cv2.circle(frame,(100, 100), 50, (0, 0, 255), -1)
+#         frame = cv2.resize(frame, (640, 480))
+#         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
+#         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+#         cv2.waitKey(1) 
+#         if event_start.is_set() | button_start:
+#             break
+
+#     # while True:
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         k = cv2.waitKey(1)
+#         if keyboard.is_pressed('q'):
+#             # print('quit')
+#             event_stop.set()
+#         if event_stop.is_set() | button_stop:
+#             break
+#         video_writers.write(frame)  
+#         cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+#         cv2.circle(frame,(100, 100), 50, (0, 255, 0), -1)
+#         frame = cv2.resize(frame, (640, 480))
+#         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
+#         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+
+#     video_writers.release()
+#     cap.release()
+def CP2102_output_signal_vicon(input_COM,start_time,save_path):
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
+    while True:
+        if keyboard.is_pressed('s'):
+            ser.write(b"\x00")
+            dt_str1 =time.time() - start_time
+            print('Start Signal send')
+            break
+    while True:
+        if keyboard.is_pressed('q'):
+            ser.write(b"\x00")
+            dt_str2 = time.time() - start_time
+            print('End Signal send')
+            break
+    marker_stamp = [np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
+    np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
+        
+        
+def print_timer_matplt(start_time):### Much Higher fps
+    update_rate = 1000
+
+    # Calculate the time interval between updates
+    interval = 1.0 / update_rate
+
+    # Start time for the timer
+     
+
+    # Create figure and axis objects
+    fig, ax = plt.subplots()
+
+    # Initialize text annotation
+    text = ax.text(0.5, 0.5, '', transform=ax.transAxes, ha='center', va='center', fontsize=100)
+
+    # Function to update the text
+    def update(frame):
+        elapsed_time = time.time() - start_time
+        text.set_text('{:.3f}'.format(elapsed_time))
+        return text,
+
+    # Create animation
+    ani = FuncAnimation(fig, update, frames=None, blit=True, interval=interval*1000)
+
+    # Show the plot
+    plt.show()
+def camera_Motion_record(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
     save_path = os.path.join(save_path, patientID)
@@ -530,12 +631,16 @@ def camera_Motion_record(config_path, save_path, patientID, task, date, button_c
     processes = []
     now_cam_num = 0
     position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
     for i in num_cameras:
         now_cam_num = now_cam_num + 1
-        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop))
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
         processes.append(p)
         p.start()
-
     time.sleep(1)
     while True:
         if keyboard.is_pressed('s'):
@@ -545,6 +650,64 @@ def camera_Motion_record(config_path, save_path, patientID, task, date, button_c
 
     for p in processes:
         p.join()
+
+def camera_Motion_record_VICON_sync(config_path, save_path, patientID, task, date,input_COM,button_capture=False, button_stop=False):
+    config_name = os.path.join(config_path, "config.json")
+    save_path = os.path.join(save_path, "Patient_data")
+    save_path = os.path.join(save_path, patientID)
+    save_path = os.path.join(save_path, date)
+    save_path = os.path.join(save_path, 'raw_data')
+    save_path = os.path.join(save_path, task)
+    
+    time_file_path = os.path.join(save_path, "recordtime.txt")
+    save_path = os.path.join(save_path, "videos")
+    os.makedirs(save_path)
+
+    if os.path.exists(time_file_path):
+        with open(time_file_path, "r") as file:
+            formatted_datetime = file.read().strip()
+    else:
+        now = datetime.now()
+        formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
+        with open(time_file_path, "w") as file:
+            file.write(formatted_datetime)
+
+
+    # save_path_1 = os.path.join(save_path, "1.mp4")
+    with open(config_name, 'r') as f:
+        data = json.load(f)
+
+    num_cameras = data['cam']['list']
+
+    event_start = multiprocessing.Event()
+    event_stop = multiprocessing.Event()
+    processes = []
+    now_cam_num = 0
+    position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
+    for i in num_cameras:
+        now_cam_num = now_cam_num + 1
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
+        processes.append(p)
+        p.start()
+    p = multiprocessing.Process(target=CP2102_output_signal_vicon, args=(input_COM,start_time,save_path))
+    processes.append(p)
+    p.start()
+    
+    time.sleep(1)
+    while True:
+        if keyboard.is_pressed('s'):
+            event_start.set()
+            time.sleep(1)
+            break
+
+    for p in processes:
+        p.join()
+
 
 ######################################################
 # 計算內外參
@@ -868,6 +1031,7 @@ def marker_caculate(PWD,cal_data_path):
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
         print("切換至" + os.getcwd())
+        timesync_video(now_project_videos,4, os.path.join(now_project, "opensim"))
         for l in range(1,5):
             now_videos = os.path.join(now_task_videos, str(l) + ".mp4")
             now_pose =  os.path.join(pose_videos, str(l) + ".mp4")

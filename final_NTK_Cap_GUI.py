@@ -14,7 +14,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
-
+from kivy.uix.checkbox import CheckBox
 import time
 from datetime import datetime
 import os
@@ -259,12 +259,28 @@ class NTK_CapApp(App):
             on_release=lambda instance: self.toggle_language(btn_calibration_folder,btn_config, btn_check_cam, btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance)
         )
         layout.add_widget(btn_toggle_language)
-
-
+        checkbox = CheckBox(size_hint=(None, None), size=(48, 48), pos_hint={'center_x': 0.3, 'center_y': 0.5})
+        
+        
+        # Label for the CheckBox
+        checkbox_label = Label(text="Enable feature", size_hint=(None, None), size=(200, 30), pos_hint={'center_x': 0.45, 'center_y': 0.5})
+        checkbox.bind(active=self.on_checkbox_active)
+        # Adding widgets to the layout
+        layout.add_widget(checkbox)
+        layout.add_widget(checkbox_label)
+        self.COM_input = TextInput(hint_text='COM number', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[4]}, font_name=self.font_path)
+        Clock.schedule_interval(self.task_update, 0.1)
+        layout.add_widget(self.COM_input)
         return layout
     
        
-      
+    def on_checkbox_active(self, checkbox, value):
+        self.is_checkbox_viconsync_checked = value  # Store checkbox state in the app
+        if value:
+            print("Checkbox Checked")
+        else:
+            print("Checkbox Unchecked")
+
     def toggle_language(self,btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance):
         self.language = 'Chinese' if self.language == 'English' else 'English'
         self.update_ui_language(btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit)
@@ -517,7 +533,11 @@ class NTK_CapApp(App):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))
-        camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+        if self.is_checkbox_viconsync_checked:
+            camera_Motion_record_VICON_sync(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date,self.COM_input.text, button_capture=False, button_stop=False)
+        else:
+            camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+    
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
         try:
