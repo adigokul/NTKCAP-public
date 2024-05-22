@@ -558,20 +558,22 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
     while True:
         if keyboard.is_pressed('s'):
-            ser.write(b"\x00")
+            ser.write(b"\x00000")
             dt_str1 =time.time() - start_time
             print('Start Signal send')
             break
     while True:
         if keyboard.is_pressed('q'):
-            ser.write(b"\x00")
+            ser.write(b"\x00000")
             dt_str2 = time.time() - start_time
             print('End Signal send')
             break
     marker_stamp = [np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
     np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
         
-        
+def CP2102_output_signal(input_COM):
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
+    ser.write(b"\x00000")
 def print_timer_matplt(start_time):### Much Higher fps
     update_rate = 1000
 
@@ -707,7 +709,7 @@ def camera_Motion_record_VICON_sync(config_path, save_path, patientID, task, dat
 
     for p in processes:
         p.join()
-
+    print('send_signal')
 
 ######################################################
 # 計算內外參

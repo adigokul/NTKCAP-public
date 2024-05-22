@@ -278,6 +278,7 @@ class NTK_CapApp(App):
         self.is_checkbox_viconsync_checked = value  # Store checkbox state in the app
         if value:
             print("Checkbox Checked")
+            CP2102_output_signal(self.COM_input.text)
         else:
             print("Checkbox Unchecked")
 
