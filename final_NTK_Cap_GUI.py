@@ -147,7 +147,7 @@ class NTK_CapApp(App):
         self.language = 'Chinese'
         self.config_path = os.path.join(self.current_directory, "config")
         self.time_file_path = os.path.join(self.current_directory, "cali_time.txt")
-        
+        self.is_checkbox_viconsync_checked =0
         self.record_path = self.current_directory
         self.calibra_path = os.path.join(self.current_directory, "calibration")
         self.patient_path = os.path.join(self.current_directory, "Patient_data")
@@ -278,7 +278,10 @@ class NTK_CapApp(App):
         self.is_checkbox_viconsync_checked = value  # Store checkbox state in the app
         if value:
             print("Checkbox Checked")
-            CP2102_output_signal(self.COM_input.text)
+            try:
+                CP2102_output_signal(self.COM_input.text)
+            except:
+                print('COM input error')
         else:
             print("Checkbox Unchecked")
 
@@ -503,9 +506,34 @@ class NTK_CapApp(App):
         elif self.label_task_real.text == "":
             # self.label_log.text = '請輸入task name'
             self.label_log.text = 'Enter task name'
-        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
-            camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data','Apose'))==0:## check if Apose exist
+            content = BoxLayout(orientation='vertical', padding=10, spacing=10)
+            message = Label(text='You did not record Apose, are you sure to continue?')
+            content.add_widget(message)
+            button_layout = BoxLayout(size_hint_y=None, height='50dp', spacing=10)
+            # No button
+            no_btn = Button(text='No')
+            button_layout.add_widget(no_btn)
+
+            # Create the popup
+            popup = Popup(title='Confirm Action', content=content, size_hint=(None, None), size=(400, 200))
+
+            # Yes button
+            yes_btn = Button(text='Yes')
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_no_Apose(instance, popup,date))
+            button_layout.add_widget(yes_btn)
+
+            no_btn.bind(on_release=lambda *args: popup.dismiss())
+
+            content.add_widget(button_layout)
+
+            popup.open()
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
+        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
+            #camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+            self.camera_motion_final(self,date)
+            self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
+        
         else:
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not change the Task Name, Do you want to replace the original Task?')
@@ -520,7 +548,7 @@ class NTK_CapApp(App):
 
             # Yes button
             yes_btn = Button(text='Yes')
-            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording(instance, popup,date))
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_same_task(instance, popup,date))
             button_layout.add_widget(yes_btn)
 
             no_btn.bind(on_release=lambda *args: popup.dismiss())
@@ -530,15 +558,23 @@ class NTK_CapApp(App):
             popup.open()
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         self.add_log(self.label_log.text)
-    def perform_Motion_recording(self, instance, popup,date):
+    
+    def perform_Motion_recording_same_task(self, instance, popup,date):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))
+        self.camera_motion_final(self,date)
+    def perform_Motion_recording_no_Apose(self, instance, popup,date):
+        popup.dismiss()  # Dismiss the popup first
+        date = datetime.now().strftime("%Y_%m_%d")
+        self.camera_motion_final(self, date)
+
+    def camera_motion_final(self,instance, date):
         if self.is_checkbox_viconsync_checked:
             camera_Motion_record_VICON_sync(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date,self.COM_input.text, button_capture=False, button_stop=False)
         else:
             camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
-    
+
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
         try:

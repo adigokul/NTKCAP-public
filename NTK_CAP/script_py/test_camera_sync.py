@@ -2,7 +2,7 @@ import numpy as np
 import os
 import  cv2
 from pathlib import Path
-video_folder =r'C:\Users\user\Desktop\NTKCAP\Patient_data\A\2024_05_22\raw_data\a\videos'
+video_folder =r'C:\Users\user\Desktop\NTKCAP\Patient_data\2d_test\2024_05_23\raw_data\walk9_TESTING\videos'
 opensim_folder = video_folder
 cam_num =4
 cap = []
