@@ -1035,7 +1035,7 @@ def marker_caculate(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         timesync_video(now_project_videos,4, os.path.join(now_project, "opensim"))
         for l in range(1,5):
-            now_videos = os.path.join(now_task_videos, str(l) + ".mp4")
+            now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
             now_pose =  os.path.join(pose_videos, str(l) + ".mp4")
             now_json = os.path.join(now_project, "pose-2d")
             now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
