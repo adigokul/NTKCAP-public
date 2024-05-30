@@ -183,6 +183,8 @@ class NTK_CapApp(App):
         layout.add_widget(btn_extrinsic_record)
         btn_extrinsic_calculate = Button(text='2-2計算外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_calculate, font_name=self.font_path)
         layout.add_widget(btn_extrinsic_calculate)
+        btn_extrinsic_manual_calculate = Button(text='2-2a人工外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_manual_calculate, font_name=self.font_path)
+        layout.add_widget(btn_extrinsic_manual_calculate)
         # btn_extrinsic_check = Button(text='2-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_check, font_name=self.font_path)
         # layout.add_widget(btn_extrinsic_check)
         # btn_extrinsic_check = Button(text='3-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 400), on_press=self.button_extrinsic_check, font_name=self.font_path)
@@ -249,7 +251,7 @@ class NTK_CapApp(App):
         # self.txt_camID_spinner = Spinner(text = 'cam ID', values = ("0","1","2","3"),size_hint=(0.19,0.1), size=(100, 30), pos=(20, 450), sync_height = True, font_size=16, font_name=self.font_path)
         # layout.add_widget(self.txt_camID_spinner)
         # self.txt_camID_spinner.bind(text = self.camID_update) 
-        self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
+        self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': pos_ref_x[3], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
         layout.add_widget(self.err_calib_extri)
 
         btn_toggle_language = Button(
@@ -432,11 +434,35 @@ class NTK_CapApp(App):
         try:
             
             
-            err_list =calib_extri(self.current_directory)
+            err_list =calib_extri(self.current_directory,0)
             self.label_log.text = 'calculate finished'
             
             self.err_calib_extri.text = err_list      
             # self.label_log.text = '外參計算完畢'
+
+        except:
+            # self.label_log.text = '檢查是否有拍攝以及計算內參，以及是否有拍攝外參'
+            self.label_log.text = 'check intrinsic and extrinsic exist'
+            self.err_calib_extri.text = 'no calibration file found'
+        self.add_log(self.label_log.text)
+    def button_extrinsic_manual_calculate(self, instance):
+        self.label_log.text = '計算外參'
+        self.label_log.text = 'caculating extrinsic'
+        self.add_log(self.label_log.text)
+        try:
+            def remove_folder_with_contents(path):
+                # Check if the directory exists
+                if os.path.isdir(path):
+                    # Recursively delete the directory and all its contents
+                    shutil.rmtree(path)
+            remove_folder_with_contents(os.path.join(self.extrinsic_path,'images'))
+            remove_folder_with_contents(os.path.join(self.extrinsic_path,'yolo_backup'))
+            remove_folder_with_contents(os.path.join(self.extrinsic_path,'chessboard'))
+                
+            err_list =calib_extri(self.current_directory,1)
+            self.label_log.text = 'calculate finished'
+            
+            self.err_calib_extri.text = err_list      
 
         except:
             # self.label_log.text = '檢查是否有拍攝以及計算內參，以及是否有拍攝外參'

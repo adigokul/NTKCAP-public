@@ -572,8 +572,10 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
         
 def CP2102_output_signal(input_COM):
-    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
-    ser.write(b"\x00000")
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=115200, timeout=1)
+    #ser.write(b"\x00000")
+    
+    ser.write(b'\x8d\x00')
 def print_timer_matplt(start_time):### Much Higher fps
     update_rate = 1000
 
@@ -723,7 +725,7 @@ def extract_video(PWD, file_path):
     now_path = os.path.join(now_path, "extract_video.py")
     subprocess.run(["python", now_path, file_path, "--no2d"])
 
-def detect_chessboard(PWD, file_path):
+def detect_chessboard(PWD, file_path,manual_token):
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -731,7 +733,7 @@ def detect_chessboard(PWD, file_path):
     now_path = os.path.join(now_path, "calibration")
     now_path = os.path.join(now_path, "detect_chessboard.py")
     #subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.15"])
-    subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.29"])
+    subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.29",'--manual',str(manual_token)])
 def print_yolo_result(PWD,file_path):
     model_trained = YOLO('yolo_model_v1.pt')
     directory_path = os.path.join(file_path, 'yolo_backup')
@@ -762,12 +764,12 @@ def print_yolo_result(PWD,file_path):
                 cv2.imwrite(imgname, img)
     
     
-def calib_intri(PWD):
+def calib_intri(PWD,manual_token):
 
     file_path = os.path.join(PWD, "claibration")
     file_path = os.path.join(file_path, "IntrinsicCalibration")
     extract_video(PWD, file_path)
-    detect_chessboard(PWD, file_path)
+    detect_chessboard(PWD, file_path,manual_token)
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -776,15 +778,52 @@ def calib_intri(PWD):
     now_path = os.path.join(now_path, "calib_intri.py")
 
     subprocess.run(["python", now_path, file_path, "--num", "1000"])
+def shrink_video_1frame(file_path):
+    def export_first_frame(input_video_path, output_video_path):
+        cap = cv2.VideoCapture(input_video_path)
+        if not cap.isOpened():
+            print("Error: Could not open video.")
+            return
+        
+        # Read the first frame
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Could not read the first frame.")
+            cap.release()
+            return
+        
+        # Get the properties of the video
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        codec = cv2.VideoWriter_fourcc(*'mp4v')  # You can change the codec if needed
 
-def calib_extri(PWD):
+        # Initialize the video writer
+        out = cv2.VideoWriter(output_video_path, codec, fps, (width, height))
+        
+        # Write the first frame multiple times to generate a short video
+        
+        out.write(frame)
+        
+        # Release everything if job is finished
+        cap.release()
+        out.release()
+        print("Export complete. The output video is saved as:", output_video_path)
+    files_and_dirs = os.listdir(os.path.join(file_path,'videos'))
+    for item in files_and_dirs:
+        if item.endswith('.mp4'):
+            full_path = os.path.join(file_path,'videos', item)
+            export_first_frame(full_path,full_path)
+
+def calib_extri(PWD,manual_token):
 
     file_path = os.path.join(PWD, "calibration")
     output_toml_path = os.path.join(file_path, "Calib.toml")
     file_path = os.path.join(file_path, "ExtrinsicCalibration")
-
+    if manual_token ==1:
+        shrink_video_1frame(file_path)
     extract_video(PWD, file_path)
-    detect_chessboard(PWD, file_path)
+    detect_chessboard(PWD, file_path,manual_token)
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -813,7 +852,7 @@ def calib_extri(PWD):
         print_yolo_result(PWD,file_path)
     finally:
         return err_list
-    
+   
 def read_err_calib_extri(PWD):
     try:
         file_name = os.path.join(PWD, "calibration","err_value.txt")
