@@ -13,6 +13,7 @@ import cv2
 import os
 import shutil
 import numpy as np
+from easymocap.annotator.GUI_detectchessboard import Manual_GUI_detection
 def getChessboard3d(pattern, gridSize, axis='xy'):
     object_points = np.zeros((pattern[1]*pattern[0], 3), np.float32)
     # 注意：这里为了让标定板z轴朝上，设定了短边是x，长边是y
@@ -59,8 +60,10 @@ def _findChessboardCorners(img, pattern,imgname, debug):
 
 def _findChessboardCornersAdapt(img, pattern,imgname, debug):
     "Adapt mode"
-    img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+    img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                 cv2.THRESH_BINARY, 21, 2)
+    cv2.imshow('Adaptive Threshold', img)
+    cv2.waitKey(0)
     return _findChessboardCorners(img, pattern,imgname, debug)
 def _findChessboardCornersYOLO(img, pattern,imgname ,debug):
     model_trained = YOLO('yolo_model_v1.pt')   
@@ -76,7 +79,7 @@ def _findChessboardCornersYOLO(img, pattern,imgname ,debug):
                 cv2.THRESH_BINARY, 21, 2)
     return _findChessboardCorners(img, pattern,imgname, debug)
 
-@func_set_timeout(5)
+@func_set_timeout(5000)
 def findChessboardCorners(img, annots, pattern,imgname, debug=False):
     conf = sum([v[2] for v in annots['keypoints2d']])
     if annots['visited'] and conf > 0:
@@ -88,6 +91,7 @@ def findChessboardCorners(img, annots, pattern,imgname, debug=False):
     # Find the chess board corners
     for func in [_findChessboardCorners, _findChessboardCornersAdapt,_findChessboardCornersYOLO]:
         ret, corners = func(gray, pattern, imgname,debug)
+        #import pdb;pdb.set_trace()
         if ret:break
     else:
         return None
@@ -98,7 +102,22 @@ def findChessboardCorners(img, annots, pattern,imgname, debug=False):
     corners = np.hstack((corners, np.ones((corners.shape[0], 1))))
     annots['keypoints2d'] = corners.tolist()
     return show
-
+def findChessboardCorners_manual(img, annots, pattern,imgname, debug=False):
+    conf = sum([v[2] for v in annots['keypoints2d']])
+    if annots['visited'] and conf > 0:
+        return True
+    elif annots['visited']:
+        return None
+    annots['visited'] = True
+    # Find the chess board corners
+    corners = Manual_GUI_detection(img)
+    # found the corners
+    show = img.copy()
+    show = cv2.drawChessboardCorners(show, pattern, corners,True)
+    assert corners.shape[0] == len(annots['keypoints2d'])
+    corners = np.hstack((corners, np.ones((corners.shape[0], 1))))
+    annots['keypoints2d'] = corners.tolist()
+    return show
 def create_chessboard(path, keypoints3d, out='annots'):
     from tqdm import tqdm
     from os.path import join
