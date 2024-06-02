@@ -18,7 +18,11 @@ import subprocess
 import os
 from pathlib import Path
 import inspect
-from mmdeploy_runtime import PoseTracker
+try:
+    from mmdeploy_runtime import PoseTracker
+except:
+    print('no mmdeploy found')
+
 import traceback
 ####parameter
 def timesync_video(video_folder,cam_num,opensim_folder):
