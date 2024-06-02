@@ -1,0 +1,1 @@
+set root=C:\Users\NTKlab\anaconda3 要找路徑

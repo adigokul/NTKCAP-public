@@ -1,0 +1,3 @@
+set root
+cd to NTK file
+check for env name

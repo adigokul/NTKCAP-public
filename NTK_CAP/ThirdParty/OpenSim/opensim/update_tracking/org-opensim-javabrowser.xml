@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.opensim.javabrowser">
+    <module_version install_time="1659023043072" last="true" origin="installer" specification_version="1.0">
+        <file crc="3021043653" name="config/Modules/org-opensim-javabrowser.xml"/>
+        <file crc="1594397782" name="modules/ext/jxbrowser-6.24.2.jar"/>
+        <file crc="1398905045" name="modules/ext/jxbrowser-linux64-6.24.2.jar"/>
+        <file crc="2281184600" name="modules/ext/jxbrowser-mac-6.24.2.jar"/>
+        <file crc="2379497712" name="modules/ext/jxbrowser-win32-6.24.2.jar"/>
+        <file crc="805709227" name="modules/ext/jxbrowser-win64-6.24.2.jar"/>
+        <file crc="2056983550" name="modules/ext/license.jar"/>
+        <file crc="556140209" name="modules/org-opensim-javabrowser.jar"/>
+    </module_version>
+</module>

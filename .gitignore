@@ -1,0 +1,13 @@
+log/
+.vscode/
+__pycache__/
+.ipynb_checkpoints/
+patient/testing/
+/*venv*/
+Patient_data/*
+!Patient_data/Patient_ID/
+calibration/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
