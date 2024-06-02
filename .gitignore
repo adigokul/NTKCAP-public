@@ -7,4 +7,7 @@ patient/testing/
 Patient_data/*
 !Patient_data/Patient_ID/
 calibration/
-
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/end2end.engine
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/end2end.onnx
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/end2end.engine
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/end2end.onnx
