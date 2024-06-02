@@ -22,6 +22,7 @@ try:
     from mmdeploy_runtime import PoseTracker
 except:
     print('no mmdeploy found')
+
 import traceback
 ####parameter
 def timesync_video(video_folder,cam_num,opensim_folder):
