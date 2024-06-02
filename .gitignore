@@ -9,7 +9,7 @@ Patient_data/*
 !Patient_data/Patient_ID/
 # If you want to include all files under Patient_ID, specify like below
 !Patient_data/Patient_ID/**
-calibration/
+#calibration/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
