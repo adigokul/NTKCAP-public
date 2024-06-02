@@ -62,8 +62,8 @@ def _findChessboardCornersAdapt(img, pattern,imgname, debug):
     "Adapt mode"
     img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                 cv2.THRESH_BINARY, 21, 2)
-    cv2.imshow('Adaptive Threshold', img)
-    cv2.waitKey(0)
+    # cv2.imshow('Adaptive Threshold', img)
+    # cv2.waitKey(0)
     return _findChessboardCorners(img, pattern,imgname, debug)
 def _findChessboardCornersYOLO(img, pattern,imgname ,debug):
     model_trained = YOLO('yolo_model_v1.pt')   

@@ -4,16 +4,40 @@ from PIL import Image, ImageTk
 import numpy as np
 
 def create_gui(img):
-    global  img_gray, img_rgb, label, root
-    
+    global  img_gray, img_rgb, label, root,img_adapt,img_adapt_clean,display_type,button_toggle_image,button_subpix_decision,subpix_decision
+
+    display_type = 'rgb'
+    subpix_decision =True
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for displaying in Tkinter
-
+    img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY, 21, 2)
+    img_adapt_clean = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY, 21, 2)
     points = []
     zoom_factor = 1.0
     center_x = img_rgb.shape[1] // 2
     center_y = img_rgb.shape[0] // 2
     results = {'corners': None}  # To store the corners
+    def decide_subpix():
+        global subpix_decision
+        if subpix_decision ==True:
+            subpix_decision = False
+            button_subpix_decision.config(text="Subpix Off")
+        else:
+            subpix_decision = True
+            button_subpix_decision.config(text="Subpix On")
+
+        update_image()
+    def toggle_image():
+        global display_type
+        if display_type == 'rgb':
+            display_type = 'adapt'
+            button_toggle_image.config(text="Adapted Imag")
+        else:
+            display_type = 'rgb'
+            button_toggle_image.config(text="RGB  Imagee")
+        update_image()
 
     def update_image():
         nonlocal zoom_factor, center_x, center_y
@@ -29,7 +53,9 @@ def create_gui(img):
         x2 = center_x + new_width // 2
         y2 = center_y + new_height // 2
 
-        cropped_img = img_rgb[y1:y2, x1:x2]
+        # Use the current display type to determine which image to show
+        current_img = img_rgb if display_type == 'rgb' else img_adapt
+        cropped_img = current_img[y1:y2, x1:x2]
         resized_img = cv2.resize(cropped_img, (width, height), interpolation=cv2.INTER_LINEAR)
 
         photo = ImageTk.PhotoImage(image=Image.fromarray(resized_img))
@@ -42,6 +68,8 @@ def create_gui(img):
         y = int(center_y + (event.y - label.winfo_height() / 2) / zoom_factor)
         points.append((x, y))
         cv2.circle(img_rgb, (x, y), 5, (255, 0, 0), -1)  # Mark the point on the image
+        cv2.circle(img_adapt, (x, y), 5, (255, 0, 0), -1)  # Mark the point on the image
+
         update_image()
 
     def save_points():
@@ -52,14 +80,44 @@ def create_gui(img):
             return None
         
         points_np = np.array(points, dtype=np.float32).reshape(-1, 1, 2)
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
-        refined_corners = cv2.cornerSubPix(img_gray, points_np, (11, 11), (-1, -1), criteria)
-        
-        img_with_corners = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1)
+
+
+# Assuming 'img_gray' is your grayscale image
+# Apply corner refinement using a window size of (11, 11) and zero zone of (-1, -1)
+
+        #refined_corners = cv2.cornerSubPix(img_adapt, points_np, (11, 11), (-1, -1), criteria)
+        #img_with_corners = cv2.cvtColor(img_adapt, cv2.COLOR_GRAY2BGR)
+        #refined_corners = cv2.cornerSubPix(img_gray, points_np, (11, 11), (-1, -1), criteria)
+        #refined_corners = cv2.find4QuadCornerSubpix(img_gray, points_np, (11, 11), (-1, -1), criteria)
+        if display_type =='rgb':
+            if subpix_decision==False:
+                refined_corners = cv2.find4QuadCornerSubpix(img_gray, points_np, (11, 11))
+                refined_corners = refined_corners[1]
+                img_with_corners = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
+            elif subpix_decision==True:
+                refined_corners = cv2.cornerSubPix(img_gray, points_np, (11, 11), (-1, -1), criteria)
+                img_with_corners = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
+        elif display_type =='adapt':
+            if subpix_decision==False:
+                refined_corners = cv2.find4QuadCornerSubpix(img_adapt_clean, points_np, (11, 11))
+                refined_corners = refined_corners[1]
+                img_with_corners = cv2.cvtColor(img_adapt_clean, cv2.COLOR_GRAY2BGR)
+            elif subpix_decision==True:
+                refined_corners = cv2.cornerSubPix(img_adapt_clean, points_np, (11, 11), (-1, -1), criteria)  
+                img_with_corners = cv2.cvtColor(img_adapt_clean, cv2.COLOR_GRAY2BGR)
+
+
+
+
+
         cv2.drawChessboardCorners(img_with_corners, (4, 3), refined_corners, True)
+
         corners = refined_corners.squeeze()
-        global img_rgb
+        global img_rgb,img_adapt
         img_rgb = cv2.cvtColor(img_with_corners, cv2.COLOR_BGR2RGB)
+        img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY, 21, 2)
         update_image()
 
         return corners
@@ -98,9 +156,12 @@ def create_gui(img):
 
     def reset_points():
         nonlocal points
-        global img_rgb
+        global img_rgb,img_gray,img_adapt
         points = []
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for displaying in Tkinter
+        img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY, 21, 2)
         update_image()
 
     root = Tk()
@@ -118,6 +179,11 @@ def create_gui(img):
     button_confirm = Button(frame, text="Confirm", command=confirm)
     button_confirm.pack(side="left", padx=5, pady=10)
 
+    button_toggle_image = Button(frame, text="Show Adapted Image", command=toggle_image)
+    button_toggle_image.pack(side="left", padx=5, pady=10)
+
+    button_subpix_decision= Button(frame, text="Subpix On", command=decide_subpix)
+    button_subpix_decision.pack(side="left", padx=5, pady=10)
     photo = ImageTk.PhotoImage(image=Image.fromarray(img_rgb))
     label = Label(root, image=photo)
     label.pack()
