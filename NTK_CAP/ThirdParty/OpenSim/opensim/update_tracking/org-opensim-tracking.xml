@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.opensim.tracking">
+    <module_version install_time="1659023040165" last="true" origin="installer" specification_version="3.207">
+        <file crc="3226221042" name="config/Modules/org-opensim-tracking.xml"/>
+        <file crc="797376482" name="modules/org-opensim-tracking.jar"/>
+    </module_version>
+</module>

@@ -1,0 +1,34 @@
+[2024-06-02 14:47:49.442] [info] Preparing to run ScaleTool.
+[2024-06-02 14:47:49.442] [info] Processing subject Pose2Sim_scaled...
+[2024-06-02 14:47:49.442] [info] Step 1: Loading generic model
+[2024-06-02 14:47:49.467] [info] Loaded model Pose2Sim_AlphaPose from file d:\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated\Apose\opensim\Model_Pose2Sim_Halpe26.osim
+[2024-06-02 14:47:50.045] [info] Step 2: Scaling generic model
+[2024-06-02 14:47:50.057] [info] Loaded marker file Empty_project_filt_0-30.trc (22 markers, 50 frames)
+[2024-06-02 14:47:50.057] [info] Measurement 'torso'
+[2024-06-02 14:47:50.058] [info] 	pair 0 (LShoulder, LHip): model = 0.553062, experimental = 0.602721
+[2024-06-02 14:47:50.058] [info] 	pair 1 (RShoulder, RHip): model = 0.553062, experimental = 0.612812
+[2024-06-02 14:47:50.059] [info] 	overall scale factor = 1.09891
+[2024-06-02 14:47:50.060] [info] Measurement 'arm'
+[2024-06-02 14:47:50.060] [info] 	pair 0 (LShoulder, LElbow): model = 0.269526, experimental = 0.292237
+[2024-06-02 14:47:50.060] [info] 	pair 1 (RShoulder, RElbow): model = 0.269526, experimental = 0.312914
+[2024-06-02 14:47:50.060] [info] 	overall scale factor = 1.12262
+[2024-06-02 14:47:50.060] [info] Measurement 'forearm'
+[2024-06-02 14:47:50.060] [info] 	pair 0 (LElbow, LWrist): model = 0.237488, experimental = 0.262259
+[2024-06-02 14:47:50.061] [info] 	pair 1 (RElbow, RWrist): model = 0.237488, experimental = 0.268248
+[2024-06-02 14:47:50.061] [info] 	overall scale factor = 1.11691
+[2024-06-02 14:47:50.061] [info] Measurement 'thigh'
+[2024-06-02 14:47:50.061] [info] 	pair 0 (LHip, LKnee): model = 0.371469, experimental = 0.377466
+[2024-06-02 14:47:50.061] [info] 	pair 1 (RHip, RKnee): model = 0.371469, experimental = 0.380530
+[2024-06-02 14:47:50.061] [info] 	overall scale factor = 1.02027
+[2024-06-02 14:47:50.062] [info] Measurement 'shank'
+[2024-06-02 14:47:50.062] [info] 	pair 0 (LKnee, LAnkle): model = 0.388261, experimental = 0.39977
+[2024-06-02 14:47:50.062] [info] 	pair 1 (RKnee, RAnkle): model = 0.388261, experimental = 0.404597
+[2024-06-02 14:47:50.062] [info] 	overall scale factor = 1.03586
+[2024-06-02 14:47:50.062] [info] Measurement 'foot'
+[2024-06-02 14:47:50.062] [info] 	pair 0 (LHeel, LBigToe): model = 0.230688, experimental = 0.25182
+[2024-06-02 14:47:50.062] [info] 	pair 1 (RHeel, RBigToe): model = 0.230688, experimental = 0.252483
+[2024-06-02 14:47:50.062] [info] 	overall scale factor = 1.09304
+[2024-06-02 14:47:50.063] [info] Measurement 'pelvis'
+[2024-06-02 14:47:50.063] [info] 	pair 0 (RHip, LHip): model = 0.210813, experimental = 0.224092
+[2024-06-02 14:47:50.063] [info] 	overall scale factor = 1.06299
+[2024-06-02 14:47:50.098] [info] Wrote model file 'Model_Pose2Sim_Halpe26_scaled.osim' from model.

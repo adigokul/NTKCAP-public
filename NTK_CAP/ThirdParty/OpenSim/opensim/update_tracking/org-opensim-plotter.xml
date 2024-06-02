@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?><module codename="org.opensim.plotter">
+    <module_version install_time="1659023037951" last="true" origin="installer" specification_version="1.0">
+        <file crc="1374800173" name="config/Modules/org-opensim-plotter.xml"/>
+        <file crc="1894752740" name="modules/org-opensim-plotter.jar"/>
+    </module_version>
+</module>
