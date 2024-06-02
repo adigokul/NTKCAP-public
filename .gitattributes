@@ -1,6 +1,2 @@
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmdet-m/end2end.engine filter=lfs diff=lfs merge=lfs -text
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmdet-m/end2end.onnx filter=lfs diff=lfs merge=lfs -text
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/*.engine filter=lfs diff=lfs merge=lfs -text
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/*.onnx filter=lfs diff=lfs merge=lfs -text
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/*.engine filter=lfs diff=lfs merge=lfs -text
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/*.onnx filter=lfs diff=lfs merge=lfs -text
