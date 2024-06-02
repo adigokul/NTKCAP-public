@@ -1,5 +1,12 @@
+<<<<<<< HEAD
+set root=C:\Users\NTKlab\anaconda3
+call %root%\Scripts\activate.bat %root%
+cd D:\NTKCAP
+
+=======
 set root=C:\Users\user\anaconda3
 call %root%\Scripts\activate.bat %root%
+>>>>>>> origin/language_timesync_ttloutputtrigger_manualGUI
 
 call conda activate pose2
 call pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
@@ -20,6 +27,11 @@ call pip install keyboard
 call pip install import_ipynb
 call pip install kivy
 call pip install "Pose2Sim==0.4"
-call pip install numpy==1.22.4
+call pip install numpy==1.21.6
 call pip install ultralytics
 call pip install tkfilebrowser
+call pip install kivy
+call pip install matplotlib 3.8.4
+call pip installpyserial
+call conda install opensim-org::opensim
+call pip install func_timeout
