@@ -3,6 +3,7 @@ import time
 import numpy as np
 import argparse
 import os
+
 import inspect
 def update_geometry_paths_in_memory(model, new_geometry_dir):
     model.initSystem()  # Initialize system to ensure model components are ready
