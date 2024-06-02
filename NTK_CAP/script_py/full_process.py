@@ -146,7 +146,11 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
         ]))
     det_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")#連到轉換過的det_model的資料夾
+<<<<<<< HEAD
     pose_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-l")#連到轉換過的pose_model的資料夾
+=======
+    pose_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-x")#連到轉換過的pose_model的資料夾
+>>>>>>> origin/language_timesync_ttloutputtrigger_manualGUI
     device_name = "cuda"
     thr=0.5
     frame_id = 0
