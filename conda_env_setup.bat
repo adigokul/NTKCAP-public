@@ -1,12 +1,7 @@
-<<<<<<< HEAD
 set root=C:\Users\NTKlab\anaconda3
 call %root%\Scripts\activate.bat %root%
 cd D:\NTKCAP
 
-=======
-set root=C:\Users\user\anaconda3
-call %root%\Scripts\activate.bat %root%
->>>>>>> origin/language_timesync_ttloutputtrigger_manualGUI
 
 call conda activate pose2
 call pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
