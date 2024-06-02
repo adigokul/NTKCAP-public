@@ -2,6 +2,9 @@ set root
 cd to NTK file
 check for env name
 
+for editor window
+git config --global core.editor "code --wait"
+
 
 
 
