@@ -1,0 +1,47 @@
+%YAML:1.0
+---
+names:
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+K_1: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [774.534, 0.000, 956.895, 0.000, 773.439, 542.879, 0.000, 0.000, 1.000]
+dist_1: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [0.015, -0.014, 0.006, -0.003, 0.000]
+K_2: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [774.534, 0.000, 956.895, 0.000, 773.439, 542.879, 0.000, 0.000, 1.000]
+dist_2: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [0.015, -0.014, 0.006, -0.003, 0.000]
+K_3: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [774.534, 0.000, 956.895, 0.000, 773.439, 542.879, 0.000, 0.000, 1.000]
+dist_3: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [0.015, -0.014, 0.006, -0.003, 0.000]
+K_4: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [774.534, 0.000, 956.895, 0.000, 773.439, 542.879, 0.000, 0.000, 1.000]
+dist_4: !!opencv-matrix
+  rows: 1
+  cols: 5
+  dt: d
+  data: [0.015, -0.014, 0.006, -0.003, 0.000]

@@ -109,6 +109,7 @@ def create_gui(img):
 
 
 
+
         cv2.drawChessboardCorners(img_with_corners, (4, 3), refined_corners, True)
 
         corners = refined_corners.squeeze()
