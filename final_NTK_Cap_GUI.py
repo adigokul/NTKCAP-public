@@ -147,7 +147,9 @@ class NTK_CapApp(App):
         self.language = 'Chinese'
         self.config_path = os.path.join(self.current_directory, "config")
         self.time_file_path = os.path.join(self.current_directory, "cali_time.txt")
-        self.is_checkbox_viconsync_checked =0
+ 
+
+        self.mode_select = 'Recording'
         self.record_path = self.current_directory
         self.calibra_path = os.path.join(self.current_directory, "calibration")
         self.patient_path = os.path.join(self.current_directory, "Patient_data")
@@ -264,28 +266,47 @@ class NTK_CapApp(App):
         checkbox = CheckBox(size_hint=(None, None), size=(48, 48), pos_hint={'center_x': 0.3, 'center_y': 0.5})
         
         
-        # Label for the CheckBox
-        checkbox_label = Label(text="Enable feature", size_hint=(None, None), size=(200, 30), pos_hint={'center_x': 0.45, 'center_y': 0.5})
-        checkbox.bind(active=self.on_checkbox_active)
-        # Adding widgets to the layout
-        layout.add_widget(checkbox)
-        layout.add_widget(checkbox_label)
-        self.COM_input = TextInput(hint_text='COM number', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[4]}, font_name=self.font_path)
+        # # # Label for the CheckBox
+        # checkbox_label = Label(text="Enable feature", size_hint=(None, None), size=(200, 30), pos_hint={'center_x': 0.45, 'center_y': 0.5})
+        # checkbox.bind(active=self.on_checkbox_active)
+        # #Adding widgets to the layout
+        # layout.add_widget(checkbox)
+        # layout.add_widget(checkbox_label)
+        self.btn_ttl = Button(text='ttl',size_hint=(0.09,0.05),size=(170, 30), pos_hint={'center_x': pos_ref_x[2]-0.05, 'center_y':pos_ref_y[4]-0.03}, on_release=self.on_checkbox_active, font_name=self.font_path,opacity=0)
+        layout.add_widget(self.btn_ttl)
+        #Spinner for feature selection
+        self.feature_spinner = Spinner(
+            text='Recording',
+            values=('Recording', 'VICON Recording','Delay test'),
+            size_hint=(0.19,0.05),
+            size=(170, 30),
+            pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[4]+0.03},
+            font_name=self.font_path
+        )
+        self.feature_spinner.bind(text=self.on_spinner_select)
+        layout.add_widget(self.feature_spinner)
+
+        self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': pos_ref_x[2]+0.05, 'center_y':pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
         Clock.schedule_interval(self.task_update, 0.1)
         layout.add_widget(self.COM_input)
         return layout
     
-       
-    def on_checkbox_active(self, checkbox, value):
-        self.is_checkbox_viconsync_checked = value  # Store checkbox state in the app
-        if value:
-            print("Checkbox Checked")
-            try:
-                CP2102_output_signal(self.COM_input.text)
-            except:
-                print('COM input error')
+    def on_spinner_select(self, spinner, text):
+        print(f'Selected feature: {text}')
+        self.mode_select = text
+        if text == 'VICON Recording':
+            self.COM_input.opacity = 1  # Show COM input
+            self.btn_ttl.opacity = 1  # Show TTL button
         else:
-            print("Checkbox Unchecked")
+            self.COM_input.opacity = 0  # Hide COM input
+            self.btn_ttl.opacity = 0  # Hide TTL button
+    #Implement the logic for the selected feature here
+
+    def on_checkbox_active(self, instance): # Store checkbox state in the app
+        try:
+            CP2102_output_signal(self.COM_input.text)
+        except:
+            print('COM input error')
 
     def toggle_language(self,btn_calibration_folder,btn_config,btn_check_cam,btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance):
         self.language = 'Chinese' if self.language == 'English' else 'English'
@@ -596,11 +617,15 @@ class NTK_CapApp(App):
         self.camera_motion_final(self, date)
 
     def camera_motion_final(self,instance, date):
-        if self.is_checkbox_viconsync_checked:
+        if self.mode_select == 'VICON Recording':
             camera_Motion_record_VICON_sync(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date,self.COM_input.text, button_capture=False, button_stop=False)
-        else:
+        elif self.mode_select =='Recording':
             camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+        elif self.mode_select =='Delay test':
+            camera_Motion_record_test_time_delay(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
 
+        else:
+            print('Error from mode select')
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
         try:
