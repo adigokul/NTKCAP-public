@@ -4,39 +4,40 @@ from PIL import Image, ImageTk
 import numpy as np
 
 def create_gui(img):
-    global  img_gray, img_rgb, label, root,img_adapt,img_adapt_clean,display_type,button_toggle_image,button_subpix_decision,subpix_decision
+    global img_gray, img_rgb, label, root, img_adapt, img_adapt_clean, display_type, button_toggle_image, button_subpix_decision, subpix_decision, window_size_entry
 
     display_type = 'rgb'
-    subpix_decision =True
+    subpix_decision = True
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for displaying in Tkinter
-    img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 21, 2)
-    img_adapt_clean = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 21, 2)
+    img_adapt = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                      cv2.THRESH_BINARY, 21, 2)
+    img_adapt_clean = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                            cv2.THRESH_BINARY, 21, 2)
     points = []
     zoom_factor = 1.0
     center_x = img_rgb.shape[1] // 2
     center_y = img_rgb.shape[0] // 2
     results = {'corners': None}  # To store the corners
+
     def decide_subpix():
         global subpix_decision
-        if subpix_decision ==True:
+        if subpix_decision:
             subpix_decision = False
             button_subpix_decision.config(text="Subpix Off")
         else:
             subpix_decision = True
             button_subpix_decision.config(text="Subpix On")
-
         update_image()
+
     def toggle_image():
         global display_type
         if display_type == 'rgb':
             display_type = 'adapt'
-            button_toggle_image.config(text="Adapted Imag")
+            button_toggle_image.config(text="Adapted Image")
         else:
             display_type = 'rgb'
-            button_toggle_image.config(text="RGB  Imagee")
+            button_toggle_image.config(text="RGB Image")
         update_image()
 
     def update_image():
@@ -67,8 +68,15 @@ def create_gui(img):
         x = int(center_x + (event.x - label.winfo_width() / 2) / zoom_factor)
         y = int(center_y + (event.y - label.winfo_height() / 2) / zoom_factor)
         points.append((x, y))
-        cv2.circle(img_rgb, (x, y), 5, (255, 0, 0), -1)  # Mark the point on the image
-        cv2.circle(img_adapt, (x, y), 5, (255, 0, 0), -1)  # Mark the point on the image
+
+        # Draw the inner circle
+        cv2.circle(img_rgb, (x, y), 2, (255, 0, 0), -1)  # Mark the point on the image
+        cv2.circle(img_adapt, (x, y), 2, (255, 0, 0), -1)  # Mark the point on the image
+
+        # Draw the outer circle indicating the subpixel window size
+        window_size = int(window_size_entry.get())  # Get the window size from the input field
+        cv2.circle(img_rgb, (x, y), window_size, (0, 255, 0), 1)
+        cv2.circle(img_adapt, (x, y), window_size, (0, 255, 0), 1)
 
         update_image()
 
@@ -78,45 +86,38 @@ def create_gui(img):
         if len(points) != 12:
             print("Please select exactly 12 points.")
             return None
-        
+
         points_np = np.array(points, dtype=np.float32).reshape(-1, 1, 2)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1)
 
+        window_size = int(window_size_entry.get())  # Get the window size from the input field
 
-# Assuming 'img_gray' is your grayscale image
-# Apply corner refinement using a window size of (11, 11) and zero zone of (-1, -1)
-
-        #refined_corners = cv2.cornerSubPix(img_adapt, points_np, (11, 11), (-1, -1), criteria)
-        #img_with_corners = cv2.cvtColor(img_adapt, cv2.COLOR_GRAY2BGR)
-        #refined_corners = cv2.cornerSubPix(img_gray, points_np, (11, 11), (-1, -1), criteria)
-        #refined_corners = cv2.find4QuadCornerSubpix(img_gray, points_np, (11, 11), (-1, -1), criteria)
-        if display_type =='rgb':
-            if subpix_decision==False:
-                refined_corners = cv2.find4QuadCornerSubpix(img_gray, points_np, (11, 11))
+        if display_type == 'rgb':
+            if subpix_decision == False:
+                refined_corners = cv2.find4QuadCornerSubpix(img_gray, points_np, (window_size, window_size))
                 refined_corners = refined_corners[1]
                 img_with_corners = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
-            elif subpix_decision==True:
-                refined_corners = cv2.cornerSubPix(img_gray, points_np, (11, 11), (-1, -1), criteria)
+                
+            elif subpix_decision == True:
+                refined_corners = cv2.cornerSubPix(img_gray, points_np, (window_size, window_size), (-1, -1), criteria)
                 img_with_corners = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
-        elif display_type =='adapt':
-            if subpix_decision==False:
-                refined_corners = cv2.find4QuadCornerSubpix(img_adapt_clean, points_np, (11, 11))
+                print('on'+ str(window_size))
+        elif display_type == 'adapt':
+            if subpix_decision == False:
+                refined_corners = cv2.find4QuadCornerSubpix(img_adapt_clean, points_np, (window_size, window_size))
                 refined_corners = refined_corners[1]
                 img_with_corners = cv2.cvtColor(img_adapt_clean, cv2.COLOR_GRAY2BGR)
-            elif subpix_decision==True:
-                refined_corners = cv2.cornerSubPix(img_adapt_clean, points_np, (11, 11), (-1, -1), criteria)  
+            elif subpix_decision == True:
+                refined_corners = cv2.cornerSubPix(img_adapt_clean, points_np, (window_size, window_size), (-1, -1), criteria)
                 img_with_corners = cv2.cvtColor(img_adapt_clean, cv2.COLOR_GRAY2BGR)
-
-
-
 
         cv2.drawChessboardCorners(img_with_corners, (4, 3), refined_corners, True)
 
         corners = refined_corners.squeeze()
-        global img_rgb,img_adapt
+        global img_rgb, img_adapt
         img_rgb = cv2.cvtColor(img_with_corners, cv2.COLOR_BGR2RGB)
-        img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 21, 2)
+        img_adapt = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                          cv2.THRESH_BINARY, 21, 2)
         update_image()
 
         return corners
@@ -152,15 +153,14 @@ def create_gui(img):
 
         update_image()
 
-
     def reset_points():
         nonlocal points
-        global img_rgb,img_gray,img_adapt
+        global img_rgb, img_gray, img_adapt
         points = []
-        
+
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB for displaying in Tkinter
-        img_adapt = cv2.adaptiveThreshold(img_gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 21, 2)
+        img_adapt = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                          cv2.THRESH_BINARY, 21, 2)
         update_image()
 
     root = Tk()
@@ -168,6 +168,12 @@ def create_gui(img):
 
     frame = Frame(root)
     frame.pack(side="top", fill="x")
+
+    # Add a label and entry for window size
+    Label(frame, text="Window Size:").pack(side="left", padx=5, pady=10)
+    window_size_entry = Entry(frame)
+    window_size_entry.pack(side="left", padx=5, pady=10)
+    window_size_entry.insert(0, "11")  # Set default value to 11
 
     button_save = Button(frame, text="Save Points", command=save_points)
     button_save.pack(side="left", padx=5, pady=10)
@@ -181,8 +187,9 @@ def create_gui(img):
     button_toggle_image = Button(frame, text="Show Adapted Image", command=toggle_image)
     button_toggle_image.pack(side="left", padx=5, pady=10)
 
-    button_subpix_decision= Button(frame, text="Subpix On", command=decide_subpix)
+    button_subpix_decision = Button(frame, text="Subpix On", command=decide_subpix)
     button_subpix_decision.pack(side="left", padx=5, pady=10)
+
     photo = ImageTk.PhotoImage(image=Image.fromarray(img_rgb))
     label = Label(root, image=photo)
     label.pack()
@@ -196,11 +203,11 @@ def create_gui(img):
     return results['corners']
 
 def Manual_GUI_detection(img):
-   
     corners = create_gui(img)
     print("Corners obtained:", corners)
     return corners
 
-# img_path = r'C:\Users\user\Desktop\NTKCAP\calibration\ExtrinsicCalibration\images\1\000000.jpg'
+# # Test the function
+# img_path = r'E:\NTKCAP\calibration\ExtrinsicCalibration\images\2\000000.jpg'
 # a = cv2.imread(img_path)
 # Manual_GUI_detection(a)

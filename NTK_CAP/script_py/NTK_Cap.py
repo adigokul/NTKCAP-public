@@ -455,7 +455,7 @@ def camera_Apose_record(config_path, save_path, patientID, date, button_capture=
 # Motion maximum 55minutes
 def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop,start_time,button_start=False, button_stop=False):
     # Define the shape of the array
-    time_stamp= np.empty((100000, 2))
+    time_stamp= np.empty((1000000, 2))
     cap = cv2.VideoCapture(camera_id)
     
     width = 1920
@@ -654,7 +654,61 @@ def camera_Motion_record(config_path, save_path, patientID, task, date,button_ca
 
     for p in processes:
         p.join()
+def camera_Motion_record_test_time_delay(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
+    config_name = os.path.join(config_path, "config.json")
+    save_path = os.path.join(save_path, "Patient_data")
+    save_path = os.path.join(save_path, patientID)
+    save_path = os.path.join(save_path, date)
+    save_path = os.path.join(save_path, 'raw_data')
+    save_path = os.path.join(save_path, task)
+    
+    time_file_path = os.path.join(save_path, "recordtime.txt")
+    save_path = os.path.join(save_path, "videos")
+    os.makedirs(save_path)
 
+    if os.path.exists(time_file_path):
+        with open(time_file_path, "r") as file:
+            formatted_datetime = file.read().strip()
+    else:
+        now = datetime.now()
+        formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
+        with open(time_file_path, "w") as file:
+            file.write(formatted_datetime)
+
+
+    # save_path_1 = os.path.join(save_path, "1.mp4")
+    with open(config_name, 'r') as f:
+        data = json.load(f)
+
+    num_cameras = data['cam']['list']
+
+    event_start = multiprocessing.Event()
+    event_stop = multiprocessing.Event()
+    processes = []
+    now_cam_num = 0
+    position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
+    p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    processes.append(p)
+    p.start()
+    for i in num_cameras:
+        now_cam_num = now_cam_num + 1
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
+        processes.append(p)
+        p.start()
+    time.sleep(1)
+    while True:
+        if keyboard.is_pressed('s'):
+            event_start.set()
+            time.sleep(1)
+            break
+
+    for p in processes:
+        p.join()
 def camera_Motion_record_VICON_sync(config_path, save_path, patientID, task, date,input_COM,button_capture=False, button_stop=False):
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
