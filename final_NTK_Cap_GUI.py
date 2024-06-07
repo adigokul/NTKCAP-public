@@ -18,16 +18,16 @@ from kivy.uix.checkbox import CheckBox
 import time
 from datetime import datetime
 import os
-
 import cv2
 from NTK_CAP.script_py.NTK_Cap import *
-
 from check_extrinsic import *
 import tkinter as tk
 from tkinter import filedialog
 from kivy.animation import Animation
 from NTK_CAP.script_py.kivy_file_chooser import select_directories_and_return_list
 import traceback
+import shutil
+
 class NewPageScreen(Screen):
     def __init__(self, **kwargs):
         self.current_directory = os.getcwd()
