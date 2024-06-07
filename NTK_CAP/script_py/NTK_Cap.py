@@ -13,15 +13,10 @@ from datetime import datetime
 import subprocess
 import easymocap
 import import_ipynb
-
-from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
 from .xml_update import *
 from Pose2Sim import Pose2Sim
-from ultralytics import YOLO
 import inspect;inspect.getfile(Pose2Sim)
 import  serial
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 ######################################################
 
 #Version = '1.0.2'
@@ -577,6 +572,8 @@ def CP2102_output_signal(input_COM):
     
     ser.write(b'\x8d\x00')
 def print_timer_matplt(start_time):### Much Higher fps
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
     update_rate = 1000
 
     # Calculate the time interval between updates
@@ -593,6 +590,7 @@ def print_timer_matplt(start_time):### Much Higher fps
 
     # Function to update the text
     def update(frame):
+        
         elapsed_time = time.time() - start_time
         text.set_text('{:.3f}'.format(elapsed_time))
         return text,
@@ -603,6 +601,7 @@ def print_timer_matplt(start_time):### Much Higher fps
     # Show the plot
     plt.show()
 def camera_Motion_record(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
+    
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
     save_path = os.path.join(save_path, patientID)
@@ -655,6 +654,7 @@ def camera_Motion_record(config_path, save_path, patientID, task, date,button_ca
     for p in processes:
         p.join()
 def camera_Motion_record_test_time_delay(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
+
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
     save_path = os.path.join(save_path, patientID)
@@ -710,6 +710,7 @@ def camera_Motion_record_test_time_delay(config_path, save_path, patientID, task
     for p in processes:
         p.join()
 def camera_Motion_record_VICON_sync(config_path, save_path, patientID, task, date,input_COM,button_capture=False, button_stop=False):
+
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
     save_path = os.path.join(save_path, patientID)
@@ -789,6 +790,7 @@ def detect_chessboard(PWD, file_path,manual_token):
     #subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.15"])
     subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.29",'--manual',str(manual_token)])
 def print_yolo_result(PWD,file_path):
+    from ultralytics import YOLO
     model_trained = YOLO('yolo_model_v1.pt')
     directory_path = os.path.join(file_path, 'yolo_backup')
     source_path = os.path.join(file_path, 'images')
@@ -927,6 +929,7 @@ def read_err_calib_extri(PWD):
 # openpose & pose2sim
 
 def marker_caculate(PWD,cal_data_path):
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
     openpose_path = os.path.join(openpose_path, "ThirdParty")
