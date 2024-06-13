@@ -26,7 +26,25 @@ from tkinter import filedialog
 from kivy.animation import Animation
 from NTK_CAP.script_py.kivy_file_chooser import select_directories_and_return_list
 import traceback
-import shutil
+SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+class NumberedInputBox(BoxLayout):
+    def __init__(self, text, parent_layout, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'horizontal'
+        self.number_label = Label(text=text, size_hint_x=0.2)
+        self.input_box = TextInput(multiline=False)
+        self.delete_button = Button(text='Delete', size_hint_x=0.2)
+        self.delete_button.bind(on_press=self.delete_self)
+
+        self.add_widget(self.number_label)
+        self.add_widget(self.input_box)
+        self.add_widget(self.delete_button)
+
+        self.parent_layout = parent_layout
+
+    def delete_self(self, instance):
+        self.parent_layout.remove_widget(self)
+
 
 class NewPageScreen(Screen):
     def __init__(self, **kwargs):
