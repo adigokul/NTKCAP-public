@@ -18,9 +18,6 @@ from Pose2Sim import Pose2Sim
 import inspect;inspect.getfile(Pose2Sim)
 import  serial
 ######################################################
-
-#Version = '1.0.2'
-
 ######################################################
 # create calibration folder
 def create_fresh_directory(dir_path):

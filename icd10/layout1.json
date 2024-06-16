@@ -1,0 +1,1 @@
+[{"type": "input", "title": "Symptoms", "content": ""}, {"type": "spinner", "title": "Task", "options": ["walk", "run"]}, {"type": "spinner", "title": "Task outin", "options": ["Inside camera", " walk from outside"]}, {"type": "spinner", "title": "Facing", "options": ["Door", "Window"]}, {"type": "input", "title": "Task number", "content": ""}]

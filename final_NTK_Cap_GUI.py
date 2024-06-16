@@ -15,6 +15,9 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.checkbox import CheckBox
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 import time
 from datetime import datetime
 import os
@@ -26,7 +29,266 @@ from tkinter import filedialog
 from kivy.animation import Animation
 from NTK_CAP.script_py.kivy_file_chooser import select_directories_and_return_list
 import traceback
+import requests
+import sqlite3
 SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+FONT_PATH = os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
+# 连接到SQLite数据库
+conn = sqlite3.connect(os.path.join(os.getcwd(),'icd10','icd10.db'))
+
+# 定义模糊搜索函数
+def fuzzy_search(query):
+    cursor = conn.execute("""
+        SELECT Code, CM2023_英文名稱, CM2023_中文名稱 
+        FROM icd10_fts 
+        WHERE CM2023_英文名稱 LIKE ? 
+        OR CM2023_中文名稱 LIKE ? 
+        OR Code LIKE ?
+    """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+    results = cursor.fetchall()
+    return results
+
+class TaskInputScreen(Screen):
+    def __init__(self, **kwargs):
+        super(TaskInputScreen, self).__init__(**kwargs)
+        self.layout = BoxLayout(orientation='vertical')
+        
+        # 添加选择布局按钮
+        self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
+        self.choose_layout_button.bind(on_press=self.open_file_chooser)
+        self.layout.add_widget(self.choose_layout_button)
+
+        # 创建滚动视图来显示布局内容
+        self.scroll_view = ScrollView(size_hint=(1, 1))
+        self.results_layout = GridLayout(cols=1, size_hint_y=None)
+        self.results_layout.bind(minimum_height=self.results_layout.setter('height'))
+        self.scroll_view.add_widget(self.results_layout)
+        self.layout.add_widget(self.scroll_view)
+
+        # Create a button at the bottom right
+        bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
+        bottom_right_button.bind(on_press=self.print_task_info)
+        self.layout.add_widget(bottom_right_button)
+
+        # Initialize instance variables for the task input boxes and spinner
+        self.task_name_input = None
+        self.task_number_input = None
+        self.task_spinner = None
+
+        self.add_widget(self.layout)
+    
+    def open_file_chooser(self, instance):
+        # 创建文件选择弹出窗口
+        file_chooser = FileChooserIconView(path='.', filters=['*.json'])
+        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        popup_layout.add_widget(file_chooser)
+        
+        # 确认按钮
+        confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
+        confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
+        popup_layout.add_widget(confirm_button)
+        
+        self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
+        self.popup.open()
+    
+    def load_layout(self, selection):
+        if selection:
+            layout_file = selection[0]
+            self.popup.dismiss()
+            
+            # 读取选择的布局文件
+            with open(layout_file, 'r') as f:
+                layout_data = json.load(f)
+            
+            # 清空当前布局
+            self.results_layout.clear_widgets()
+            
+            for item in layout_data:
+                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+                    # 替换为Search ICD-10按钮和显示选择结果的TextInput
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    # Use a GridLayout to align TextInput and Button
+                    grid_layout = GridLayout(cols=2, size_hint=(1, None), height=40)
+                    
+                    self.idc_result_input = TextInput(size_hint_y=None, height=40, multiline=False, font_name=FONT_PATH)
+                    grid_layout.add_widget(self.idc_result_input)
+
+                    search_button = Button(text="Search ICD-10", size_hint_x=None, width=150)
+                    search_button.bind(on_press=self.open_search_popup)
+                    grid_layout.add_widget(search_button)
+                    
+                    new_box.add_widget(grid_layout)
+                    self.results_layout.add_widget(new_box)
+                    
+                elif item['type'] == 'input':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                    new_box.add_widget(string_input)
+                    
+                    self.results_layout.add_widget(new_box)
+                    
+                    # Store references to task name and task number inputs
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = string_input
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = string_input
+
+                elif item['type'] == 'spinner':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    spinner = Spinner(
+                        text='Choose an option',
+                        values=item['options'],
+                        size_hint=(1, None),
+                        height=40
+                    )
+                    new_box.add_widget(spinner)
+                    
+                    self.results_layout.add_widget(new_box)
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = spinner
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = spinner
+                    # Store reference to the spinner
+                    
+
+    def open_search_popup(self, instance):
+        # 创建弹出窗口
+        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        self.popup_input = TextInput(size_hint_y=None, height=40, font_name=FONT_PATH)
+        self.popup_input.bind(text=self.on_text)
+        popup_layout.add_widget(self.popup_input)
+        
+        # 创建滚动视图来显示搜索结果
+        self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
+        self.results_layout = GridLayout(cols=1, size_hint_y=None)
+        self.results_layout.bind(minimum_height=self.results_layout.setter('height'))
+        self.results_view.add_widget(self.results_layout)
+        popup_layout.add_widget(self.results_view)
+        
+        self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
+        self.popup.open()
+    
+    def on_text(self, instance, value):
+        self.results_layout.clear_widgets()
+        if value.strip():  # 检查输入是否为空
+            search_results = fuzzy_search(value)
+            for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
+                result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
+                result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
+                self.results_layout.add_widget(result_button)
+    
+    def select_result(self, code, en_description, cn_description):
+        print(f"Selected: {code}: {en_description} / {cn_description}")
+        
+        # 在右侧布局的输入框中显示选择的IDC结果，结果用逗号分隔
+        current_text = self.idc_result_input.text
+        new_text = f"{code}: {en_description} / {cn_description}"
+        if current_text:
+            self.idc_result_input.text = f"{current_text}, {new_text}"
+        else:
+            self.idc_result_input.text = new_text
+        
+        self.popup.dismiss()
+
+    def print_task_info(self, instance):
+            if self.task_name_input and self.task_number_input:
+                task_name = self.task_name_input.text
+                task_number = self.task_number_input.text
+                self.manager.parent_app.task_name = f"{task_name} {task_number}"
+                self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+                print(f"Task: {self.manager.parent_app.task_name}")
+                self.manager.current = 'main'  # Switch back to the main screen
+            else:
+                print("Task Name or Task Number input not found")
+class ResultsPopup(Popup):
+    def __init__(self, parent_app, **kwargs):
+        super(ResultsPopup, self).__init__(**kwargs)
+        self.parent_app = parent_app  # Save the parent app reference
+        self.layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        self.current_directory = os.getcwd()
+        
+
+        input_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=30)
+        self.spinner = Spinner(
+            text='Name',
+            values=('Name', 'Phone'),
+            size_hint_x=None,
+            width=100,
+            font_name=FONT_PATH
+        )
+        input_layout.add_widget(self.spinner)
+
+        self.search_input = TextInput(hint_text="Enter name or phone", multiline=False, font_name=FONT_PATH)
+        self.search_input.bind(text=self.on_text)
+        input_layout.add_widget(self.search_input)
+
+        self.layout.add_widget(input_layout)
+
+        self.scroll_view = ScrollView(size_hint=(1, 0.8))
+        self.results_layout = GridLayout(cols=1, size_hint_y=None)
+        self.results_layout.bind(minimum_height=self.results_layout.setter('height'))
+        self.scroll_view.add_widget(self.results_layout)
+        self.layout.add_widget(self.scroll_view)
+
+        close_button = Button(text="Close", size_hint=(1, 0.1), font_name=FONT_PATH)
+        close_button.bind(on_press=self.dismiss)
+        self.layout.add_widget(close_button)
+
+        self.add_widget(self.layout)  # Add the layout to the popup
+
+    def on_text(self, instance, value):
+        self.call_api(value)
+
+    def call_api(self, query):
+        if query.strip() == "":
+            return
+
+        host = "https://motion-service.yuyi-ocean.com"
+        url = f"{host}/api/patients"
+        search_type = 'name' if self.spinner.text == 'Name' else 'phone'
+        params = {search_type: query}
+
+        try:
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                results = response.json()
+                self.update_results(results['resources'])  # Update the results in the popup
+            else:
+                self.results_layout.clear_widgets()
+                result_label = Label(text=f"Error: {response.status_code}", size_hint_y=None, height=40, font_name=FONT_PATH)
+                self.results_layout.add_widget(result_label)
+        except requests.exceptions.RequestException as e:
+            self.results_layout.clear_widgets()
+            result_label = Label(text=f"Request failed: {e}", size_hint_y=None, height=40, font_name=FONT_PATH)
+            self.results_layout.add_widget(result_label)
+
+    def update_results(self, results):
+        self.results_layout.clear_widgets()
+        
+        for res in results:
+            result_button = Button(text=f"Name: {res['name']}, Phone: {res['phone']}", size_hint_y=None, height=40, font_name=FONT_PATH)
+            result_button.id = res['id']  # Store the id in the button's id property
+            result_button.name = res['name']
+            result_button.phone = res['phone']
+            result_button.bind(on_press=self.on_result_button_press)
+            self.results_layout.add_widget(result_button)
+
+    def on_result_button_press(self, instance):
+        print(f"Selected ID: {instance.id}")
+        self.parent_app.patient_genID = instance.id  # Store the selected ID in the parent app's variable
+        self.parent_app.patient_namephone = f"{instance.name} \n {instance.phone}"  # Store the selected name and phone in the parent app's variable
+        self.dismiss()  # Close the popup after selection
+
 class NumberedInputBox(BoxLayout):
     def __init__(self, text, parent_layout, **kwargs):
         super().__init__(**kwargs)
@@ -116,16 +378,16 @@ class NewPageScreen(Screen):
 class NTK_CapApp(App):
     def build(self):##### build next page
         self.sm = ScreenManager()  # Now 'sm' is accessible throughout the app as 'self.sm'
-        
+        self.sm.parent_app = self
         main_screen = Screen(name='main')
         new_page_screen = NewPageScreen(name='new_page')
-
+        task_input_screen = TaskInputScreen(name='task_input')
         main_layout = self.setup_main_layout()  # Setup your main layout here
         main_screen.add_widget(main_layout)
 
         self.sm.add_widget(main_screen)
         self.sm.add_widget(new_page_screen)
-
+        self.sm.add_widget(task_input_screen) 
         return self.sm
 
 
@@ -165,7 +427,7 @@ class NTK_CapApp(App):
         self.language = 'Chinese'
         self.config_path = os.path.join(self.current_directory, "config")
         self.time_file_path = os.path.join(self.current_directory, "cali_time.txt")
- 
+        self.task_name = ''
 
         self.mode_select = 'Recording'
         self.record_path = self.current_directory
@@ -239,10 +501,18 @@ class NTK_CapApp(App):
         
         # Patient ID
         self.patientID = "test"
-        self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
+        # Replace this line
+        # self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
+        # With this block
+        self.patient_genID = ''  # Add this line to define the variable
+        self.patient_namephone = '' # Add this line to define the variable
+        self.task_name =''
+        self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
+        self.btn_patientID.bind(on_press=self.show_input_popup)
+        layout.add_widget(self.btn_patientID)
         Clock.schedule_interval(self.patient_ID_update, 0.1)
-        layout.add_widget(self.txt_patientID_real)
-        self.label_PatientID_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 570), font_name=self.font_path)
+        #layout.add_widget(self.txt_patientID_real)
+        self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
         layout.add_widget(self.label_PatientID_real)
         
         # 內參選擇相機
@@ -253,10 +523,11 @@ class NTK_CapApp(App):
 
         # Task Name
         self.task = "test"
-        self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
+        self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
+        self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
+        layout.add_widget(self.task_button)        
         Clock.schedule_interval(self.task_update, 0.1)
-        layout.add_widget(self.txt_task)
-        self.label_task_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
+        self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
         layout.add_widget(self.label_task_real)
 
         self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[7]-0.1}, font_name=self.font_path)
@@ -308,7 +579,11 @@ class NTK_CapApp(App):
         Clock.schedule_interval(self.task_update, 0.1)
         layout.add_widget(self.COM_input)
         return layout
-    
+    def show_input_popup(self, instance):
+        # Create the popup with the parent app reference
+        self.popup = ResultsPopup(title="Results", size_hint=(0.8, 0.8), parent_app=self)
+        self.popup.open()
+
     def on_spinner_select(self, spinner, text):
         print(f'Selected feature: {text}')
         self.mode_select = text
@@ -528,8 +803,8 @@ class NTK_CapApp(App):
         self.add_log(self.label_log.text)
         if self.label_PatientID_real.text == "":
             self.label_log.text = 'check Patient ID'
-        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,datetime.now().strftime("%Y_%m_%d"),'raw_data'))==0: ## check if path exist
-            camera_Apose_record(self.config_path,self.record_path,self.txt_patientID_real.text,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
+        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))==0: ## check if path exist
+            camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         else:
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not change the Patient ID, Do you want to replace the original Apose?')
@@ -557,8 +832,8 @@ class NTK_CapApp(App):
 
     def perform_Apose_recording(self, instance, popup):
         popup.dismiss()  # Dismiss the popup first
-        shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
-        camera_Apose_record(self.config_path,self.record_path,self.txt_patientID_real.text,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
+        shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
+        camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         #import pdb;pdb.set_trace()
     def button_task_record(self, instance):
         # self.label_log.text = '拍攝動作'
@@ -571,7 +846,7 @@ class NTK_CapApp(App):
         elif self.label_task_real.text == "":
             # self.label_log.text = '請輸入task name'
             self.label_log.text = 'Enter task name'
-        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data','Apose'))==0:## check if Apose exist
+        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data','Apose'))==0:## check if Apose exist
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not record Apose, are you sure to continue?')
             content.add_widget(message)
@@ -594,7 +869,7 @@ class NTK_CapApp(App):
 
             popup.open()
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
-        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
+        elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
             #camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
             self.camera_motion_final(self,date)
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
@@ -627,7 +902,7 @@ class NTK_CapApp(App):
     def perform_Motion_recording_same_task(self, instance, popup,date):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
-        shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.txt_patientID_real.text,date,'raw_data',self.label_task_real.text))
+        shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))
         self.camera_motion_final(self,date)
     def perform_Motion_recording_no_Apose(self, instance, popup,date):
         popup.dismiss()  # Dismiss the popup first
@@ -636,11 +911,11 @@ class NTK_CapApp(App):
 
     def camera_motion_final(self,instance, date):
         if self.mode_select == 'VICON Recording':
-            camera_Motion_record_VICON_sync(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date,self.COM_input.text, button_capture=False, button_stop=False)
+            camera_Motion_record_VICON_sync(self.config_path, self.record_path, self.patient_genID, self.label_task_real.text, date,self.COM_input.text, button_capture=False, button_stop=False)
         elif self.mode_select =='Recording':
-            camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+            camera_Motion_record(self.config_path, self.record_path,  self.patient_genID, self.label_task_real.text, date, button_capture=False, button_stop=False)
         elif self.mode_select =='Delay test':
-            camera_Motion_record_test_time_delay(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
+            camera_Motion_record_test_time_delay(self.config_path, self.record_path,  self.patient_genID, self.label_task_real.text, date, button_capture=False, button_stop=False)
 
         else:
             print('Error from mode select')
@@ -686,10 +961,10 @@ class NTK_CapApp(App):
 
     # text
     def patient_ID_update(self, dt):
-        self.label_PatientID_real.text = self.txt_patientID_real.text
+        self.label_PatientID_real.text = self.patient_namephone
 
     def task_update(self, dt):
-        self.label_task_real.text = self.txt_task.text
+        self.label_task_real.text = self.task_name
 
     def camID_update(self, spinner, text):
         #self.select_camID = self.txt_cam_ID.text
