@@ -23,6 +23,7 @@ from datetime import datetime
 import os
 import cv2
 from NTK_CAP.script_py.NTK_Cap import *
+from NTK_CAP.script_py.cloud_function import *
 from check_extrinsic import *
 import tkinter as tk
 from tkinter import filedialog
@@ -935,7 +936,8 @@ class NTK_CapApp(App):
             # print("initial_dir:", self.patient_path)
             for dir_sel_loop in range(len(selected_directories)):
                 cal_folder_path =selected_directories[dir_sel_loop]
-                marker_caculate(self.current_directory , cal_folder_path)
+                folder_calculated = marker_caculate(self.current_directory , cal_folder_path)
+                marker_calculate_upload(folder_calculated,os.path.join(self.current_directory,'config','location.json'))
             # self.label_log.text = 'Marker以及IK計算完畢'
             self.label_log.text = 'Marker and IK caculate finished'
             self.add_log(self.label_log.text)

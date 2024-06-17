@@ -1190,6 +1190,7 @@ def marker_caculate(PWD,cal_data_path):
         #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
+    return caculate_finshed_path
 
 # subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
                 
