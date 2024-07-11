@@ -3060,3 +3060,15 @@ misc modelcomponents: 0
 [2024-06-26 00:03:36.651] [warning] Couldn't find file 'thumb_proximal_lvs.vtp'.
 [2024-06-26 00:03:36.651] [warning] Couldn't find file 'thumb_distal_lvs.vtp'.
 [2024-06-26 00:03:36.719] [info] Storage: read data file = C:/Users/Hermes/Desktop/NTKCAP/Patient_data/Patient_ID/2024_05_07/2024_06_02_14_47_calculated/Walk1/opensim/Balancing_for_IK_BODY.mot (nr=155 nc=63)
+[2024-06-26 16:14:30.291] [info] Updating Model file from 40000 to latest format...
+[2024-06-26 16:14:30.305] [info] Loaded model Pose2Sim_scaled from file C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated\Walk1\opensim\Model_Pose2Sim_Halpe26_scaled.osim
+[2024-06-26 16:14:32.085] [error] IO.OpenInputFile(const string&,openmode mode): failed to open C.
+[2024-06-26 16:58:38.461] [info] Updating Model file from 40000 to latest format...
+[2024-06-26 16:58:38.476] [info] Loaded model Pose2Sim_scaled from file C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated\Walk1\opensim\Model_Pose2Sim_Halpe26_scaled.osim
+[2024-06-26 16:58:39.378] [error] IO.OpenInputFile(const string&,openmode mode): failed to open C.
+[2024-06-26 16:59:01.294] [info] Updating Model file from 40000 to latest format...
+[2024-06-26 16:59:01.310] [info] Loaded model Pose2Sim_scaled from file C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated\Walk1\opensim\Model_Pose2Sim_Halpe26_scaled.osim
+[2024-06-26 16:59:02.162] [error] IO.OpenInputFile(const string&,openmode mode): failed to open C.
+[2024-06-26 16:59:13.895] [info] Updating Model file from 40000 to latest format...
+[2024-06-26 16:59:13.909] [info] Loaded model Pose2Sim_scaled from file C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated\Walk1\opensim\Model_Pose2Sim_Halpe26_scaled.osim
+[2024-06-26 16:59:14.735] [error] IO.OpenInputFile(const string&,openmode mode): failed to open C.
