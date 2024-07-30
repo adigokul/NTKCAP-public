@@ -307,7 +307,6 @@ def camera_extrinsicCalibration_record(config_path, save_path, button_capture=Fa
         p = multiprocessing.Process(target=camera_extrinsicCalibration_calibration, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop))
         processes.append(p)
         p.start()
-    
 
     time.sleep(1)
     while True:
@@ -1050,14 +1049,15 @@ def marker_caculate(PWD,cal_data_path):
             # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
             rtm2json(now_videos, now_json+'.json',now_pose)
             print(now_pose)
+        
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
         os.chdir(now_project)
         print("切換至" + os.getcwd())
         
+        Pose2Sim.personAssociation_multi()
+        Pose2Sim.triangulation_multi()
         
-        Pose2Sim.personAssociation()
-        Pose2Sim.triangulation()
         Pose2Sim.filtering()
         import inspect
         print(inspect.getfile(Pose2Sim))
@@ -1071,11 +1071,11 @@ def marker_caculate(PWD,cal_data_path):
                 print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
                 #import pdb;pdb.set_trace()
             for video_rpj_count in range(1,5):
-                    
-                out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
-                Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
-                    #import pdb;pdb.set_trace()
-                rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+                if video_rpj_count == 3:
+                    out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                    Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                        #import pdb;pdb.set_trace()
+                    rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
         cv2.destroyAllWindows()
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
@@ -1146,8 +1146,12 @@ def marker_caculate(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         
         
-        Pose2Sim.personAssociation()
-        Pose2Sim.triangulation()
+        Pose2Sim.personAssociation_multi()
+        print('成功結束personAssociation 要進入triangulation')
+        
+        Pose2Sim.triangulation_multi()
+
+
         Pose2Sim.filtering()
         
         

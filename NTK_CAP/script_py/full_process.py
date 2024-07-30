@@ -176,42 +176,46 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
             break
         results = tracker(state, frame, detect=-1)
         keypoints, bboxes, _ = results
+        
         scores = keypoints[..., 2]
         keypoints = keypoints[..., :2]
+        num_people = len(keypoints)
+        
         if scores.size==0:
-            temp = []
+            temp = {"image_id" : frame_id, "people" : []}
+            temp_keypoints = []
             for i in range(26):
                 x = float(0)
                 y = float(0)
                 each_score = float(0)
-                temp.append(x)
-                temp.append(y)
-                temp.append(each_score)
-        
-            data1.append({"image_id" : frame_id,"keypoints" :temp})#存成相同格式
+                temp_keypoints.append(x)
+                temp_keypoints.append(y)
+                temp_keypoints.append(each_score)
+            temp['people'].append({'person_id' : -1, "pose_keypoints_2d" : temp_keypoints})
+            data1.append(temp)#存成相同格式
+            
+        else:
+            temp = {"image_id" : frame_id, "people" : []}
+            for person_id in range(num_people):
+                temp_keypoints = []
+                for i in range(26):
+                    x = float(keypoints[person_id][i][0])
+                    y = float(keypoints[person_id][i][1])
+                    each_score = float(scores[person_id][i])
+                    temp_keypoints.append(x)
+                    temp_keypoints.append(y)
+                    temp_keypoints.append(each_score)
+                temp['people'].append({'person_id' : person_id, "pose_keypoints_2d" : temp_keypoints})
+            data1.append(temp) #存成相同格式
             
                 
-        else:
-            temp = []
-            for i in range(26):
-                x = float(keypoints[0][i][0])
-                y = float(keypoints[0][i][1])
-                each_score = float(scores[0][i])
-                temp.append(x)
-                temp.append(y)
-                temp.append(each_score)
-        
-            data1.append({"image_id" : frame_id,"keypoints" :temp})#存成相同格式
-      
-                
         frame_id += 1
-
+    
     ###將檔案放入json檔案中
-    save_file = open(out_dir, "w") 
-    json.dump(data1, save_file, indent = 6)  
-    save_file.close()   
+    with open(out_dir, "w") as save_file:
+        json.dump(data1, save_file, indent = 6)  
+    
     video.release()
-
     ### video output
     video_full_path = Video_path
     output = out_video
@@ -227,42 +231,59 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
     out = cv2.VideoWriter(output, fourcc, fps, (width, height))
     count_frame = 0
     temp = data1
+    
     while True:
         ret, frame = cap.read()
         if not ret:
                  break
-        
+        black = np.zeros((height, width, 3), dtype=np.uint8)
         #第一個0代表第幾幀，第二個0代表畫面中的第幾+1位辨識體，第三個0代表第幾個節點
-        keypoints =[]
-        keypoint_scores =[]
-        for i in range(26):
+        
+        num_people = len(temp[count_frame]['people'])
+        
+        for k in range(num_people):
             
-            keypoints.append([temp[count_frame]['keypoints'][i*3],temp[count_frame]['keypoints'][i*3+1]])
-            keypoint_scores.append(temp[count_frame]['keypoints'][i*3+2]) #呼叫該檔案中的keypoint_scores列表
-        count = 0
-        for i in range(26):
-            p = keypoint_scores[count]*255 #隨score顏色進行變換
-            #若keypoint score太低，則標示出來
-            if keypoint_scores[count]>=0.3 and keypoint_scores[count]<0.5:
-                cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
-                font = cv2.FONT_HERSHEY_SIMPLEX # font
-                org = (int(keypoints[count][0])+3, int(keypoints[count][1])) # 偏移
-                fontScale = 0.5 # fontScale
-                color = (255, 255, 255) # Blue color in BGR
-                thickness = 1 # Line thickness of 2 px 
-                # Using cv2.putText() method 
-                image = cv2.putText(frame, str(int(keypoint_scores[count]*100)), org, font,  
-                                       fontScale, color, thickness, cv2.LINE_AA) 
-            elif keypoint_scores[count]>=0.5:
-                cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
+            keypoints =[]
+            keypoint_scores =[]
+            
+            if temp[count_frame]['people'][0]['person_id'] == -1:
+                for i in range(26):
+                    keypoints.append([0,0])
+                    keypoint_scores.append(0) #呼叫該檔案中的keypoint_scores列表
+            else:
+                # print(len(temp), len(temp[count_frame]), len(temp[count_frame]['people']), k)
+                # print(temp[count_frame]['people'])
+                for i in range(26):
+                    keypoints.append([temp[count_frame]['people'][k]["pose_keypoints_2d"][i*3],temp[count_frame]['people'][k]["pose_keypoints_2d"][i*3+1]])
+                    keypoint_scores.append(temp[count_frame]['people'][k]["pose_keypoints_2d"][i*3+2]) #呼叫該檔案中的keypoint_scores列表
+            
+
+            count = 0
+            for i in range(26):
+                p = keypoint_scores[count]*255 #隨score顏色進行變換
+                #若keypoint score太低，則標示出來
+                if keypoint_scores[count]>=0.3 and keypoint_scores[count]<0.5:
+                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
+                    
+                    font = cv2.FONT_HERSHEY_SIMPLEX # font
+                    org = (int(keypoints[count][0])+3, int(keypoints[count][1])) # 偏移
+                    fontScale = 0.5 # fontScale
+                    color = (255, 255, 255) # Blue color in BGR
+                    thickness = 1 # Line thickness of 2 px 
+                    # Using cv2.putText() method 
+                    image = cv2.putText(black, str(int(keypoint_scores[count]*100)), org, font,  
+                                        fontScale, color, thickness, cv2.LINE_AA) 
+                    cv2.putText(black, str(count_frame), (10, 10), font, fontScale, color, thickness, cv2.LINE_AA)
+                elif keypoint_scores[count]>=0.5:
+                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
                 
-            count = count+1
+                count = count+1
 
-        for i in range(25):
-            if keypoint_scores[line[i][0]]>0.3 and keypoint_scores[line[i][1]]>0.3: 
+            for i in range(25):
+                if keypoint_scores[line[i][0]]>0.3 and keypoint_scores[line[i][1]]>0.3: 
 
-                cv2.line(frame, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
-        out.write(frame)
+                    cv2.line(black, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
+        out.write(black)
         count_frame = count_frame+1
     
     cap.release()
@@ -274,6 +295,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
     os.chdir(temp_dir)
 
     os.remove(out_dir)
+    
 
 
 
@@ -333,7 +355,7 @@ def rtm2json_cpu(Video_path,out_dir,out_video):
     while True:
         ret, frame = cap.read()
         if not ret:
-                 break
+            break
         f = open(json_dir)
         
         temp = json.load(f) #載入同檔名的json file
@@ -488,7 +510,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
     keypoint_scores = np.delete(keypoint_scores,0,0)
     keypoints =np.concatenate((keypointsx, keypointsy), axis=1)
     track_state = np.delete(track_state,0,0)
-    #import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
 
     while True:
         ret, frame = cap.read()
@@ -502,7 +524,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
         for i in range(26):
 
             indicator = halpe26_pose2sim_rpj_order[i] 
-            #import pdb;pdb.set_trace()
+            # import pdb;pdb.set_trace()
             if count_frame<np.shape(cam_exclude)[0]:
                 
                 if  any(cam_exclude_temp ==(int(camera_num)-1) for cam_exclude_temp in cam_exclude[count_frame][indicator-1]):  

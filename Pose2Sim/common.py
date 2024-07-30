@@ -174,7 +174,7 @@ def camera2point_dist(Q,calib_file):
     C = find_camera_coordinate(calib_file)
     C_new = [C[1],C[0],C[2]]
     D = euclidean_distance(C, Q)
-    #import pdb;pdb.set_trace()
+    
     return D
 def find_camera_coordinate(calib_file):
     calib_file['rotation']

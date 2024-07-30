@@ -173,7 +173,7 @@ def synchronization(config=os.path.join('User', 'Config.toml')):
     logging.info(f'Synchronization took {end-start:.2f} s.')    
     
     
-def personAssociation(config=os.path.join('User', 'Config.toml')):
+def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     '''
     Tracking of the person of interest in case of multiple persons detection.
     Needs a calibration file.
@@ -181,7 +181,7 @@ def personAssociation(config=os.path.join('User', 'Config.toml')):
     config can either be a path or a dictionary (for batch processing)
     '''
     
-    from Pose2Sim.personAssociation import track_2d_all
+    from Pose2Sim.personAssociation_multi import track_2d_all
     
     if type(config)==dict:
         config_dict = config
@@ -201,14 +201,14 @@ def personAssociation(config=os.path.join('User', 'Config.toml')):
     logging.info(f'Tracking took {end-start:.2f} s.')
     
     
-def triangulation(config=os.path.join('User', 'Config.toml')):
+def triangulation_multi(config=os.path.join('User', 'Config.toml')):
     '''
     Robust triangulation of 2D points coordinates.
     
     config can either be a path or a dictionary (for batch processing)
     '''
 
-    from Pose2Sim.triangulation import triangulate_all
+    from Pose2Sim.triangulation_multi import triangulate_all
 
 
     if type(config)==dict:

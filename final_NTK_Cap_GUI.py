@@ -472,7 +472,6 @@ class NTK_CapApp(App):
         self.add_log(self.label_log.text)
         try:
             
-            
             err_list =calib_extri(self.current_directory,0)
             self.label_log.text = 'calculate finished'
             

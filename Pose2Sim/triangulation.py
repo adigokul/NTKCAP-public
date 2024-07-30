@@ -44,7 +44,7 @@ from collections import Counter
 import logging
 
 from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
-    euclidean_distance, natural_sort, euclidean_dist_with_multiplication,camera2point_dist
+    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist
 from Pose2Sim.skeletons import *
 
 
@@ -710,15 +710,15 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
     - error_min: float
     - nb_cams_excluded: int
     '''
-    list_dynamic_mincam_ver6=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':4,'RSmallToe':4,'RHeel':4,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':4,'LSmallToe':4,'LHeel':4,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    # list_dynamic_mincam_ver6=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':4,'RSmallToe':4,'RHeel':4,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':4,'LSmallToe':4,'LHeel':4,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
 
-    list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    # list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     
     list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     
-    list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
-    list_dynamic_mincam_ver1 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':4,'LKnee':3,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':2,'RWrist':2,'LShoulder':3,'LElbow':2,'LWrist':2}
+    # list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    # list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
+    # list_dynamic_mincam_ver1 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':4,'LKnee':3,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':2,'RWrist':2,'LShoulder':3,'LElbow':2,'LWrist':2}
     
     # Read config
     error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
@@ -738,8 +738,6 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
     calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0]
     calib = toml.load(calib_file)
 
-    #import pdb
-    #pdb.set_trace()
     #######End
     nb_cams_off = 0
     cam_initially_off = np.where( (np.isnan(likelihood_files))| (likelihood_files ==0))
@@ -1080,7 +1078,7 @@ def triangulate_all(config):
         #import ipdb; ipdb.set_trace()
         Q_tot = Q_tot.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
     Q_tot.replace(np.nan, 0, inplace=True)
-
+    
     from scipy.io import savemat
     mdic = {'exclude':exclude_record_tot,'error':error_record_tot,'keypoints_name':keypoints_names,'cam_dist':cam_dist_tot,'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
@@ -1091,6 +1089,7 @@ def triangulate_all(config):
     #pdb.set_trace()
     # Create TRC file
     trc_path = make_trc(config, Q_tot, keypoints_names, f_range)
+    print(keypoints_names)
     
     # Recap message
     recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)
