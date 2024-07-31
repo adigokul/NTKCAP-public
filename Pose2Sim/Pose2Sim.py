@@ -201,14 +201,14 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     logging.info(f'Tracking took {end-start:.2f} s.')
     
     
-def triangulation_multi(config=os.path.join('User', 'Config.toml')):
+def triangulation(config=os.path.join('User', 'Config.toml')):
     '''
     Robust triangulation of 2D points coordinates.
     
     config can either be a path or a dictionary (for batch processing)
     '''
 
-    from Pose2Sim.triangulation_multi import triangulate_all
+    from Pose2Sim.triangulation import triangulate_all
 
 
     if type(config)==dict:

@@ -43,7 +43,7 @@ import cv2
 from anytree import RenderTree
 from anytree.importer import DictImporter
 import logging
-from scipy.spatial import Delaunay
+from scipy.spatial import ConvexHull, Delaunay
 
 from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
     reprojection, euclidean_distance, natural_sort
@@ -547,8 +547,8 @@ def compute_normal_vector(p1, p2, p3):
     normal = np.cross(v1, v2)
     return normal / np.linalg.norm(normal)
 
-def is_point_in_hull(point, hull):
-    return hull.find_simplex(point) >= 0
+def is_point_in_hull(point, delaunay):
+    return delaunay.find_simplex(point) >= 0
 
 import numpy as np
 import toml
@@ -587,81 +587,102 @@ def projection_matrix(idx, calib_file):
     
     return projection_matrices[idx]
 
-
-def outsider(js, calib_file):
+from Pose2Sim.common import weighted_triangulation
+def outsider(js, calib_file, f, P):
 
     
     kp_idx = 18
     nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))])
     
     person_to_remove = []
+    
     for p in range(nb_det_max_p):
+        print(nb_det_max_p)
+        count = 0
+        for i in js:
+            if i["people"][p] == {}:
+                count += 1
+        if count >= len(js) - 2:
+            person_to_remove.append(p)
+            continue
+        
         kp_2D = []
-        
+        cam_indices = []
         for cam in range(len(js)):
-            kp_2D.append(js[cam]['people'][p]['pose_keypoints_2d'][kp_idx*3:(kp_idx+1)*3])
+            if js[cam]['people'][p] != {}:
+                cam_indices.append(cam)
+                kp_2D.append(js[cam]['people'][p]['pose_keypoints_2d'][kp_idx*3:(kp_idx+1)*3] )
         
-        kp_2D_indices = list(enumerate(kp_2D))
+        # kp_2D_indices = list(enumerate(kp_2D))
         
-        sorted_data = sorted(kp_2D_indices, key=lambda x: x[1][2], reverse=True)
-        best_two_kp_2D = sorted_data[:2]
+        # sorted_data = sorted(kp_2D_indices, key=lambda x: x[1][2], reverse=True)
+        # best_two_kp_2D = sorted_data[:2]
         
-        original_indices = [x[0] for x in best_two_kp_2D]
-        best_two_kp_2D = [x[1] for x in best_two_kp_2D]
+        # original_indices = [x[0] for x in sorted_data]
+        # best_two_kp_2D = [x[1] for x in sorted_data]
         
-        p1 = np.array(projection_matrix(original_indices[0], calib_file))
-        p2 = np.array(projection_matrix(original_indices[1], calib_file))
-        points1 = np.array(best_two_kp_2D[0][:2])
-        points2 = np.array(best_two_kp_2D[1][:2])
+        P_all = []
+        x_all = []
+        y_all = []
+        lik_all = []
+        for idx in range(len(kp_2D)):
+            P_all.append(P[cam_indices[idx]])
+            x_all.append(kp_2D[idx][0])
+            y_all.append(kp_2D[idx][1])
+            lik_all.append(kp_2D[idx][2])
+        
+        Q = weighted_triangulation(P_all, x_all, y_all, lik_all)
+        
 
-        points1_hom = np.vstack((points1.T, np.ones((1, points1.shape[0]))))
-        points2_hom = np.vstack((points2.T, np.ones((1, points2.shape[0]))))
+        # p1 = np.array(projection_matrix(original_indices[0], calib_file))
+        # p2 = np.array(projection_matrix(original_indices[1], calib_file))
+        # points1 = np.array(best_two_kp_2D[0][:2])
+        # points2 = np.array(best_two_kp_2D[1][:2])
 
-        points_3D_hom = cv2.triangulatePoints(p1, p2, points1_hom, points2_hom)
-        kp_3D = points_3D_hom[:3, :] / points_3D_hom[3, :]
-        average_point = np.mean(kp_3D, axis=1)
+        # points1_hom = np.vstack((points1.T, np.ones((1, points1.shape[0]))))
+        # points2_hom = np.vstack((points2.T, np.ones((1, points2.shape[0]))))
+
+
+
+        # points_3D_hom = cv2.triangulatePoints(p1, p2, points1_hom, points2_hom)
+        # kp_3D = points_3D_hom[:3, :] / points_3D_hom[3, :]
+        # average_point = np.mean(kp_3D, axis=1)
+        
         
         # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # print("Current Time:", current_time)
         height = 2 # customized
         pos = []
-        
         pos = calculate_camera_position(calib_file)
+        # pos_combination = it.combinations(range(len(pos)), 3)
+        # normals = []
+        # for comb in pos_combination:
+        #     p1, p2, p3 = pos[comb[0]], pos[comb[1]], pos[comb[2]]
+        #     normal = compute_normal_vector(p1, p2, p3)
+        #     normals.append(normal)
+        # normal_ver = np.mean(normals, axis=0)
+        # average_normal = normal_ver / np.linalg.norm(normal_ver) 
+        # pos_all = pos.copy()
+        # for point in pos:
+        #     pos_all.append(point + average_normal * height) 
+        # pos_all = np.array(pos_all)
         
-
-        pos_combination = it.combinations(range(len(pos)), 3)
-        normals = []
-        for comb in pos_combination:
-            p1, p2, p3 = pos[comb[0]], pos[comb[1]], pos[comb[2]]
-            normal = compute_normal_vector(p1, p2, p3)
-            normals.append(normal)
-        
-        normal_ver = np.mean(normals, axis=0)
-        average_normal = normal_ver / np.linalg.norm(normal_ver) 
-        
-        
-        pos_all = pos.copy()
-        
-        
-        for point in pos:
-            pos_all.append(point + average_normal * height) 
-        
-        pos_all = np.array(pos_all)
-        
-        
-        delaunay = Delaunay(pos_all)
-        
-        if not is_point_in_hull(average_point, delaunay):
+        pos_2d = [d[:2] for d in pos]
+        delaunay = Delaunay(pos_2d)
+        if f == 13:
+            import pdb; pdb.set_trace()
+        if not is_point_in_hull(Q[:2], delaunay):
             person_to_remove.append(p)
-        
-    
+    if f == 13:
+        import pdb; pdb.set_trace()
     for index in sorted(person_to_remove, reverse=True):
         for cam in range(len(js)):
             if index <= len(js[cam]['people']):
                 del js[cam]['people'][index]
+    
     return js
 
-def rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file):
+def rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P):
     '''
     Write new json files with correct association of people across cameras.
 
@@ -677,6 +698,7 @@ def rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, ca
     js_new_all = []
     for cam in range(n_cams):
         # with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
+        json_files_f
         with open(json_files_f[cam], 'r') as json_f:
             js = json.load(json_f)
             js_new = js.copy()
@@ -690,7 +712,7 @@ def rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, ca
         js_new_all.append(js_new)
             # json_tracked_f.write(json.dumps(js_new))
     
-    js_allin_range = outsider(js_new_all, calib_file)
+    js_allin_range = outsider(js_new_all, calib_file, f, P)
     for cam in range(n_cams):
         with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
             json_tracked_f.write(json.dumps(js_allin_range[cam]))
@@ -844,8 +866,10 @@ def track_2d_all(config):
                     json_tracked_f.write(json.dumps(js))
         else:
             all_json_data_f = []
+
             for js_file in json_files_f:
                 all_json_data_f.append(read_json(js_file)) # len=4, 每一個包含偵測到的點座標+信心
+            
             persons_per_view = [0] + [len(j) for j in all_json_data_f] # [0, num_peo_cam1.... ]
             cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
             affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)    
@@ -854,15 +878,13 @@ def track_2d_all(config):
             affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
             affinity[affinity<min_affinity] = 0
             proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
+            
             # import time
             # time.sleep(1)
             # print(proposals)
-            print(f)
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print("Current Time:", current_time)
-            rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file)
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print("Current Time:", current_time)
+            
+            rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P)
+            
     # recap message
     recap_tracking(config, error_min_tot, cameras_off_tot)
     print('成功結束personAssociation')

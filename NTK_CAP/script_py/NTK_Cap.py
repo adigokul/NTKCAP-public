@@ -1056,7 +1056,8 @@ def marker_caculate(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         
         Pose2Sim.personAssociation_multi()
-        Pose2Sim.triangulation_multi()
+        
+        Pose2Sim.triangulation()
         
         Pose2Sim.filtering()
         import inspect
@@ -1149,7 +1150,7 @@ def marker_caculate(PWD,cal_data_path):
         Pose2Sim.personAssociation_multi()
         print('成功結束personAssociation 要進入triangulation')
         
-        Pose2Sim.triangulation_multi()
+        Pose2Sim.triangulation()
 
 
         Pose2Sim.filtering()

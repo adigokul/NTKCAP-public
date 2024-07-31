@@ -1048,8 +1048,15 @@ def triangulate_all(config):
         error_record_tot.append(error_record)
         cam_dist_tot.append(cam_dist)
         strongness_exclusion_tot.append(strongness_exclusion)
- 
-            
+    kp_json_file = []
+    import pdb; pdb.set_trace()
+    for i in range(len(Q_tot)):
+        data = []
+        data.append(Q_tot[i][:22].tolist())
+        person2_data.append(Q_tot[i][22:].tolist())
+    
+    with open('kp_data.json', 'w') as json_file:
+        json.dump(kp_json_file, json_file)       
     Q_tot = pd.DataFrame(Q_tot)
     error_tot = pd.DataFrame(error_tot)
     nb_cams_excluded_tot = pd.DataFrame(nb_cams_excluded_tot)
@@ -1074,6 +1081,7 @@ def triangulate_all(config):
         non_interp_frames = []
 
     # Interpolate missing values
+    
     if interpolation_kind != 'none':
         #import ipdb; ipdb.set_trace()
         Q_tot = Q_tot.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
