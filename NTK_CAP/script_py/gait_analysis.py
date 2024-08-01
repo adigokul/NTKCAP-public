@@ -47,16 +47,16 @@ def choose_file(directory):
     # Loop through each file in the first layer of the directory
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
-        # Check if it is a file and if the file name starts with 'w' or 'W'
-        if os.path.isdir(file_path) and (fnmatch.fnmatch(filename, 'w*') or fnmatch.fnmatch(filename, 'W*')):
+        # Check if it is a file and if the file name does not start with 'w' or 'W'
+        if os.path.isdir(file_path) and not (fnmatch.fnmatch(filename, 'Apose*') ):
             # Save the full file path to the list
             matching_files.append(file_path)
-    #import pdb;pdb.set_trace()
+    
     # Display the matching files
-    print('Files starting with "w" or "W":')
+    
     for file in matching_files:
         print(file)
-    #import pdb;pdb.set_trace()
+    
     return matching_files
 def choose_file_GUI(Patient_data_dir):
 # Create a popup window for directory selection
@@ -1548,5 +1548,5 @@ def gait1(dir_calculated):
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
 
-dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\1\20240101\calculated'
-gait1(dir_calculated)
+# dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean'
+# gait1(dir_calculated)
