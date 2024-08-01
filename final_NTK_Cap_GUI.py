@@ -23,6 +23,7 @@ from datetime import datetime
 import os
 import cv2
 from NTK_CAP.script_py.NTK_Cap import *
+from NTK_CAP.script_py.gait_analysis import gait1
 from NTK_CAP.script_py.cloud_function import *
 from check_extrinsic import *
 import tkinter as tk
@@ -575,7 +576,16 @@ class NTK_CapApp(App):
         )
         self.feature_spinner.bind(text=self.on_spinner_select)
         layout.add_widget(self.feature_spinner)
-
+        self.gait_anlaysis = Spinner(
+            text='No Analysis',
+            values=('No Analysis', 'Gait1'),
+            size_hint=(0.19,0.05),
+            size=(170, 30),
+            pos_hint={ 'center_x': pos_ref_x[2], 'center_y':pos_ref_y[6]+0.03},
+            font_name=self.font_path
+        )
+        
+        layout.add_widget(self.gait_anlaysis)
         self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': pos_ref_x[2]+0.05, 'center_y':pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
         Clock.schedule_interval(self.task_update, 0.1)
         layout.add_widget(self.COM_input)
@@ -938,6 +948,13 @@ class NTK_CapApp(App):
                 cal_folder_path =selected_directories[dir_sel_loop]
                 folder_calculated = marker_caculate(self.current_directory , cal_folder_path)
                 marker_calculate_upload(folder_calculated,os.path.join(self.current_directory,'config','location.json'))
+                
+                try:
+                    if self.gait_anlaysis.text =='Gait1':
+                        gait1(folder_calculated)
+                except Exception as e:
+                    print("An error occurred:")
+                    traceback.print_exc()
             # self.label_log.text = 'Marker以及IK計算完畢'
             self.label_log.text = 'Marker and IK caculate finished'
             self.add_log(self.label_log.text)
