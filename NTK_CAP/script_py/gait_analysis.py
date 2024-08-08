@@ -53,7 +53,7 @@ def choose_file(directory):
             matching_files.append(file_path)
     
     # Display the matching files
-    
+    print('Files not starting with "w" or "W":')
     for file in matching_files:
         print(file)
     
@@ -306,7 +306,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
 
     aim = 1
     # Analyze right heel velocity
-    fig, axs = plt.subplots(2, 1, figsize=(15, 9))
+    
 
     TR_R = np.mean(vR) + np.std(vR)
     locs_R,a = find_peaks(vR)
@@ -321,8 +321,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             final_locs_R.append(final_temp_locs_R[i])
     if len(final_temp_locs_R) > 1 and np.min(vR[final_temp_locs_R[-2]:final_temp_locs_R[-1]]) < np.mean(vR) - 0.2 * np.std(vR):
         final_locs_R.append(final_temp_locs_R[-1])
-
-    axs[0].plot(vR, linewidth=1.5)
+    
     locs_possible_min_R = np.where((np.abs(np.diff(vR) / np.std(np.diff(vR))) < 0.3))[0]
     locs_possible_min_R = locs_possible_min_R[vR[locs_possible_min_R] < np.mean(vR) - 0.2 * np.std(vR)]
     locs_possible_min_R = np.sort(np.concatenate((locs_minR, locs_possible_min_R)))
@@ -337,11 +336,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             p_R.append(ptemp_R[0])
         if ntemp_R.size > 0:
             n_R.append(ntemp_R[-1])
-
-    axs[0].scatter(locs_possible_min_R[n_R], vR[locs_possible_min_R[n_R]], color='r', s=100)
-    axs[0].scatter(locs_possible_min_R[p_R], vR[locs_possible_min_R[p_R]], color='y', s=100)
-    axs[0].scatter(final_locs_R, vR[final_locs_R], color='g', s=100)
-    axs[0].axhline(np.mean(vR) - 0.2 * np.std(vR), color='k', linestyle='--')
+    
 
     # Save results to All array (assuming All is a global variable or passed as an argument)
     # All[aim, 37] = locs_possible_min_R[n_R]
@@ -362,8 +357,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
                 final_locs_L.append(final_temp_locs_L[i])
     if len(final_temp_locs_L) > 1 and np.min(vL[final_temp_locs_L[-2]:final_temp_locs_L[-1]]) < np.mean(vL) - 0.2 * np.std(vL):
             final_locs_L.append(final_temp_locs_L[-1])
-
-    axs[1].plot(vL, linewidth=1.5)
+    
     locs_possible_min_L = np.where((np.abs(np.diff(vL) / np.std(np.diff(vL))) < 0.3))[0]
     locs_possible_min_L = locs_possible_min_L[vL[locs_possible_min_L] < np.mean(vL) - 0.2 * np.std(vL)]
     locs_possible_min_L = np.sort(np.concatenate((locs_minL, locs_possible_min_L)))
@@ -378,27 +372,77 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             p_L.append(ptemp_L[0])
         if ntemp_L.size > 0:
             n_L.append(ntemp_L[-1])
-
-    axs[1].scatter(locs_possible_min_L[n_L], vL[locs_possible_min_L[n_L]], color='r', s=100)
-    axs[1].scatter(locs_possible_min_L[p_L], vL[locs_possible_min_L[p_L]], color='y', s=100)
-    axs[1].scatter(final_locs_L, vL[final_locs_L], color='g', s=100)
-    axs[1].axhline(np.mean(vL) - 0.2 * np.std(vL), color='k', linestyle='--')
+    
 
     # Save results to All array (assuming All is a global variable or passed as an argument)
     # All[aim, 38] = locs_possible_min_L[n_L]
     # All[aim, 24] = [locs_possible_min_L[n_L[0]], locs_possible_min_L[p_L]]
 
     # Final plot adjustments
+    
+    #plt.show()
+    # Assuming R_locs_possible_min_n and L_locs_possible_min_n are numpy arrays
+    R_locs_possible_min_n = locs_possible_min_R[n_R]  # replace with actual data
+    L_locs_possible_min_n = locs_possible_min_L[n_L] # replace with actual data
+
+    R_locs_possible_min_p = locs_possible_min_R[p_R]  # replace with actual data
+    L_locs_possible_min_p = locs_possible_min_L[p_L]  # replace with actual data
+
+    a = np.argmin([R_locs_possible_min_n[0], L_locs_possible_min_n[0]]) + 1
+    count1 = 1
+    count2 = 1
+
+    while count1 < len(R_locs_possible_min_n)- 1 and count2 < len(L_locs_possible_min_n)-1:
+        if a == 1:
+            temp = np.where((L_locs_possible_min_n > R_locs_possible_min_n[count1]) & 
+                            (L_locs_possible_min_n < R_locs_possible_min_n[count1 + 1]))[0]
+            if len(temp) > 1:
+                L_locs_possible_min_n = np.delete(L_locs_possible_min_n, temp[1:])
+                L_locs_possible_min_p = np.delete(L_locs_possible_min_p, temp[:-1])
+                a = 2
+            elif len(temp) == 0:
+                R_locs_possible_min_n = np.delete(R_locs_possible_min_n, count1 + 1)
+                R_locs_possible_min_p = np.delete(R_locs_possible_min_p, count1 + 1)
+                a = 1
+                count1 -= 1
+            else:
+                a = 2
+            count1 += 1
+        else:
+            temp = np.where((R_locs_possible_min_n > L_locs_possible_min_n[count2]) & 
+                            (R_locs_possible_min_n < L_locs_possible_min_n[count2 + 1]))[0]
+            if len(temp) > 1:
+                R_locs_possible_min_n = np.delete(R_locs_possible_min_n, temp[1:])
+                R_locs_possible_min_p = np.delete(R_locs_possible_min_p, temp[:-1])
+                a = 1
+            elif len(temp) == 0:
+                L_locs_possible_min_n = np.delete(L_locs_possible_min_n, count2 + 1)
+                L_locs_possible_min_p = np.delete(L_locs_possible_min_p, count2 + 1)
+                count2 -= 1
+                a = 2
+            else:
+                a = 1
+            count2 += 1
+        fig, axs = plt.subplots(2, 1, figsize=(15, 9))
+    axs[0].plot(vR, linewidth=1.5)
+    axs[0].scatter(R_locs_possible_min_n , vR[R_locs_possible_min_n ], color='r', s=100)
+    axs[0].scatter(R_locs_possible_min_p, vR[R_locs_possible_min_p], color='y', s=100)
+    axs[0].scatter(final_locs_R, vR[final_locs_R], color='g', s=100)
+    axs[0].axhline(np.mean(vR) - 0.2 * np.std(vR), color='k', linestyle='--')
+    axs[1].plot(vL, linewidth=1.5)
+    axs[1].scatter(L_locs_possible_min_n , vL[L_locs_possible_min_n ], color='r', s=100)
+    axs[1].scatter(L_locs_possible_min_p, vL[L_locs_possible_min_p], color='y', s=100)
+    axs[1].scatter(final_locs_L, vL[final_locs_L], color='g', s=100)
+    axs[1].axhline(np.mean(vL) - 0.2 * np.std(vL), color='k', linestyle='--')
     axs[0].set_title('Right Heel Velocity')
     axs[1].set_title('Left Heel Velocity')
     plt.suptitle('Find Heel Strike'  +title, fontsize=20)
     #plt.savefig(f'{post_analysis_dir}/Heel_segment.png')
     plt.savefig(os.path.join(dir_task,'post_analysis','Find Heel Strike'  +title+ '.png'))
-    #plt.show()
-    frame_R_heel_sground = np.concatenate((locs_possible_min_R[n_R[:1]], locs_possible_min_R[p_R]))
-    frame_L_heel_sground = np.concatenate((locs_possible_min_L[n_L[:1]], locs_possible_min_L[p_L]))
-    frame_R_heel_lground = locs_possible_min_R[n_R]
-    frame_L_heel_lground = locs_possible_min_L[n_L]
+    frame_R_heel_sground = np.concatenate((R_locs_possible_min_n[:1], R_locs_possible_min_p))
+    frame_L_heel_sground = np.concatenate((L_locs_possible_min_n[:1], L_locs_possible_min_p))
+    frame_R_heel_lground = R_locs_possible_min_n 
+    frame_L_heel_lground = L_locs_possible_min_n 
     return frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground
 def initial_read_data(IK_dir,trc_dir,dir_task,title):
     data = trc_read(trc_dir)
@@ -1548,5 +1592,5 @@ def gait1(dir_calculated):
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
 
-# dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean'
-# gait1(dir_calculated)
+#dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\2024_07_11post-tra\20240711\2024_07_11_14_31_calculated'
+#gait1(dir_calculated)
