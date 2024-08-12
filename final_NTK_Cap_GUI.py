@@ -512,7 +512,7 @@ class NTK_CapApp(App):
         self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
         self.btn_patientID.bind(on_press=self.show_input_popup)
         layout.add_widget(self.btn_patientID)
-        Clock.schedule_interval(self.patient_ID_update, 0.1)
+        Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
 
         self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
         layout.add_widget(self.label_PatientID_real)
@@ -528,7 +528,7 @@ class NTK_CapApp(App):
         self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
         self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
         layout.add_widget(self.task_button)        
-        Clock.schedule_interval(self.task_update, 0.1)
+        Clock.schedule_interval(self.task_update_cloud, 0.1)
         self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
         layout.add_widget(self.label_task_real)
 
@@ -587,7 +587,6 @@ class NTK_CapApp(App):
         
         layout.add_widget(self.gait_anlaysis)
         self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': pos_ref_x[2]+0.05, 'center_y':pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
-        Clock.schedule_interval(self.task_update, 0.1)
         layout.add_widget(self.COM_input)
 
 
@@ -607,13 +606,13 @@ class NTK_CapApp(App):
             layout.remove_widget(self.btn_patientID)
             self.patientID = "test"
             self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
-            Clock.schedule_interval(self.patient_ID_update, 0.1)
+            Clock.schedule_interval(self.patient_ID_update_single, 0.1)
             layout.add_widget(self.txt_patientID_real)
             self.label_PatientID_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 570), font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             self.task = "test"
             self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
-            Clock.schedule_interval(self.task_update, 0.1)
+            Clock.schedule_interval(self.task_update_single, 0.1)
             layout.add_widget(self.txt_task)
             self.label_task_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
@@ -630,7 +629,7 @@ class NTK_CapApp(App):
             self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
             self.btn_patientID.bind(on_press=self.show_input_popup)
             layout.add_widget(self.btn_patientID)
-            Clock.schedule_interval(self.patient_ID_update, 0.1)
+            Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
             self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             # Task Name
@@ -638,7 +637,7 @@ class NTK_CapApp(App):
             self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
             self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
             layout.add_widget(self.task_button)        
-            Clock.schedule_interval(self.task_update, 0.1)
+            Clock.schedule_interval(self.task_update_cloud, 0.1)
             self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
 
@@ -904,6 +903,8 @@ class NTK_CapApp(App):
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         #import pdb;pdb.set_trace()
     def button_task_record(self, instance):
+        if self.btn_toggle_cloud_sinlge.text == 'Single':
+            self.patient_genID =self.txt_patientID_real.text
         # self.label_log.text = '拍攝動作'
         self.label_log.text = 'film motion'
         self.add_log(self.label_log.text)
@@ -1038,12 +1039,15 @@ class NTK_CapApp(App):
         exit()
 
     # text
-    def patient_ID_update(self, dt):
+    def patient_ID_update_cloud(self, dt):
         self.label_PatientID_real.text = self.patient_namephone
+    def patient_ID_update_single(self, dt):
+        self.label_PatientID_real.text = self.txt_patientID_real.text
 
-    def task_update(self, dt):
+    def task_update_cloud(self, dt):
         self.label_task_real.text = self.task_name
-
+    def task_update_single(self, dt):
+        self.label_task_real.text = self.txt_task.text
     def camID_update(self, spinner, text):
         #self.select_camID = self.txt_cam_ID.text
         self.select_camID = text
