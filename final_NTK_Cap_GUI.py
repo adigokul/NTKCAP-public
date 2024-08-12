@@ -477,7 +477,7 @@ class NTK_CapApp(App):
         # 拍攝人體動作
         btn_Apose_record = Button(text='3-1拍攝A-pose', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[0], 'center_y':pos_ref_y[4]}, on_release=self.button_Apose_record, font_name=self.font_path)
         layout.add_widget(btn_Apose_record)
-        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[4]}, on_release=self.button_task_record, font_name=self.font_path)
+        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[4]}, on_release=lambda instance: self.button_task_record(layout,instance), font_name=self.font_path)
         layout.add_widget(btn_task_record)
 
         # 計算Marker
@@ -512,7 +512,7 @@ class NTK_CapApp(App):
         self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
         self.btn_patientID.bind(on_press=self.show_input_popup)
         layout.add_widget(self.btn_patientID)
-        Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
+        self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
 
         self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
         layout.add_widget(self.label_PatientID_real)
@@ -528,7 +528,7 @@ class NTK_CapApp(App):
         self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
         self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
         layout.add_widget(self.task_button)        
-        Clock.schedule_interval(self.task_update_cloud, 0.1)
+        self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
         self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
         layout.add_widget(self.label_task_real)
 
@@ -597,22 +597,75 @@ class NTK_CapApp(App):
             on_release=lambda instance: self.switch_cloud(layout,pos_ref_x,pos_ref_y,instance)  # Pass the button instance
         )
         layout.add_widget(self.btn_toggle_cloud_sinlge)
+        # Create a ScrollView
+        # Create a ScrollView
+        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[7]},)
+
+        # Create a GridLayout to hold the buttons
+        self.button_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+        self.button_layout.bind(minimum_height=self.button_layout.setter('height'))
+
+        # Add buttons to the GridLayout
+        # 
+
+        # Add the GridLayout to the ScrollView
+        self.scroll_view.add_widget(self.button_layout)
+
+        # Add the ScrollView to your layout
+        layout.add_widget(self.scroll_view)
+
+
         return layout
+    def update_tasklist(self,layout,date):
+        layout.remove_widget(self.scroll_view)
+        layout.remove_widget(self.button_layout)
+        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[7]},)
+        # Create a GridLayout to hold the buttons
+        self.button_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+        self.button_layout.bind(minimum_height=self.button_layout.setter('height'))
+        # Add buttons to the GridLayout
+        # 
+        # Add the GridLayout to the ScrollView
+        self.scroll_view.add_widget(self.button_layout)
+
+        # Add the ScrollView to your layout
+        layout.add_widget(self.scroll_view)
+        dir_list_tasks = os.path.join( self.record_path,  self.patient_genID, date)
+        all_folders = [name for name in os.listdir(dir_list_tasks) if os.path.isdir(os.path.join(dir_list_tasks, name))]
+    
+        # Filter out the "APose" folder
+        filtered_folders = [folder for folder in all_folders if folder.lower() != 'apose']
+        for taskname in len(filtered_folders):  # Replace 20 with however many items you want
+            btn = Button(text=taskname, size_hint_y=None, height=40)
+            
+            # Bind a function to the button that will handle the selection
+            btn.bind(on_release=self.on_button_select_tasklist)
+            
+            self.button_layout.add_widget(btn)
+    def on_button_select_tasklist(self, instance):
+        selected_button_text = instance.text
+        print(f'Selected: {selected_button_text}')
+        # You can add more functionality here, like updating other UI elements or storing the selection
 
     def switch_cloud(self, layout,pos_ref_x,pos_ref_y,instance):
         if instance.text == 'Cloud':
             instance.text = 'Single'  # Update the button text
             layout.remove_widget(self.task_button)
             layout.remove_widget(self.btn_patientID)
+            layout.remove_widget(self.label_PatientID_real)
+            layout.remove_widget(self.label_task_real)
+            Clock.unschedule(self.patient_id_event)
+            Clock.unschedule(self.patient_task_event)
+            
             self.patientID = "test"
             self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
-            Clock.schedule_interval(self.patient_ID_update_single, 0.1)
+            self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_single, 0.1)
             layout.add_widget(self.txt_patientID_real)
             self.label_PatientID_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 570), font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             self.task = "test"
             self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
-            Clock.schedule_interval(self.task_update_single, 0.1)
+            self.patient_task_event =Clock.schedule_interval(self.task_update_single, 0.1)
             layout.add_widget(self.txt_task)
             self.label_task_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
@@ -623,13 +676,17 @@ class NTK_CapApp(App):
             self.task_button.text ='test'
             layout.remove_widget(self.txt_patientID_real)
             layout.remove_widget(self.txt_task)
+            layout.remove_widget(self.label_PatientID_real)
+            layout.remove_widget(self.label_task_real)
+            Clock.unschedule(self.patient_id_event)
+            Clock.unschedule(self.patient_task_event)
             self.patient_genID = ''  # Add this line to define the variable
             self.patient_namephone = '' # Add this line to define the variable
             self.task_name =''
             self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
             self.btn_patientID.bind(on_press=self.show_input_popup)
             layout.add_widget(self.btn_patientID)
-            Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
+            self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
             self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             # Task Name
@@ -637,7 +694,7 @@ class NTK_CapApp(App):
             self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
             self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
             layout.add_widget(self.task_button)        
-            Clock.schedule_interval(self.task_update_cloud, 0.1)
+            self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
             self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
 
@@ -902,7 +959,7 @@ class NTK_CapApp(App):
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         #import pdb;pdb.set_trace()
-    def button_task_record(self, instance):
+    def button_task_record(self, layout,instance):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
         # self.label_log.text = '拍攝動作'
@@ -929,7 +986,7 @@ class NTK_CapApp(App):
 
             # Yes button
             yes_btn = Button(text='Yes')
-            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_no_Apose(instance, popup,date))
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_no_Apose(instance, popup,date,layout))
             button_layout.add_widget(yes_btn)
 
             no_btn.bind(on_release=lambda *args: popup.dismiss())
@@ -957,7 +1014,7 @@ class NTK_CapApp(App):
 
             # Yes button
             yes_btn = Button(text='Yes')
-            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_same_task(instance, popup,date))
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_same_task(instance, popup,date,layout))
             button_layout.add_widget(yes_btn)
 
             no_btn.bind(on_release=lambda *args: popup.dismiss())
@@ -968,17 +1025,17 @@ class NTK_CapApp(App):
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         self.add_log(self.label_log.text)
     
-    def perform_Motion_recording_same_task(self, instance, popup,date):
+    def perform_Motion_recording_same_task(self, instance, popup,date,layout):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))
-        self.camera_motion_final(self,date)
-    def perform_Motion_recording_no_Apose(self, instance, popup,date):
+        self.camera_motion_final(self,date,layout)
+    def perform_Motion_recording_no_Apose(self, instance, popup,date,layout):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
-        self.camera_motion_final(self, date)
+        self.camera_motion_final(self, date,layout)
 
-    def camera_motion_final(self,instance, date):
+    def camera_motion_final(self,instance, date,layout):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
         if self.mode_select == 'VICON Recording':
@@ -990,6 +1047,8 @@ class NTK_CapApp(App):
 
         else:
             print('Error from mode select')
+        update_tasklist(self,layout,date)
+    
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
         try:
