@@ -23,7 +23,7 @@ from datetime import datetime
 import os
 import cv2
 from NTK_CAP.script_py.NTK_Cap import *
-from NTK_CAP.script_py.gait_analysis import gait1
+
 from NTK_CAP.script_py.cloud_function import *
 from check_extrinsic import *
 import tkinter as tk
@@ -33,6 +33,7 @@ from NTK_CAP.script_py.kivy_file_chooser import select_directories_and_return_li
 import traceback
 import requests
 import sqlite3
+from natsort import natsorted
 SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
 FONT_PATH = os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
 # 连接到SQLite数据库
@@ -324,20 +325,20 @@ class NewPageScreen(Screen):
         font_path = self.font_path
         btn_wide = 120
         btn_high = 50
-        pos_ref_x =  [0.2,0.4,0.6,0.8,1.0]
+        self.pos_ref_x =  [0.2,0.4,0.6,0.8,1.0]
         yindex = 0.08
         xindex = 0.02
-        pos_ref_y =[1,1-yindex*1,1-yindex*2,1-yindex*3,1-yindex*4,yindex*5,1-yindex*6,0.37,0.20,0.07]
+        self.pos_ref_y =[1,1-yindex*1,1-yindex*2,1-yindex*3,1-yindex*4,yindex*5,1-yindex*6,0.37,0.20,0.07]
         
-        pos_ref_y = [x - 0.1 for x in pos_ref_y]
-        pos_ref_x = [x - 0.1 for x in pos_ref_x]
+        self.pos_ref_y = [x - 0.1 for x in self.pos_ref_y]
+        self.pos_ref_x = [x - 0.1 for x in self.pos_ref_x]
         super(NewPageScreen, self).__init__(**kwargs)
         layout = FloatLayout()
         btn1 = Button(text='Skeleton Demonstration', size_hint=(0.2, 0.1), pos_hint={'x': 0.1, 'y': 0.6})
         btn2 = Button(text='Live Camera Demonstration', size_hint=(0.2, 0.1), pos_hint={'x': 0.4, 'y': 0.6})
         btn3 = Button(text='Button 3', size_hint=(0.2, 0.1), pos_hint={'x': 0.7, 'y': 0.6})
         btn_back = Button(text='Main Page', size_hint=(0.2, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0.1})
-        btn_exit = Button(text='結束程式', size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[8]}, on_release=self.button_exit, font_name=self.font_path)
+        btn_exit = Button(text='結束程式', size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[8]}, on_release=self.button_exit, font_name=self.font_path)
         btn_exit.bind()
         btn_back.bind(on_release=self.go_back)
         btn1.bind(on_release=self.opensim_visual)
@@ -394,13 +395,13 @@ class NTK_CapApp(App):
 
 
     def setup_main_layout(self):#5,9
-        pos_ref_x =  [0.2,0.4,0.6,0.8,1.0]
+        self.pos_ref_x =  [0.2,0.4,0.6,0.8,1.0]
         yindex = 0.08
         xindex = 0.02
-        pos_ref_y =[1,1-yindex*1,1-yindex*2,1-yindex*3,1-yindex*4,yindex*5,1-yindex*6,0.37,0.20,0.07]
+        self.pos_ref_y =[1,1-yindex*1,1-yindex*2,1-yindex*3,1-yindex*4,yindex*5,1-yindex*6,0.37,0.20,0.07]
         
-        pos_ref_y = [x - 0.1 for x in pos_ref_y]
-        pos_ref_x = [x - 0.1 for x in pos_ref_x]
+        self.pos_ref_y = [x - 0.1 for x in self.pos_ref_y]
+        self.pos_ref_x = [x - 0.1 for x in self.pos_ref_x]
         # 設定整個視窗大小為730x660
         Window.size = (730, 660)
         # 指定視窗啟動位置
@@ -448,11 +449,11 @@ class NTK_CapApp(App):
         # 檢察系統檔案
         btn_wide = 120
         btn_high = 50
-        btn_calibration_folder = Button(text='1-1建立新參數', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[0], 'center_y':pos_ref_y[0]}, on_release=self.create_calibration_ask, font_name=self.font_path)
+        btn_calibration_folder = Button(text='1-1建立新參數', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[0]}, on_release=self.create_calibration_ask, font_name=self.font_path)
         layout.add_widget(btn_calibration_folder)
-        btn_config = Button(text='1-2偵測相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[0]}, on_release=self.button_config, font_name=self.font_path)
+        btn_config = Button(text='1-2偵測相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[0]}, on_release=self.button_config, font_name=self.font_path)
         layout.add_widget(btn_config)
-        btn_check_cam = Button(text='1-3檢查相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[0]},on_release=self.button_check_cam, font_name=self.font_path)
+        btn_check_cam = Button(text='1-3檢查相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[0]},on_release=self.button_check_cam, font_name=self.font_path)
         layout.add_widget(btn_check_cam)
 
         # 相機校正
@@ -463,25 +464,25 @@ class NTK_CapApp(App):
         # btn_intrinsic_check = Button(text='2-3檢查內參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(20, 400), on_press=self.button_intrinsic_check, font_name=self.font_path)
         # layout.add_widget(btn_intrinsic_check)
 
-        btn_extrinsic_record = Button(text='2-1拍攝外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[0], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_record, font_name=self.font_path)
+        btn_extrinsic_record = Button(text='2-1拍攝外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_record, font_name=self.font_path)
         layout.add_widget(btn_extrinsic_record)
-        btn_extrinsic_calculate = Button(text='2-2計算外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_calculate, font_name=self.font_path)
+        btn_extrinsic_calculate = Button(text='2-2計算外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_calculate, font_name=self.font_path)
         layout.add_widget(btn_extrinsic_calculate)
-        btn_extrinsic_manual_calculate = Button(text='2-2a人工外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_manual_calculate, font_name=self.font_path)
+        btn_extrinsic_manual_calculate = Button(text='2-2a人工外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_manual_calculate, font_name=self.font_path)
         layout.add_widget(btn_extrinsic_manual_calculate)
-        # btn_extrinsic_check = Button(text='2-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_check, font_name=self.font_path)
+        # btn_extrinsic_check = Button(text='2-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_check, font_name=self.font_path)
         # layout.add_widget(btn_extrinsic_check)
         # btn_extrinsic_check = Button(text='3-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 400), on_press=self.button_extrinsic_check, font_name=self.font_path)
         # layout.add_widget(btn_extrinsic_check)
 
         # 拍攝人體動作
-        btn_Apose_record = Button(text='3-1拍攝A-pose', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[0], 'center_y':pos_ref_y[4]}, on_release=self.button_Apose_record, font_name=self.font_path)
+        btn_Apose_record = Button(text='3-1拍攝A-pose', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[4]}, on_release=self.button_Apose_record, font_name=self.font_path)
         layout.add_widget(btn_Apose_record)
-        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[1], 'center_y':pos_ref_y[4]}, on_release=lambda instance: self.button_task_record(layout,instance), font_name=self.font_path)
+        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[4]}, on_release=lambda instance: self.button_task_record(layout,instance), font_name=self.font_path)
         layout.add_widget(btn_task_record)
 
         # 計算Marker
-        btn_calculate_Marker = Button(text='4計算Marker以及IK', size_hint=(0.4,0.1), size=(btn_wide + 60, 50), pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[6]}, on_release=self.button_calculate_Marker, font_name=self.font_path)
+        btn_calculate_Marker = Button(text='4計算Marker以及IK', size_hint=(0.4,0.1), size=(btn_wide + 60, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[6]}, on_release=self.button_calculate_Marker, font_name=self.font_path)
         layout.add_widget(btn_calculate_Marker)
 
         # 計算IK
@@ -489,32 +490,32 @@ class NTK_CapApp(App):
         # layout.add_widget(btn_calculate_IK)
 
         # 離開NTK_Cap
-        btn_exit = Button(text='結束程式', size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[8]}, on_release=self.button_exit, font_name=self.font_path)
+        btn_exit = Button(text='結束程式', size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[8]}, on_release=self.button_exit, font_name=self.font_path)
         layout.add_widget(btn_exit)
 
         # 創建當前操作顯示
-        self.label_log_hint = Label(text='目前執行操作', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[7]}, font_name=self.font_path)
+        self.label_log_hint = Label(text='目前執行操作', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]}, font_name=self.font_path)
         layout.add_widget(self.label_log_hint)
 
         # 執行日期
-        self.label_date = Label(text='', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': pos_ref_x[1], 'center_y':0.97}, font_name=self.font_path)
+        self.label_date = Label(text='', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': self.pos_ref_x[1], 'center_y':0.97}, font_name=self.font_path)
         layout.add_widget(self.label_date)
         Clock.schedule_interval(self.update_date, 1)
         
         # Patient ID
         self.patientID = "test"
         # Replace this line
-        # self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
+        # self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[0]}, font_name=self.font_path)
         # With this block
         self.patient_genID = ''  # Add this line to define the variable
         self.patient_namephone = '' # Add this line to define the variable
         self.task_name =''
-        self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
+        self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
         self.btn_patientID.bind(on_press=self.show_input_popup)
         layout.add_widget(self.btn_patientID)
         self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
 
-        self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
+        self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
         layout.add_widget(self.label_PatientID_real)
         
         # 內參選擇相機
@@ -525,18 +526,18 @@ class NTK_CapApp(App):
 
         # Task Name
         self.task = "test"
-        self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
+        self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[2]}, font_name=self.font_path)
         self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
         layout.add_widget(self.task_button)        
         self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
         self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
         layout.add_widget(self.label_task_real)
 
-        self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[7]-0.1}, font_name=self.font_path)
+        self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
         layout.add_widget(self.label_log)
 
         ##### Button to next page
-        btn_to_new_page = Button(text="Advanced Function", size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[7]})
+        btn_to_new_page = Button(text="Advanced Function", size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[7]})
         btn_to_new_page.bind(on_release=lambda instance: setattr(self.sm, 'current', 'new_page'))
         layout.add_widget(btn_to_new_page)
 
@@ -544,13 +545,13 @@ class NTK_CapApp(App):
         # self.txt_camID_spinner = Spinner(text = 'cam ID', values = ("0","1","2","3"),size_hint=(0.19,0.1), size=(100, 30), pos=(20, 450), sync_height = True, font_size=16, font_name=self.font_path)
         # layout.add_widget(self.txt_camID_spinner)
         # self.txt_camID_spinner.bind(text = self.camID_update) 
-        self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': pos_ref_x[3], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
+        self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': self.pos_ref_x[3], 'center_y':self.pos_ref_y[2]}, font_name=self.font_path)
         layout.add_widget(self.err_calib_extri)
 
         btn_toggle_language = Button(
             text='Switch Language',
             size_hint=(0.15, 0.1),
-            pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[6]},
+            pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[6]},
             on_release=lambda instance: self.toggle_language(btn_calibration_folder,btn_config, btn_check_cam, btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance)
         )
         layout.add_widget(btn_toggle_language)
@@ -563,7 +564,7 @@ class NTK_CapApp(App):
         # #Adding widgets to the layout
         # layout.add_widget(checkbox)
         # layout.add_widget(checkbox_label)
-        self.btn_ttl = Button(text='ttl',size_hint=(0.09,0.05),size=(170, 30), pos_hint={'center_x': pos_ref_x[2]-0.05, 'center_y':pos_ref_y[4]-0.03}, on_release=self.on_checkbox_active, font_name=self.font_path,opacity=0)
+        self.btn_ttl = Button(text='ttl',size_hint=(0.09,0.05),size=(170, 30), pos_hint={'center_x': self.pos_ref_x[2]-0.05, 'center_y':self.pos_ref_y[4]-0.03}, on_release=self.on_checkbox_active, font_name=self.font_path,opacity=0)
         layout.add_widget(self.btn_ttl)
         #Spinner for feature selection
         self.feature_spinner = Spinner(
@@ -571,7 +572,7 @@ class NTK_CapApp(App):
             values=('Recording', 'VICON Recording','Delay test'),
             size_hint=(0.19,0.05),
             size=(170, 30),
-            pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[4]+0.03},
+            pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[4]+0.03},
             font_name=self.font_path
         )
         self.feature_spinner.bind(text=self.on_spinner_select)
@@ -581,25 +582,25 @@ class NTK_CapApp(App):
             values=('No Analysis', 'Gait1'),
             size_hint=(0.19,0.05),
             size=(170, 30),
-            pos_hint={ 'center_x': pos_ref_x[2], 'center_y':pos_ref_y[6]+0.03},
+            pos_hint={ 'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[6]+0.03},
             font_name=self.font_path
         )
         
         layout.add_widget(self.gait_anlaysis)
-        self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': pos_ref_x[2]+0.05, 'center_y':pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
+        self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': self.pos_ref_x[2]+0.05, 'center_y':self.pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
         layout.add_widget(self.COM_input)
 
-
+        date = datetime.now().strftime("%Y_%m_%d")
         self.btn_toggle_cloud_sinlge = Button(
             text='Cloud',
             size_hint=(0.15, 0.1),
-            pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[4]},
-            on_release=lambda instance: self.switch_cloud(layout,pos_ref_x,pos_ref_y,instance)  # Pass the button instance
+            pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[4]},
+            on_release=lambda instance: self.switch_cloud(layout,date,instance)  # Pass the button instance
         )
         layout.add_widget(self.btn_toggle_cloud_sinlge)
         # Create a ScrollView
         # Create a ScrollView
-        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[7]},)
+        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[7]},)
 
         # Create a GridLayout to hold the buttons
         self.button_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
@@ -619,7 +620,7 @@ class NTK_CapApp(App):
     def update_tasklist(self,layout,date):
         layout.remove_widget(self.scroll_view)
         layout.remove_widget(self.button_layout)
-        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[7]},)
+        self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[7]},)
         # Create a GridLayout to hold the buttons
         self.button_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
         self.button_layout.bind(minimum_height=self.button_layout.setter('height'))
@@ -630,24 +631,29 @@ class NTK_CapApp(App):
 
         # Add the ScrollView to your layout
         layout.add_widget(self.scroll_view)
-        dir_list_tasks = os.path.join( self.record_path,  self.patient_genID, date)
-        all_folders = [name for name in os.listdir(dir_list_tasks) if os.path.isdir(os.path.join(dir_list_tasks, name))]
-    
-        # Filter out the "APose" folder
-        filtered_folders = [folder for folder in all_folders if folder.lower() != 'apose']
-        for taskname in len(filtered_folders):  # Replace 20 with however many items you want
-            btn = Button(text=taskname, size_hint_y=None, height=40)
-            
-            # Bind a function to the button that will handle the selection
-            btn.bind(on_release=self.on_button_select_tasklist)
-            
-            self.button_layout.add_widget(btn)
+        if self.btn_toggle_cloud_sinlge.text == 'Single':
+            self.patient_genID = self.txt_patientID_real.text
+        dir_list_tasks = os.path.join(self.record_path, 'Patient_data', self.patient_genID, date,'raw_data')
+        if os.path.isdir(dir_list_tasks):
+            all_folders = [name for name in os.listdir(dir_list_tasks) if os.path.isdir(os.path.join(dir_list_tasks, name))]
+        
+            # Filter out the "APose" folder
+            filtered_folders = [folder for folder in all_folders if (folder.lower() != 'apose') and (folder.lower() != 'calibration')]
+            filtered_folders = natsorted(filtered_folders, reverse=True)
+            #mport pdb;pdb.set_trace()
+            for taskname in range(len(filtered_folders)):  # Replace 20 with however many items you want
+                btn = Button(text=filtered_folders[taskname], size_hint_y=None, height=40)
+                
+                # Bind a function to the button that will handle the selection
+                btn.bind(on_release=self.on_button_select_tasklist)
+                
+                self.button_layout.add_widget(btn)
     def on_button_select_tasklist(self, instance):
         selected_button_text = instance.text
         print(f'Selected: {selected_button_text}')
         # You can add more functionality here, like updating other UI elements or storing the selection
 
-    def switch_cloud(self, layout,pos_ref_x,pos_ref_y,instance):
+    def switch_cloud(self, layout,date,instance):
         if instance.text == 'Cloud':
             instance.text = 'Single'  # Update the button text
             layout.remove_widget(self.task_button)
@@ -658,18 +664,19 @@ class NTK_CapApp(App):
             Clock.unschedule(self.patient_task_event)
             
             self.patientID = "test"
-            self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[0]}, font_name=self.font_path)
+            self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[0]}, font_name=self.font_path)
+            self.txt_patientID_real.bind(on_text_validate=lambda instance: self.update_tasklist(layout,date))
             self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_single, 0.1)
             layout.add_widget(self.txt_patientID_real)
             self.label_PatientID_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 570), font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             self.task = "test"
-            self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y':pos_ref_y[2]}, font_name=self.font_path)
+            self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[2]}, font_name=self.font_path)
             self.patient_task_event =Clock.schedule_interval(self.task_update_single, 0.1)
             layout.add_widget(self.txt_task)
             self.label_task_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
-            self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[7]-0.1}, font_name=self.font_path)
+            self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
             layout.add_widget(self.label_log)
         else:
             instance.text = 'Cloud'  # Update the button text
@@ -683,22 +690,22 @@ class NTK_CapApp(App):
             self.patient_genID = ''  # Add this line to define the variable
             self.patient_namephone = '' # Add this line to define the variable
             self.task_name =''
-            self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
+            self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
             self.btn_patientID.bind(on_press=self.show_input_popup)
             layout.add_widget(self.btn_patientID)
             self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
-            self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': pos_ref_x[3], 'center_y': pos_ref_y[0]}, font_name=self.font_path)
+            self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
             layout.add_widget(self.label_PatientID_real)
             # Task Name
             self.task = "test"
-            self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': pos_ref_x[4], 'center_y': pos_ref_y[2]}, font_name=self.font_path)
+            self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[2]}, font_name=self.font_path)
             self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
             layout.add_widget(self.task_button)        
             self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
             self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
             layout.add_widget(self.label_task_real)
 
-            self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':pos_ref_y[7]-0.1}, font_name=self.font_path)
+            self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
             layout.add_widget(self.label_log)
 
     def show_input_popup(self, instance):
@@ -997,7 +1004,7 @@ class NTK_CapApp(App):
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
             #camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
-            self.camera_motion_final(self,date)
+            self.camera_motion_final(self,date,layout)
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         
         else:
@@ -1047,7 +1054,7 @@ class NTK_CapApp(App):
 
         else:
             print('Error from mode select')
-        update_tasklist(self,layout,date)
+        self.update_tasklist(layout,date)
     
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
@@ -1071,6 +1078,7 @@ class NTK_CapApp(App):
                 
                 try:
                     if self.gait_anlaysis.text =='Gait1':
+                        from NTK_CAP.script_py.gait_analysis import gait1
                         gait1(folder_calculated)
                 except Exception as e:
                     print("An error occurred:")
