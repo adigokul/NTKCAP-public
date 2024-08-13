@@ -1591,6 +1591,47 @@ def gait1(dir_calculated):
         R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):  
+    dir_task = output_dir
+    create_post_analysis_dir(dir_task)
+    path_parts = dir_task.split(os.sep)
+    patient_data_index = path_parts.index('Patient_data')
+    patient_id = path_parts[patient_data_index + 1]
+    date_str = path_parts[patient_data_index + 2]
+    task_str = path_parts[patient_data_index + 4]
+    title = patient_id+'_'+date_str+'_'+task_str
 
-#dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\2024_07_11post-tra\20240711\2024_07_11_14_31_calculated'
-#gait1(dir_calculated)
+    data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
+    AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
+    rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
+    pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
+    R_knee_steady,L_knee_steady,R_knee,L_knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+
+
+
+
+# ####### Input parameter
+# IK_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51\opensim\Balancing_for_IK_BODY.mot'
+# trc_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51\opensim\Empty_project_filt_0-30.trc'
+# output_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51'
+# patient_id='Maurice_camtest2'
+# date_str='2024_06_24'
+# task_str='walk51'
+# ######## Function to be called
+# gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str)
+
+
+
+
+
+
+
+
+
+#######Ignored Here
+
+# dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\2024_07_11post-tra\20240711\2024_07_11_14_31_calculated'
+# gait1(dir_calculated)

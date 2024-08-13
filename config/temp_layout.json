@@ -1,0 +1,44 @@
+[
+    {
+        "type": "input",
+        "title": "symptoms",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Level of fall risk",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "note",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "spinner",
+        "title": "Task name",
+        "options": [
+            "Walk",
+            "Run",
+            "TUG",
+            "Stair"
+        ],
+        "content": "Choose an option",
+        "notetype": "action"
+    },
+    {
+        "type": "input",
+        "title": "Task number",
+        "content": "",
+        "notetype": "action"
+    },
+    {
+        "type": "input",
+        "title": "note",
+        "content": "",
+        "notetype": "meet"
+    }
+]

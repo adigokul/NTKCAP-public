@@ -35,6 +35,7 @@ import requests
 import sqlite3
 from natsort import natsorted
 SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+
 FONT_PATH = os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
 # 连接到SQLite数据库
 conn = sqlite3.connect(os.path.join(os.getcwd(),'icd10','icd10.db'))
@@ -50,13 +51,15 @@ def fuzzy_search(query):
     """, (f'%{query}%', f'%{query}%', f'%{query}%'))
     results = cursor.fetchall()
     return results
-
-class TaskInputScreen(Screen):
-    def __init__(self, **kwargs):
-        super(TaskInputScreen, self).__init__(**kwargs)
+class TaskEDITInputScreen(Screen):
+    def __init__(self, layout_dir=None, **kwargs):
+        super(TaskEDITInputScreen, self).__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical')
-        
+        self.current_directory = os.getcwd()
+        self.config_path = os.path.join(self.current_directory, "config")
         # 添加选择布局按钮
+        self.layout_dir = layout_dir
+            
         self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
         self.choose_layout_button.bind(on_press=self.open_file_chooser)
         self.layout.add_widget(self.choose_layout_button)
@@ -77,7 +80,7 @@ class TaskInputScreen(Screen):
         self.task_name_input = None
         self.task_number_input = None
         self.task_spinner = None
-
+        self.layout_json_dir = ''
         self.add_widget(self.layout)
     
     def open_file_chooser(self, instance):
@@ -93,74 +96,108 @@ class TaskInputScreen(Screen):
         
         self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
         self.popup.open()
-    
+    def save_data(self, instance):
+        data_to_save = {}
+        
+        # Iterate over all widgets in the results layout
+        for box in self.results_layout.children:
+            
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save[title] = input_widget.children[1].text
+                print(data_to_save)
+            
+        # Now `data_to_save` contains all the titles and values
+        # You can print it or save it to a file, database, etc.
+        print(data_to_save)
+        with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
+            layout_data = json.load(f)
+        for item in layout_data:
+            title = item['title']
+            if title in data_to_save:
+                item['content'] = data_to_save[title]
+        with open(self.layout_dir, 'w', encoding='utf-8') as json_file:
+            json.dump(layout_data, json_file, indent=4, ensure_ascii=False)
+        
+
     def load_layout(self, selection):
         if selection:
             layout_file = selection[0]
-            self.popup.dismiss()
-            
             # 读取选择的布局文件
-            with open(layout_file, 'r') as f:
-                layout_data = json.load(f)
-            
-            # 清空当前布局
-            self.results_layout.clear_widgets()
-            
-            for item in layout_data:
-                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
-                    # 替换为Search ICD-10按钮和显示选择结果的TextInput
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                    new_box.add_widget(title_label)
-                    
-                    # Use a GridLayout to align TextInput and Button
-                    grid_layout = GridLayout(cols=2, size_hint=(1, None), height=40)
-                    
-                    self.idc_result_input = TextInput(size_hint_y=None, height=40, multiline=False, font_name=FONT_PATH)
-                    grid_layout.add_widget(self.idc_result_input)
+            self.layout_json_dir = layout_file
+            if os.path.isdir(layout_file):
+                with open(layout_file, 'r', encoding='utf-8') as f:
+                    layout_data = json.load(f)
+                
+                # 清空当前布局
+                self.results_layout.clear_widgets()
+                
+                for item in layout_data:
+                    if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+                        # 替换为Search ICD-10按钮和显示选择结果的TextInput
+                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                        new_box.add_widget(title_label)
 
-                    search_button = Button(text="Search ICD-10", size_hint_x=None, width=150)
-                    search_button.bind(on_press=self.open_search_popup)
-                    grid_layout.add_widget(search_button)
-                    
-                    new_box.add_widget(grid_layout)
-                    self.results_layout.add_widget(new_box)
-                    
-                elif item['type'] == 'input':
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                    new_box.add_widget(title_label)
-                    
-                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
-                    new_box.add_widget(string_input)
-                    
-                    self.results_layout.add_widget(new_box)
-                    
-                    # Store references to task name and task number inputs
-                    if item['title'].lower() == 'task name':
-                        self.task_name_input = string_input
-                    elif item['title'].lower() == 'task number':
-                        self.task_number_input = string_input
+                        # 使用BoxLayout将TextInput和Button排列在同一行
+                        input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=40)
 
-                elif item['type'] == 'spinner':
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                    title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                    new_box.add_widget(title_label)
-                    
-                    spinner = Spinner(
-                        text='Choose an option',
-                        values=item['options'],
-                        size_hint=(1, None),
-                        height=40
-                    )
-                    new_box.add_widget(spinner)
-                    
-                    self.results_layout.add_widget(new_box)
-                    if item['title'].lower() == 'task name':
-                        self.task_name_input = spinner
-                    elif item['title'].lower() == 'task number':
-                        self.task_number_input = spinner
-                    # Store reference to the spinner
+                        self.idc_result_input = TextInput(text=item['content'],size_hint_y=None, height=40, multiline=False, font_name=FONT_PATH)
+                        input_and_button_box.add_widget(self.idc_result_input)
+
+                        search_button = Button(text="Search ICD-10", size_hint_x=None, width=150)
+                        search_button.bind(on_press=self.open_search_popup)
+                        input_and_button_box.add_widget(search_button)
+
+                        new_box.add_widget(input_and_button_box)
+                        self.results_layout.add_widget(new_box)
+
+                        
+                    elif item['type'] == 'input':
+                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                        new_box.add_widget(title_label)
+                        
+                        string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                        new_box.add_widget(string_input)
+                        
+                        self.results_layout.add_widget(new_box)
+                        
+                        # Store references to task name and task number inputs
+                        if item['title'].lower() == 'task name':
+                            self.task_name_input = string_input
+                        elif item['title'].lower() == 'task number':
+                            self.task_number_input = string_input
+
+                    elif item['type'] == 'spinner':
+                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
+                        new_box.add_widget(title_label)
+                        
+                        spinner = Spinner(
+                            text=item['content'],
+                            values=item['options'],
+                            size_hint=(1, None),
+                            height=40
+                        )
+                        new_box.add_widget(spinner)
+                        
+                        self.results_layout.add_widget(new_box)
+                        if item['title'].lower() == 'task name':
+                            self.task_name_input = spinner
+                        elif item['title'].lower() == 'task number':
+                            self.task_number_input = spinner
+                        # Store reference to the spinner
                     
 
     def open_search_popup(self, instance):
@@ -173,22 +210,228 @@ class TaskInputScreen(Screen):
         
         # 创建滚动视图来显示搜索结果
         self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
-        self.results_layout = GridLayout(cols=1, size_hint_y=None)
-        self.results_layout.bind(minimum_height=self.results_layout.setter('height'))
-        self.results_view.add_widget(self.results_layout)
+        self.result_layout = GridLayout(cols=1, size_hint_y=None)
+        self.result_layout.bind(minimum_height=self.result_layout.setter('height'))
+        self.results_view.add_widget(self.result_layout)
         popup_layout.add_widget(self.results_view)
         
         self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
         self.popup.open()
     
     def on_text(self, instance, value):
-        self.results_layout.clear_widgets()
+        self.result_layout.clear_widgets()
         if value.strip():  # 检查输入是否为空
             search_results = fuzzy_search(value)
             for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
                 result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
                 result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
-                self.results_layout.add_widget(result_button)
+                self.result_layout.add_widget(result_button)
+    
+    def select_result(self, code, en_description, cn_description):
+        print(f"Selected: {code}: {en_description} / {cn_description}")
+        
+        # 在右侧布局的输入框中显示选择的IDC结果，结果用逗号分隔
+        current_text = self.idc_result_input.text
+        new_text = f"{code}: {en_description} / {cn_description}"
+        if current_text:
+            self.idc_result_input.text = f"{current_text}, {new_text}"
+        else:
+            self.idc_result_input.text = new_text
+        
+        self.popup.dismiss()
+
+    def print_task_info(self, instance):
+            if self.task_name_input and self.task_number_input:
+                self.save_data(instance)
+                self.manager.current = 'main'  # Switch back to the main screen
+            else:
+                print("Task Name or Task Number input not found")
+class TaskInputScreen(Screen):
+    def __init__(self, layout_dir=None, **kwargs):
+        super(TaskInputScreen, self).__init__(**kwargs)
+        self.layout = BoxLayout(orientation='vertical')
+        self.current_directory = os.getcwd()
+        self.config_path = os.path.join(self.current_directory, "config")
+        
+        # Add "Choose Layout" button
+        self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
+        self.choose_layout_button.bind(on_press=self.open_file_chooser)
+        self.layout.add_widget(self.choose_layout_button)
+
+        # Create the ScrollView to take up 80% of the layout
+
+        self.results_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.8))
+        
+        self.layout.add_widget(self.results_layout)
+
+        # Create a button at the bottom right
+        bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
+        bottom_right_button.bind(on_press=self.print_task_info)
+        self.layout.add_widget(bottom_right_button)
+
+        # Initialize instance variables for the task input boxes and spinner
+        self.task_name_input = None
+        self.task_number_input = None
+        self.task_spinner = None
+        self.layout_json_dir = ''
+        self.add_widget(self.layout)
+
+    def open_file_chooser(self, instance):
+        # 创建文件选择弹出窗口
+        file_chooser = FileChooserIconView(path='.', filters=['*.json'])
+        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        popup_layout.add_widget(file_chooser)
+        
+        # 确认按钮
+        confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
+        confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
+        popup_layout.add_widget(confirm_button)
+        
+        self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
+        self.popup.open()
+    def save_data(self, instance):
+        data_to_save = {}
+        
+        # Iterate over all widgets in the results layout
+        for box in self.results_layout.children:
+            
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save[title] = input_widget.children[1].text
+                print(data_to_save)
+            
+        # Now `data_to_save` contains all the titles and values
+        # You can print it or save it to a file, database, etc.
+        print(data_to_save)
+        with open(self.layout_json_dir, 'r') as f:
+            layout_data = json.load(f)
+        for item in layout_data:
+            title = item['title']
+            if title in data_to_save:
+                item['content'] = data_to_save[title]
+        with open(os.path.join(self.config_path,'temp_layout.json'), 'w', encoding='utf-8') as json_file:
+            json.dump(layout_data, json_file, indent=4, ensure_ascii=False)
+        
+    def load_layout(self, selection):
+        if selection:
+            layout_file = selection[0]
+            try:
+                self.popup.dismiss()
+            except:
+                print('no pop up')
+            
+            # Read the selected layout file
+            self.layout_json_dir = layout_file
+            with open(layout_file, 'r', encoding='utf-8') as f:
+                layout_data = json.load(f)
+            
+            # Clear the current layout
+            self.results_layout.clear_widgets()
+
+            # Create left and right halves with size_hint
+           
+            left_scroll_view = ScrollView(size_hint=(0.5, 1))
+            left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            left_half.bind(minimum_height=left_half.setter('height'))  # Ensure scrolling works as expected
+            left_scroll_view.add_widget(left_half)
+
+            # Create scrollable right half
+            right_scroll_view = ScrollView(size_hint=(0.5, 1))
+            right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            right_half.bind(minimum_height=right_half.setter('height'))  # Ensure scrolling works as expected
+            right_scroll_view.add_widget(right_half)
+            title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
+            left_half.add_widget(title_label)
+            title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
+            right_half.add_widget(title_label)
+            for item in layout_data:
+                # Determine whether to place in the left or right half
+                target_layout = left_half if item.get('notetype') == 'meet' else right_half
+                
+                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
+                    new_box.add_widget(title_label)
+
+                    input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
+                    self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
+                    input_and_button_box.add_widget(self.idc_result_input)
+
+                    search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
+                    search_button.bind(on_press=self.open_search_popup)
+                    input_and_button_box.add_widget(search_button)
+
+                    new_box.add_widget(input_and_button_box)
+                    target_layout.add_widget(new_box)
+
+                elif item['type'] == 'input':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                    new_box.add_widget(string_input)
+                    
+                    target_layout.add_widget(new_box)
+
+                elif item['type'] == 'spinner':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    spinner = Spinner(
+                        text=item['content'],
+                        values=item['options'],
+                        size_hint=(1, None),
+                        height=40
+                    )
+                    new_box.add_widget(spinner)
+                    
+                    target_layout.add_widget(new_box)
+
+            # Add the halves to the results layout
+            self.results_layout.add_widget(left_scroll_view)
+            self.results_layout.add_widget(right_scroll_view)
+
+
+                    
+
+    def open_search_popup(self, instance):
+        # 创建弹出窗口
+        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        self.popup_input = TextInput(size_hint_y=None, height=40, font_name=FONT_PATH)
+        self.popup_input.bind(text=self.on_text)
+        popup_layout.add_widget(self.popup_input)
+        
+        # 创建滚动视图来显示搜索结果
+        self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
+        self.result_layout = GridLayout(cols=1, size_hint_y=None)
+        self.result_layout.bind(minimum_height=self.result_layout.setter('height'))
+        self.results_view.add_widget(self.result_layout)
+        popup_layout.add_widget(self.results_view)
+        
+        self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
+        self.popup.open()
+    
+    def on_text(self, instance, value):
+        self.result_layout.clear_widgets()
+        if value.strip():  # 检查输入是否为空
+            search_results = fuzzy_search(value)
+            for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
+                result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
+                result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
+                self.result_layout.add_widget(result_button)
     
     def select_result(self, code, en_description, cn_description):
         print(f"Selected: {code}: {en_description} / {cn_description}")
@@ -210,6 +453,7 @@ class TaskInputScreen(Screen):
                 self.manager.parent_app.task_name = f"{task_name} {task_number}"
                 self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
                 print(f"Task: {self.manager.parent_app.task_name}")
+                self.save_data(instance)
                 self.manager.current = 'main'  # Switch back to the main screen
             else:
                 print("Task Name or Task Number input not found")
@@ -385,12 +629,14 @@ class NTK_CapApp(App):
         main_screen = Screen(name='main')
         new_page_screen = NewPageScreen(name='new_page')
         task_input_screen = TaskInputScreen(name='task_input')
+        taskEDIT_input_screen = TaskEDITInputScreen(name='taskEDIT_input')
         main_layout = self.setup_main_layout()  # Setup your main layout here
         main_screen.add_widget(main_layout)
 
         self.sm.add_widget(main_screen)
         self.sm.add_widget(new_page_screen)
         self.sm.add_widget(task_input_screen) 
+        self.sm.add_widget(taskEDIT_input_screen) 
         return self.sm
 
 
@@ -528,6 +774,8 @@ class NTK_CapApp(App):
         self.task = "test"
         self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[2]}, font_name=self.font_path)
         self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
+        #self.task_button.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('task_input', layout_dir=r'C:\Users\Hermes\Desktop\NTKCAP\config'))
+
         layout.add_widget(self.task_button)        
         self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
         self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
@@ -617,6 +865,17 @@ class NTK_CapApp(App):
 
 
         return layout
+    def set_taskinput_screen_with_param(self, screen_name,dir_layout, **kwargs):
+        # Get the screen instance
+        screen = self.sm.get_screen(screen_name)
+        screen.load_layout([dir_layout])
+        # Pass the additional parameters to the screen
+        for key, value in kwargs.items():
+            setattr(screen, key, value)
+        
+        # Switch to the desired screen
+        self.sm.current = screen_name
+
     def update_tasklist(self,layout,date):
         layout.remove_widget(self.scroll_view)
         layout.remove_widget(self.button_layout)
@@ -645,13 +904,10 @@ class NTK_CapApp(App):
                 btn = Button(text=filtered_folders[taskname], size_hint_y=None, height=40)
                 
                 # Bind a function to the button that will handle the selection
-                btn.bind(on_release=self.on_button_select_tasklist)
+                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input',os.path.join(dir_list_tasks,taskname,'note_value.json'), layout_dir=os.path.join(dir_list_tasks,taskname,'note_value.json')))
+                #btn.bind(on_release=self.on_button_select_tasklist)
                 
                 self.button_layout.add_widget(btn)
-    def on_button_select_tasklist(self, instance):
-        selected_button_text = instance.text
-        print(f'Selected: {selected_button_text}')
-        # You can add more functionality here, like updating other UI elements or storing the selection
 
     def switch_cloud(self, layout,date,instance):
         if instance.text == 'Cloud':
@@ -712,6 +968,7 @@ class NTK_CapApp(App):
         # Create the popup with the parent app reference
         self.popup = ResultsPopup(title="Results", size_hint=(0.8, 0.8), parent_app=self)
         self.popup.open()
+        
 
     def on_spinner_select(self, spinner, text):
         print(f'Selected feature: {text}')
@@ -967,12 +1224,14 @@ class NTK_CapApp(App):
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         #import pdb;pdb.set_trace()
     def button_task_record(self, layout,instance):
+        
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
         # self.label_log.text = '拍攝動作'
         self.label_log.text = 'film motion'
         self.add_log(self.label_log.text)
         date = datetime.now().strftime("%Y_%m_%d")
+        import pdb;pdb.set_trace()
         if self.label_PatientID_real.text == "":
             # self.label_log.text = '請輸入Patient ID'
             self.label_log.text = 'check Patient ID'
