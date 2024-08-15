@@ -78,15 +78,9 @@ class TaskEDITInputScreen(Screen):
         self.task_name_input = None
         self.task_number_input = None
         self.task_spinner = None
-        self.layout_json_dir = ''
+        self.layout_json_dir_meet = ''
+        self.layout_json_dir_action = ''
         self.add_widget(self.layout)
-
-    def on_pre_enter(self):
-        # Reinitialize or reset any attributes here
-        dir_layout = [r'C:\Users\Hermes\Desktop\NTKCAP\config\layout.json']
-        self.load_layout(self,dir_layout)
-
-
 
     def open_file_chooser(self, instance):
         # 创建文件选择弹出窗口
@@ -143,9 +137,14 @@ class TaskEDITInputScreen(Screen):
         # Now `data_to_save` contains all the titles and values
         # You can print it or save it to a file, database, etc.
         print(data_to_save_actionnote)
-
-        with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
-            layout_data = json.load(f)
+        
+        with open(self.layout_json_dir_meet , 'r', encoding='utf-8') as f:
+            layout_data_meet = json.load(f)
+        
+        with open(self.layout_json_dir_action, 'r', encoding='utf-8') as f:
+            layout_data_action = json.load(f)
+        # Clear the current layout
+        layout_data = layout_data_meet+layout_data_action
 
         # Separate lists for 'meet' and 'action' items
         meetnote_data = []
@@ -164,30 +163,26 @@ class TaskEDITInputScreen(Screen):
                 actionnote_data.append(item)
 
         # Save 'meet' items to a separate JSON file
-        meetnote_file_path = os.path.join(self.config_path, 'meetnote_layout.json')
-        with open(meetnote_file_path, 'w', encoding='utf-8') as json_file:
+       
+        with open(self.layout_json_dir_meet, 'w', encoding='utf-8') as json_file:
             json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
-
         # Save 'action' items to a separate JSON file
-        actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
-        with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
+        with open(self.layout_json_dir_action, 'w', encoding='utf-8') as json_file:
             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
 
         
-    def load_layout(self, selection):
-        if selection:
-            layout_file = selection[0]
-            try:
-                self.popup.dismiss()
-            except:
-                print('no pop up')
+    def load_layout(self, meetdir,actiondir):
+       
             
             # Read the selected layout file
-            self.layout_json_dir = layout_file
-            with open(layout_file, 'r', encoding='utf-8') as f:
-                layout_data = json.load(f)
-            
+            self.layout_json_dir_meet = meetdir
+            with open( meetdir, 'r', encoding='utf-8') as f:
+                layout_data_meet = json.load(f)
+            self.layout_json_dir_action = actiondir
+            with open( actiondir, 'r', encoding='utf-8') as f:
+                layout_data_action = json.load(f)
             # Clear the current layout
+            layout_data = layout_data_meet+layout_data_action
             self.results_layout.clear_widgets()
 
             # Create left and right halves with size_hint
@@ -994,10 +989,10 @@ class NTK_CapApp(App):
 
 
         return self.layout
-    def set_taskinput_screen_with_param(self, screen_name,dir_layout, **kwargs):
+    def set_taskinput_screen_with_param(self, screen_name,meetdir,actiondir, **kwargs):
         # Get the screen instance
         screen = self.sm.get_screen(screen_name)
-        screen.load_layout([dir_layout])
+        screen.load_layout(meetdir,actiondir)
         # Pass the additional parameters to the screen
         for key, value in kwargs.items():
             setattr(screen, key, value)
@@ -1034,9 +1029,10 @@ class NTK_CapApp(App):
                 
                 # Bind a function to the button that will handle the selection
             
-                meetdir = os.path.join(dir_list_tasks,str(taskname),'Meet_note.json')
-                actiondir =os.path.join(dir_list_tasks,'Action_note.json')
-                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input',meetdir=meetdir,actiondir =actiondir))
+                actiondir = os.path.join(dir_list_tasks,filtered_folders[taskname],'Action_note.json')
+                meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
+                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir))
+
                 #btn.bind(on_release=self.on_button_select_tasklist)
                 
                 self.button_layout.add_widget(btn)
