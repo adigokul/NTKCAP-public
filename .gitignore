@@ -16,3 +16,7 @@ NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/NTK_CAP/ThirdParty/TensorRT-8.6.1.6/
+*.dll
+*.onnx
+*.caffemodel
+*.engine
