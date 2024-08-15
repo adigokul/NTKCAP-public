@@ -290,10 +290,11 @@ class TaskInputScreen(Screen):
         self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
         self.popup.open()
     def save_data(self, instance):
-        data_to_save = {}
+        data_to_save_meetnote = {}
+        data_to_save_actionnote = {}
         
         # Iterate over all widgets in the results layout
-        for box in self.results_layout.children:
+        for box in self.left_half.children:
             
             if isinstance(box, BoxLayout):
                 title_label = box.children[1]  # Assuming the Label is always the second widget
@@ -303,24 +304,63 @@ class TaskInputScreen(Screen):
                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
                 
                 if isinstance(input_widget, TextInput):
-                    data_to_save[title] = input_widget.text
+                    data_to_save_meetnote[title] = input_widget.text
                 elif isinstance(input_widget, Spinner):
-                    data_to_save[title] = input_widget.text  # Spinner's current selection
+                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
                 elif isinstance(input_widget, BoxLayout):
-                    data_to_save[title] = input_widget.children[1].text
-                print(data_to_save)
+                    data_to_save_meetnote[title] = input_widget.children[1].text
+                print(data_to_save_meetnote)
+        for box in self.right_half.children:
             
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save_actionnote[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save_actionnote[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save_actionnote[title] = input_widget.children[1].text
+                print(data_to_save_actionnote)
+
+        # import pdb;pdb.set_trace()
         # Now `data_to_save` contains all the titles and values
         # You can print it or save it to a file, database, etc.
-        print(data_to_save)
-        with open(self.layout_json_dir, 'r') as f:
+        print(data_to_save_actionnote)
+
+        with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
             layout_data = json.load(f)
+
+        # Separate lists for 'meet' and 'action' items
+        meetnote_data = []
+        actionnote_data = []
+
+        # Divide the items into the respective lists
         for item in layout_data:
             title = item['title']
-            if title in data_to_save:
-                item['content'] = data_to_save[title]
-        with open(os.path.join(self.config_path,'temp_layout.json'), 'w', encoding='utf-8') as json_file:
-            json.dump(layout_data, json_file, indent=4, ensure_ascii=False)
+            if item["notetype"] == 'meet':
+                if title in data_to_save_meetnote:
+                    item['content'] = data_to_save_meetnote[title]
+                meetnote_data.append(item)
+            elif item["notetype"] == 'action':
+                if title in data_to_save_actionnote:
+                    item['content'] = data_to_save_actionnote[title]
+                actionnote_data.append(item)
+
+        # Save 'meet' items to a separate JSON file
+        meetnote_file_path = os.path.join(self.config_path, 'meetnote_layout.json')
+        with open(meetnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
+
+        # Save 'action' items to a separate JSON file
+        actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
+        with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
+
         
     def load_layout(self, selection):
         if selection:
@@ -341,22 +381,22 @@ class TaskInputScreen(Screen):
             # Create left and right halves with size_hint
            
             left_scroll_view = ScrollView(size_hint=(0.5, 1))
-            left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
-            left_half.bind(minimum_height=left_half.setter('height'))  # Ensure scrolling works as expected
-            left_scroll_view.add_widget(left_half)
+            self.left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.left_half.bind(minimum_height=self.left_half.setter('height'))  # Ensure scrolling works as expected
+            left_scroll_view.add_widget(self.left_half)
 
             # Create scrollable right half
             right_scroll_view = ScrollView(size_hint=(0.5, 1))
-            right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
-            right_half.bind(minimum_height=right_half.setter('height'))  # Ensure scrolling works as expected
-            right_scroll_view.add_widget(right_half)
+            self.right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.right_half.bind(minimum_height=self.right_half.setter('height'))  # Ensure scrolling works as expected
+            right_scroll_view.add_widget(self.right_half)
             title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
-            left_half.add_widget(title_label)
+            self.left_half.add_widget(title_label)
             title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
-            right_half.add_widget(title_label)
+            self.right_half.add_widget(title_label)
             for item in layout_data:
                 # Determine whether to place in the left or right half
-                target_layout = left_half if item.get('notetype') == 'meet' else right_half
+                target_layout = self.left_half if item.get('notetype') == 'meet' else self.right_half
                 
                 if item['type'] == 'input' and item['title'].lower() == 'symptoms':
                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
@@ -380,6 +420,11 @@ class TaskInputScreen(Screen):
                     new_box.add_widget(title_label)
                     
                     string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = string_input
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = string_input
                     new_box.add_widget(string_input)
                     
                     target_layout.add_widget(new_box)
@@ -395,6 +440,11 @@ class TaskInputScreen(Screen):
                         size_hint=(1, None),
                         height=40
                     )
+                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = spinner
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = spinner
                     new_box.add_widget(spinner)
                     
                     target_layout.add_widget(new_box)
@@ -447,16 +497,17 @@ class TaskInputScreen(Screen):
         self.popup.dismiss()
 
     def print_task_info(self, instance):
-            if self.task_name_input and self.task_number_input:
-                task_name = self.task_name_input.text
-                task_number = self.task_number_input.text
-                self.manager.parent_app.task_name = f"{task_name} {task_number}"
-                self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
-                print(f"Task: {self.manager.parent_app.task_name}")
-                self.save_data(instance)
-                self.manager.current = 'main'  # Switch back to the main screen
-            else:
-                print("Task Name or Task Number input not found")
+        
+        if self.task_name_input and self.task_number_input:
+            task_name = self.task_name_input.text
+            task_number = self.task_number_input.text
+            self.manager.parent_app.task_name = f"{task_name} {task_number}"
+            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+            print(f"Task: {self.manager.parent_app.task_name}")
+            self.save_data(instance)
+            self.manager.current = 'main'  # Switch back to the main screen
+        else:
+            print("Task Name or Task Number input not found")
 class ResultsPopup(Popup):
     def __init__(self, parent_app, **kwargs):
         super(ResultsPopup, self).__init__(**kwargs)
@@ -1182,6 +1233,17 @@ class NTK_CapApp(App):
         #     self.label_log.text = 'check extrinsic exist'
         self.add_log(self.label_log.text)
     
+    def update_Apose_note(self):
+        olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
+        newdir_meetnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','Meet_note.json')
+        shutil.copy2(olddir_meetnote, newdir_meetnote)
+    def update_Task_note(self):
+        olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
+        olddir_actionnote =os.path.join(self.config_path, 'actionnote_layout.json')
+        newdir_meetnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','Meet_note.json')
+        newdir_actionnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',self.label_task_real.text,'Action_note.json')
+        shutil.copy2(olddir_meetnote,newdir_meetnote)
+        shutil.copy2(olddir_actionnote, newdir_actionnote)
 
 ############### Apose 不能隔天重拍，要就要當下
     def button_Apose_record(self, instance):
@@ -1193,6 +1255,7 @@ class NTK_CapApp(App):
             self.label_log.text = 'check Patient ID'
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))==0: ## check if path exist
             camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
+            self.update_Apose_note(self)
         else:
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not change the Patient ID, Do you want to replace the original Apose?')
@@ -1222,6 +1285,7 @@ class NTK_CapApp(App):
         popup.dismiss()  # Dismiss the popup first
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
+        self.update_Apose_note(self)
         #import pdb;pdb.set_trace()
     def button_task_record(self, layout,instance):
         
@@ -1231,7 +1295,7 @@ class NTK_CapApp(App):
         self.label_log.text = 'film motion'
         self.add_log(self.label_log.text)
         date = datetime.now().strftime("%Y_%m_%d")
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         if self.label_PatientID_real.text == "":
             # self.label_log.text = '請輸入Patient ID'
             self.label_log.text = 'check Patient ID'
@@ -1314,6 +1378,7 @@ class NTK_CapApp(App):
         else:
             print('Error from mode select')
         self.update_tasklist(layout,date)
+        self.update_Task_note(self)
     
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
