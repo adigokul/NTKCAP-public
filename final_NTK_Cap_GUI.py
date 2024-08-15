@@ -1031,11 +1031,81 @@ class NTK_CapApp(App):
             
                 actiondir = os.path.join(dir_list_tasks,filtered_folders[taskname],'Action_note.json')
                 meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
-                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir))
+                
+                if os.path.exists(meetdir) and os.path.exists(actiondir):
+                    btn.bind(on_press=lambda instance, meetdir = meetdir,actiondir =actiondir: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir))
+                else:
+                    name_dir = os.path.join(dir_list_tasks)
+                    name = filtered_folders[taskname]
+                    btn.bind(on_press=lambda instance, name_dir=name_dir, name=name, btn=btn: self.show_popup_rename_task(name_dir, name, btn))
 
                 #btn.bind(on_release=self.on_button_select_tasklist)
                 
                 self.button_layout.add_widget(btn)
+    def show_popup_rename_task(self, name_dir, name,btn):
+        # Create a BoxLayout for the popup's content
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        #import pdb;pdb.set_trace()
+        # Add a TextInput to the layout with larger font size and single-line input
+        text_input = TextInput(text=btn.text, font_size=24, multiline=False)
+        layout.add_widget(text_input)
+    
+        def rename_directory(old_name, new_name,btn):
+            try:
+                os.rename(old_name, new_name)
+                print(f"Directory renamed from {old_name} to {new_name}")
+                btn.text = text_input.text
+                popup.dismiss()
+            except FileNotFoundError:
+                self.show_warning_popup(f"The directory was not found.")
+            except FileExistsError:
+                self.show_warning_popup(f"The directory already exists.")
+            except Exception as e:
+                self.show_warning_popup(f"An error occurred: {e}")
+
+        # Function to be called when the Confirm button is pressed
+        def on_confirm(instance):
+            print("You entered:", text_input.text)
+            
+            rename_directory(os.path.join(name_dir, btn.text), os.path.join(name_dir, text_input.text),btn)
+            
+            
+
+        # Add a Confirm button to the layout
+        confirm_button = Button(text="Confirm", size_hint=(1, 0.2))
+        confirm_button.bind(on_press=on_confirm)
+        layout.add_widget(confirm_button)
+
+        # Create the main popup for renaming
+        popup = Popup(title="Rename Task",
+                    content=layout,
+                    size_hint=(0.6, 0.4),
+                    auto_dismiss=False)
+
+        # Open the main popup
+        popup.open()
+
+    def show_warning_popup(self,message):
+        # Function to display a warning popup
+        warning_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        warning_label = Label(text=message, font_size=18)
+        close_button = Button(text="Close", size_hint=(1, 0.2))
+
+        # Function to close the warning popup
+        def on_close(instance):
+            warning_popup.dismiss()
+
+        close_button.bind(on_press=on_close)
+        warning_layout.add_widget(warning_label)
+        warning_layout.add_widget(close_button)
+
+        warning_popup = Popup(title="Warning",
+                            content=warning_layout,
+                            size_hint=(0.6, 0.3),
+                            auto_dismiss=False)
+
+        warning_popup.open()
+
 
     def switch_cloud(self,date,instance):
         if instance.text == 'Cloud':
