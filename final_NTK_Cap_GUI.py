@@ -52,24 +52,22 @@ def fuzzy_search(query):
     results = cursor.fetchall()
     return results
 class TaskEDITInputScreen(Screen):
-    def __init__(self, layout_dir=None, **kwargs):
+    def __init__(self, meetdir=None, actiondir=None, **kwargs):
         super(TaskEDITInputScreen, self).__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical')
         self.current_directory = os.getcwd()
         self.config_path = os.path.join(self.current_directory, "config")
-        # 添加选择布局按钮
-        self.layout_dir = layout_dir
-            
+        self.meetdir = meetdir
+        self.actiondir = actiondir
+
+        # Add "Choose Layout" button
         self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
         self.choose_layout_button.bind(on_press=self.open_file_chooser)
         self.layout.add_widget(self.choose_layout_button)
 
-        # 创建滚动视图来显示布局内容
-        self.scroll_view = ScrollView(size_hint=(1, 1))
-        self.results_layout = GridLayout(cols=1, size_hint_y=None)
-        self.results_layout.bind(minimum_height=self.results_layout.setter('height'))
-        self.scroll_view.add_widget(self.results_layout)
-        self.layout.add_widget(self.scroll_view)
+        # Create the ScrollView to take up 80% of the layout
+        self.results_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.8))
+        self.layout.add_widget(self.results_layout)
 
         # Create a button at the bottom right
         bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
@@ -82,7 +80,14 @@ class TaskEDITInputScreen(Screen):
         self.task_spinner = None
         self.layout_json_dir = ''
         self.add_widget(self.layout)
-    
+
+    def on_pre_enter(self):
+        # Reinitialize or reset any attributes here
+        dir_layout = [r'C:\Users\Hermes\Desktop\NTKCAP\config\layout.json']
+        self.load_layout(self,dir_layout)
+
+
+
     def open_file_chooser(self, instance):
         # 创建文件选择弹出窗口
         file_chooser = FileChooserIconView(path='.', filters=['*.json'])
@@ -97,10 +102,11 @@ class TaskEDITInputScreen(Screen):
         self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
         self.popup.open()
     def save_data(self, instance):
-        data_to_save = {}
+        data_to_save_meetnote = {}
+        data_to_save_actionnote = {}
         
         # Iterate over all widgets in the results layout
-        for box in self.results_layout.children:
+        for box in self.left_half.children:
             
             if isinstance(box, BoxLayout):
                 title_label = box.children[1]  # Assuming the Label is always the second widget
@@ -110,94 +116,156 @@ class TaskEDITInputScreen(Screen):
                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
                 
                 if isinstance(input_widget, TextInput):
-                    data_to_save[title] = input_widget.text
+                    data_to_save_meetnote[title] = input_widget.text
                 elif isinstance(input_widget, Spinner):
-                    data_to_save[title] = input_widget.text  # Spinner's current selection
+                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
                 elif isinstance(input_widget, BoxLayout):
-                    data_to_save[title] = input_widget.children[1].text
-                print(data_to_save)
+                    data_to_save_meetnote[title] = input_widget.children[1].text
+                print(data_to_save_meetnote)
+        for box in self.right_half.children:
             
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save_actionnote[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save_actionnote[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save_actionnote[title] = input_widget.children[1].text
+                print(data_to_save_actionnote)
+
+        # import pdb;pdb.set_trace()
         # Now `data_to_save` contains all the titles and values
         # You can print it or save it to a file, database, etc.
-        print(data_to_save)
+        print(data_to_save_actionnote)
+
         with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
             layout_data = json.load(f)
+
+        # Separate lists for 'meet' and 'action' items
+        meetnote_data = []
+        actionnote_data = []
+
+        # Divide the items into the respective lists
         for item in layout_data:
             title = item['title']
-            if title in data_to_save:
-                item['content'] = data_to_save[title]
-        with open(self.layout_dir, 'w', encoding='utf-8') as json_file:
-            json.dump(layout_data, json_file, indent=4, ensure_ascii=False)
-        
+            if item["notetype"] == 'meet':
+                if title in data_to_save_meetnote:
+                    item['content'] = data_to_save_meetnote[title]
+                meetnote_data.append(item)
+            elif item["notetype"] == 'action':
+                if title in data_to_save_actionnote:
+                    item['content'] = data_to_save_actionnote[title]
+                actionnote_data.append(item)
 
+        # Save 'meet' items to a separate JSON file
+        meetnote_file_path = os.path.join(self.config_path, 'meetnote_layout.json')
+        with open(meetnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
+
+        # Save 'action' items to a separate JSON file
+        actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
+        with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
+
+        
     def load_layout(self, selection):
         if selection:
             layout_file = selection[0]
-            # 读取选择的布局文件
+            try:
+                self.popup.dismiss()
+            except:
+                print('no pop up')
+            
+            # Read the selected layout file
             self.layout_json_dir = layout_file
-            if os.path.isdir(layout_file):
-                with open(layout_file, 'r', encoding='utf-8') as f:
-                    layout_data = json.load(f)
+            with open(layout_file, 'r', encoding='utf-8') as f:
+                layout_data = json.load(f)
+            
+            # Clear the current layout
+            self.results_layout.clear_widgets()
+
+            # Create left and right halves with size_hint
+           
+            left_scroll_view = ScrollView(size_hint=(0.5, 1))
+            self.left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.left_half.bind(minimum_height=self.left_half.setter('height'))  # Ensure scrolling works as expected
+            left_scroll_view.add_widget(self.left_half)
+
+            # Create scrollable right half
+            right_scroll_view = ScrollView(size_hint=(0.5, 1))
+            self.right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.right_half.bind(minimum_height=self.right_half.setter('height'))  # Ensure scrolling works as expected
+            right_scroll_view.add_widget(self.right_half)
+            title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
+            self.left_half.add_widget(title_label)
+            title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
+            self.right_half.add_widget(title_label)
+            for item in layout_data:
+                # Determine whether to place in the left or right half
+                target_layout = self.left_half if item.get('notetype') == 'meet' else self.right_half
                 
-                # 清空当前布局
-                self.results_layout.clear_widgets()
-                
-                for item in layout_data:
-                    if item['type'] == 'input' and item['title'].lower() == 'symptoms':
-                        # 替换为Search ICD-10按钮和显示选择结果的TextInput
-                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                        new_box.add_widget(title_label)
+                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
+                    new_box.add_widget(title_label)
 
-                        # 使用BoxLayout将TextInput和Button排列在同一行
-                        input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=40)
+                    input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
+                    self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
+                    input_and_button_box.add_widget(self.idc_result_input)
 
-                        self.idc_result_input = TextInput(text=item['content'],size_hint_y=None, height=40, multiline=False, font_name=FONT_PATH)
-                        input_and_button_box.add_widget(self.idc_result_input)
+                    search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
+                    search_button.bind(on_press=self.open_search_popup)
+                    input_and_button_box.add_widget(search_button)
 
-                        search_button = Button(text="Search ICD-10", size_hint_x=None, width=150)
-                        search_button.bind(on_press=self.open_search_popup)
-                        input_and_button_box.add_widget(search_button)
+                    new_box.add_widget(input_and_button_box)
+                    target_layout.add_widget(new_box)
 
-                        new_box.add_widget(input_and_button_box)
-                        self.results_layout.add_widget(new_box)
+                elif item['type'] == 'input':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = string_input
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = string_input
+                    new_box.add_widget(string_input)
+                    
+                    target_layout.add_widget(new_box)
 
-                        
-                    elif item['type'] == 'input':
-                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                        new_box.add_widget(title_label)
-                        
-                        string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
-                        new_box.add_widget(string_input)
-                        
-                        self.results_layout.add_widget(new_box)
-                        
-                        # Store references to task name and task number inputs
-                        if item['title'].lower() == 'task name':
-                            self.task_name_input = string_input
-                        elif item['title'].lower() == 'task number':
-                            self.task_number_input = string_input
+                elif item['type'] == 'spinner':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    spinner = Spinner(
+                        text=item['content'],
+                        values=item['options'],
+                        size_hint=(1, None),
+                        height=40
+                    )
+                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task name':
+                        self.task_name_input = spinner
+                    elif item['title'].lower() == 'task number':
+                        self.task_number_input = spinner
+                    new_box.add_widget(spinner)
+                    
+                    target_layout.add_widget(new_box)
 
-                    elif item['type'] == 'spinner':
-                        new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                        title_label = Label(text=item['title'], size_hint_y=None, height=40)
-                        new_box.add_widget(title_label)
-                        
-                        spinner = Spinner(
-                            text=item['content'],
-                            values=item['options'],
-                            size_hint=(1, None),
-                            height=40
-                        )
-                        new_box.add_widget(spinner)
-                        
-                        self.results_layout.add_widget(new_box)
-                        if item['title'].lower() == 'task name':
-                            self.task_name_input = spinner
-                        elif item['title'].lower() == 'task number':
-                            self.task_number_input = spinner
-                        # Store reference to the spinner
+            # Add the halves to the results layout
+            self.results_layout.add_widget(left_scroll_view)
+            self.results_layout.add_widget(right_scroll_view)
+
+
                     
 
     def open_search_popup(self, instance):
@@ -241,11 +309,17 @@ class TaskEDITInputScreen(Screen):
         self.popup.dismiss()
 
     def print_task_info(self, instance):
-            if self.task_name_input and self.task_number_input:
-                self.save_data(instance)
-                self.manager.current = 'main'  # Switch back to the main screen
-            else:
-                print("Task Name or Task Number input not found")
+        
+        if self.task_name_input and self.task_number_input:
+            task_name = self.task_name_input.text
+            task_number = self.task_number_input.text
+            self.manager.parent_app.task_name = f"{task_name} {task_number}"
+            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+            print(f"Task: {self.manager.parent_app.task_name}")
+            self.save_data(instance)
+            self.manager.current = 'main'  # Switch back to the main screen
+        else:
+            print("Task Name or Task Number input not found")
 class TaskInputScreen(Screen):
     def __init__(self, layout_dir=None, **kwargs):
         super(TaskInputScreen, self).__init__(**kwargs)
@@ -586,6 +660,8 @@ class ResultsPopup(Popup):
         self.parent_app.patient_genID = instance.id  # Store the selected ID in the parent app's variable
         self.parent_app.patient_namephone = f"{instance.name} \n {instance.phone}"  # Store the selected name and phone in the parent app's variable
         self.dismiss()  # Close the popup after selection
+        date = datetime.now().strftime("%Y_%m_%d")
+        self.parent_app.update_tasklist(date)
 
 class NumberedInputBox(BoxLayout):
     def __init__(self, text, parent_layout, **kwargs):
@@ -681,7 +757,7 @@ class NTK_CapApp(App):
         new_page_screen = NewPageScreen(name='new_page')
         task_input_screen = TaskInputScreen(name='task_input')
         taskEDIT_input_screen = TaskEDITInputScreen(name='taskEDIT_input')
-        main_layout = self.setup_main_layout()  # Setup your main layout here
+        main_layout = self.setup_main_layout()  # Setup your main self.layout here
         main_screen.add_widget(main_layout)
 
         self.sm.add_widget(main_screen)
@@ -740,63 +816,63 @@ class NTK_CapApp(App):
         # 字型設定
         self.font_path = os.path.join(self.current_directory, "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
         font_path = self.font_path
-        layout = FloatLayout()
+        self.layout = FloatLayout()
 
         # 創建按鈕，並指定位置
         # 檢察系統檔案
         btn_wide = 120
         btn_high = 50
         btn_calibration_folder = Button(text='1-1建立新參數', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[0]}, on_release=self.create_calibration_ask, font_name=self.font_path)
-        layout.add_widget(btn_calibration_folder)
+        self.layout.add_widget(btn_calibration_folder)
         btn_config = Button(text='1-2偵測相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[0]}, on_release=self.button_config, font_name=self.font_path)
-        layout.add_widget(btn_config)
+        self.layout.add_widget(btn_config)
         btn_check_cam = Button(text='1-3檢查相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[0]},on_release=self.button_check_cam, font_name=self.font_path)
-        layout.add_widget(btn_check_cam)
+        self.layout.add_widget(btn_check_cam)
 
         # 相機校正
         # btn_intrinsic_record = Button(text='2-1拍攝內參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(20, 500), on_press=self.button_intrinsic_record, font_name=self.font_path)
-        # layout.add_widget(btn_intrinsic_record)
+        # self.layout.add_widget(btn_intrinsic_record)
         # btn_intrinsic_calculate = Button(text='2-2計算內參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(130, 500), on_press=self.button_intrinsic_calculate, font_name=self.font_path)
-        # layout.add_widget(btn_intrinsic_calculate)
+        # self.layout.add_widget(btn_intrinsic_calculate)
         # btn_intrinsic_check = Button(text='2-3檢查內參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(20, 400), on_press=self.button_intrinsic_check, font_name=self.font_path)
-        # layout.add_widget(btn_intrinsic_check)
+        # self.layout.add_widget(btn_intrinsic_check)
 
         btn_extrinsic_record = Button(text='2-1拍攝外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_record, font_name=self.font_path)
-        layout.add_widget(btn_extrinsic_record)
+        self.layout.add_widget(btn_extrinsic_record)
         btn_extrinsic_calculate = Button(text='2-2計算外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_calculate, font_name=self.font_path)
-        layout.add_widget(btn_extrinsic_calculate)
+        self.layout.add_widget(btn_extrinsic_calculate)
         btn_extrinsic_manual_calculate = Button(text='2-2a人工外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_manual_calculate, font_name=self.font_path)
-        layout.add_widget(btn_extrinsic_manual_calculate)
+        self.layout.add_widget(btn_extrinsic_manual_calculate)
         # btn_extrinsic_check = Button(text='2-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[2]}, on_release=self.button_extrinsic_check, font_name=self.font_path)
-        # layout.add_widget(btn_extrinsic_check)
+        # self.layout.add_widget(btn_extrinsic_check)
         # btn_extrinsic_check = Button(text='3-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 400), on_press=self.button_extrinsic_check, font_name=self.font_path)
-        # layout.add_widget(btn_extrinsic_check)
+        # self.layout.add_widget(btn_extrinsic_check)
 
         # 拍攝人體動作
         btn_Apose_record = Button(text='3-1拍攝A-pose', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[0], 'center_y':self.pos_ref_y[4]}, on_release=self.button_Apose_record, font_name=self.font_path)
-        layout.add_widget(btn_Apose_record)
-        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[4]}, on_release=lambda instance: self.button_task_record(layout,instance), font_name=self.font_path)
-        layout.add_widget(btn_task_record)
+        self.layout.add_widget(btn_Apose_record)
+        btn_task_record = Button(text='3-2拍攝動作', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[1], 'center_y':self.pos_ref_y[4]}, on_release=lambda instance: self.button_task_record(instance), font_name=self.font_path)
+        self.layout.add_widget(btn_task_record)
 
         # 計算Marker
         btn_calculate_Marker = Button(text='4計算Marker以及IK', size_hint=(0.4,0.1), size=(btn_wide + 60, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[6]}, on_release=self.button_calculate_Marker, font_name=self.font_path)
-        layout.add_widget(btn_calculate_Marker)
+        self.layout.add_widget(btn_calculate_Marker)
 
         # 計算IK
         # btn_calculate_IK = Button(text='5-1計算IK', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 200), on_press=self.button_calculate_IK, font_name=self.font_path)
-        # layout.add_widget(btn_calculate_IK)
+        # self.layout.add_widget(btn_calculate_IK)
 
         # 離開NTK_Cap
         btn_exit = Button(text='結束程式', size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[8]}, on_release=self.button_exit, font_name=self.font_path)
-        layout.add_widget(btn_exit)
+        self.layout.add_widget(btn_exit)
 
         # 創建當前操作顯示
         self.label_log_hint = Label(text='目前執行操作', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]}, font_name=self.font_path)
-        layout.add_widget(self.label_log_hint)
+        self.layout.add_widget(self.label_log_hint)
 
         # 執行日期
         self.label_date = Label(text='', size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': self.pos_ref_x[1], 'center_y':0.97}, font_name=self.font_path)
-        layout.add_widget(self.label_date)
+        self.layout.add_widget(self.label_date)
         Clock.schedule_interval(self.update_date, 1)
         
         # Patient ID
@@ -808,17 +884,19 @@ class NTK_CapApp(App):
         self.patient_namephone = '' # Add this line to define the variable
         self.task_name =''
         self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
-        self.btn_patientID.bind(on_press=self.show_input_popup)
-        layout.add_widget(self.btn_patientID)
+        # Assuming `self.layout` is an already defined variable
+        self.btn_patientID.bind(on_press=lambda instance: self.show_input_popup( instance))
+
+        self.layout.add_widget(self.btn_patientID)
         self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
 
         self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
-        layout.add_widget(self.label_PatientID_real)
+        self.layout.add_widget(self.label_PatientID_real)
         
         # 內參選擇相機
         # self.select_camID = 0
         # self.txt_cam_ID = TextInput(hint_text='choose cam ID(0~3)', multiline=False, size_hint=(0.19,0.1), size=(160, 40), pos=(20, 450), font_size=16, font_name=self.font_path)
-        # layout.add_widget(self.txt_cam_ID)
+        # self.layout.add_widget(self.txt_cam_ID)
         #Clock.schedule_interval(self.camID_update, 0.1)
 
         # Task Name
@@ -827,25 +905,25 @@ class NTK_CapApp(App):
         self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
         #self.task_button.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('task_input', layout_dir=r'C:\Users\Hermes\Desktop\NTKCAP\config'))
 
-        layout.add_widget(self.task_button)        
+        self.layout.add_widget(self.task_button)        
         self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
         self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
-        layout.add_widget(self.label_task_real)
+        self.layout.add_widget(self.label_task_real)
 
         self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
-        layout.add_widget(self.label_log)
+        self.layout.add_widget(self.label_log)
 
         ##### Button to next page
         btn_to_new_page = Button(text="Advanced Function", size_hint=(0.15, 0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[7]})
         btn_to_new_page.bind(on_release=lambda instance: setattr(self.sm, 'current', 'new_page'))
-        layout.add_widget(btn_to_new_page)
+        self.layout.add_widget(btn_to_new_page)
 
         #spinner for camera ID
         # self.txt_camID_spinner = Spinner(text = 'cam ID', values = ("0","1","2","3"),size_hint=(0.19,0.1), size=(100, 30), pos=(20, 450), sync_height = True, font_size=16, font_name=self.font_path)
-        # layout.add_widget(self.txt_camID_spinner)
+        # self.layout.add_widget(self.txt_camID_spinner)
         # self.txt_camID_spinner.bind(text = self.camID_update) 
         self.err_calib_extri = Label(text=read_err_calib_extri(self.current_directory), size_hint=(0.19,0.1), size=(400, 30),  pos_hint={'center_x': self.pos_ref_x[3], 'center_y':self.pos_ref_y[2]}, font_name=self.font_path)
-        layout.add_widget(self.err_calib_extri)
+        self.layout.add_widget(self.err_calib_extri)
 
         btn_toggle_language = Button(
             text='Switch Language',
@@ -853,18 +931,18 @@ class NTK_CapApp(App):
             pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[6]},
             on_release=lambda instance: self.toggle_language(btn_calibration_folder,btn_config, btn_check_cam, btn_extrinsic_record,btn_extrinsic_calculate,btn_Apose_record,btn_task_record,btn_calculate_Marker,btn_exit,instance)
         )
-        layout.add_widget(btn_toggle_language)
+        self.layout.add_widget(btn_toggle_language)
         checkbox = CheckBox(size_hint=(None, None), size=(48, 48), pos_hint={'center_x': 0.3, 'center_y': 0.5})
         
         
         # # # Label for the CheckBox
         # checkbox_label = Label(text="Enable feature", size_hint=(None, None), size=(200, 30), pos_hint={'center_x': 0.45, 'center_y': 0.5})
         # checkbox.bind(active=self.on_checkbox_active)
-        # #Adding widgets to the layout
-        # layout.add_widget(checkbox)
-        # layout.add_widget(checkbox_label)
+        # #Adding widgets to the self.layout
+        # self.layout.add_widget(checkbox)
+        # self.layout.add_widget(checkbox_label)
         self.btn_ttl = Button(text='ttl',size_hint=(0.09,0.05),size=(170, 30), pos_hint={'center_x': self.pos_ref_x[2]-0.05, 'center_y':self.pos_ref_y[4]-0.03}, on_release=self.on_checkbox_active, font_name=self.font_path,opacity=0)
-        layout.add_widget(self.btn_ttl)
+        self.layout.add_widget(self.btn_ttl)
         #Spinner for feature selection
         self.feature_spinner = Spinner(
             text='Recording',
@@ -875,7 +953,7 @@ class NTK_CapApp(App):
             font_name=self.font_path
         )
         self.feature_spinner.bind(text=self.on_spinner_select)
-        layout.add_widget(self.feature_spinner)
+        self.layout.add_widget(self.feature_spinner)
         self.gait_anlaysis = Spinner(
             text='No Analysis',
             values=('No Analysis', 'Gait1'),
@@ -885,18 +963,18 @@ class NTK_CapApp(App):
             font_name=self.font_path
         )
         
-        layout.add_widget(self.gait_anlaysis)
+        self.layout.add_widget(self.gait_anlaysis)
         self.COM_input = TextInput(hint_text='COM', multiline=False, size_hint=(0.09,0.05),size=(170, 30),pos_hint={'center_x': self.pos_ref_x[2]+0.05, 'center_y':self.pos_ref_y[4]-0.03}, font_name=self.font_path,opacity=0)
-        layout.add_widget(self.COM_input)
+        self.layout.add_widget(self.COM_input)
 
         date = datetime.now().strftime("%Y_%m_%d")
         self.btn_toggle_cloud_sinlge = Button(
             text='Cloud',
             size_hint=(0.15, 0.1),
             pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[4]},
-            on_release=lambda instance: self.switch_cloud(layout,date,instance)  # Pass the button instance
+            on_release=lambda instance: self.switch_cloud(date,instance)  # Pass the button instance
         )
-        layout.add_widget(self.btn_toggle_cloud_sinlge)
+        self.layout.add_widget(self.btn_toggle_cloud_sinlge)
         # Create a ScrollView
         # Create a ScrollView
         self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[7]},)
@@ -911,11 +989,11 @@ class NTK_CapApp(App):
         # Add the GridLayout to the ScrollView
         self.scroll_view.add_widget(self.button_layout)
 
-        # Add the ScrollView to your layout
-        layout.add_widget(self.scroll_view)
+        # Add the ScrollView to your self.layout
+        self.layout.add_widget(self.scroll_view)
 
 
-        return layout
+        return self.layout
     def set_taskinput_screen_with_param(self, screen_name,dir_layout, **kwargs):
         # Get the screen instance
         screen = self.sm.get_screen(screen_name)
@@ -927,9 +1005,9 @@ class NTK_CapApp(App):
         # Switch to the desired screen
         self.sm.current = screen_name
 
-    def update_tasklist(self,layout,date):
-        layout.remove_widget(self.scroll_view)
-        layout.remove_widget(self.button_layout)
+    def update_tasklist(self,date):
+        self.layout.remove_widget(self.scroll_view)
+        self.layout.remove_widget(self.button_layout)
         self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[7]},)
         # Create a GridLayout to hold the buttons
         self.button_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
@@ -939,8 +1017,8 @@ class NTK_CapApp(App):
         # Add the GridLayout to the ScrollView
         self.scroll_view.add_widget(self.button_layout)
 
-        # Add the ScrollView to your layout
-        layout.add_widget(self.scroll_view)
+        # Add the ScrollView to your self.layout
+        self.layout.add_widget(self.scroll_view)
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID = self.txt_patientID_real.text
         dir_list_tasks = os.path.join(self.record_path, 'Patient_data', self.patient_genID, date,'raw_data')
@@ -955,70 +1033,78 @@ class NTK_CapApp(App):
                 btn = Button(text=filtered_folders[taskname], size_hint_y=None, height=40)
                 
                 # Bind a function to the button that will handle the selection
-                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input',os.path.join(dir_list_tasks,taskname,'note_value.json'), layout_dir=os.path.join(dir_list_tasks,taskname,'note_value.json')))
+            
+                meetdir = os.path.join(dir_list_tasks,str(taskname),'Meet_note.json')
+                actiondir =os.path.join(dir_list_tasks,'Action_note.json')
+                btn.bind(on_press=lambda instance: self.set_taskinput_screen_with_param('taskEDIT_input',meetdir=meetdir,actiondir =actiondir))
                 #btn.bind(on_release=self.on_button_select_tasklist)
                 
                 self.button_layout.add_widget(btn)
 
-    def switch_cloud(self, layout,date,instance):
+    def switch_cloud(self,date,instance):
         if instance.text == 'Cloud':
             instance.text = 'Single'  # Update the button text
-            layout.remove_widget(self.task_button)
-            layout.remove_widget(self.btn_patientID)
-            layout.remove_widget(self.label_PatientID_real)
-            layout.remove_widget(self.label_task_real)
+            self.layout.remove_widget(self.task_button)
+            self.layout.remove_widget(self.btn_patientID)
+            self.layout.remove_widget(self.label_PatientID_real)
+            self.layout.remove_widget(self.label_task_real)
             Clock.unschedule(self.patient_id_event)
             Clock.unschedule(self.patient_task_event)
             
             self.patientID = "test"
             self.txt_patientID_real = TextInput(hint_text='Patient ID', multiline=False, size_hint=(0.19,0.1), size=(150, 50),  pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[0]}, font_name=self.font_path)
-            self.txt_patientID_real.bind(on_text_validate=lambda instance: self.update_tasklist(layout,date))
+            self.txt_patientID_real.bind(on_text_validate=lambda instance: self.update_tasklist(date))
             self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_single, 0.1)
-            layout.add_widget(self.txt_patientID_real)
+            self.layout.add_widget(self.txt_patientID_real)
             self.label_PatientID_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 570), font_name=self.font_path)
-            layout.add_widget(self.label_PatientID_real)
+            self.layout.add_widget(self.label_PatientID_real)
             self.task = "test"
             self.txt_task = TextInput(hint_text='Task name', multiline=False, size_hint=(0.19,0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y':self.pos_ref_y[2]}, font_name=self.font_path)
             self.patient_task_event =Clock.schedule_interval(self.task_update_single, 0.1)
-            layout.add_widget(self.txt_task)
+            self.layout.add_widget(self.txt_task)
             self.label_task_real = Label(text=self.patientID, size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
-            layout.add_widget(self.label_task_real)
+            self.layout.add_widget(self.label_task_real)
             self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
-            layout.add_widget(self.label_log)
+            self.layout.add_widget(self.label_log)
         else:
             instance.text = 'Cloud'  # Update the button text
             self.task_button.text ='test'
-            layout.remove_widget(self.txt_patientID_real)
-            layout.remove_widget(self.txt_task)
-            layout.remove_widget(self.label_PatientID_real)
-            layout.remove_widget(self.label_task_real)
+            self.layout.remove_widget(self.txt_patientID_real)
+            self.layout.remove_widget(self.txt_task)
+            self.layout.remove_widget(self.label_PatientID_real)
+            self.layout.remove_widget(self.label_task_real)
             Clock.unschedule(self.patient_id_event)
             Clock.unschedule(self.patient_task_event)
             self.patient_genID = ''  # Add this line to define the variable
             self.patient_namephone = '' # Add this line to define the variable
             self.task_name =''
             self.btn_patientID = Button(text='Enter Patient ID', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
-            self.btn_patientID.bind(on_press=self.show_input_popup)
-            layout.add_widget(self.btn_patientID)
+            # Assuming `self.layout` is an already defined variable
+            self.btn_patientID.bind(on_press=lambda instance: self.show_input_popup( instance))
+
+            self.layout.add_widget(self.btn_patientID)
             self.patient_id_event =Clock.schedule_interval(self.patient_ID_update_cloud, 0.1)
             self.label_PatientID_real = Label(text=self.patient_namephone, size_hint=(0.19,0.1), size=(400, 30), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[0]}, font_name=self.font_path)
-            layout.add_widget(self.label_PatientID_real)
+            self.layout.add_widget(self.label_PatientID_real)
             # Task Name
             self.task = "test"
             self.task_button = Button(text='Enter Task Name', size_hint=(0.19, 0.1), size=(150, 50), pos_hint={'center_x': self.pos_ref_x[4], 'center_y': self.pos_ref_y[2]}, font_name=self.font_path)
             self.task_button.bind(on_press=lambda instance: setattr(self.sm, 'current', 'task_input'))
-            layout.add_widget(self.task_button)        
+            self.layout.add_widget(self.task_button)        
             self.patient_task_event =Clock.schedule_interval(self.task_update_cloud, 0.1)
             self.label_task_real = Label(text=self.task_name , size_hint=(0.19,0.1), size=(400, 30), pos=(500, 470), font_name=self.font_path)
-            layout.add_widget(self.label_task_real)
+            self.layout.add_widget(self.label_task_real)
 
             self.label_log = Label(text=' ', size_hint=(0.19,0.1), size=(400, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[7]-0.1}, font_name=self.font_path)
-            layout.add_widget(self.label_log)
+            self.layout.add_widget(self.label_log)
 
     def show_input_popup(self, instance):
         # Create the popup with the parent app reference
         self.popup = ResultsPopup(title="Results", size_hint=(0.8, 0.8), parent_app=self)
         self.popup.open()
+        date =datetime.now().strftime("%Y_%m_%d")
+
+
         
 
     def on_spinner_select(self, spinner, text):
@@ -1287,7 +1373,7 @@ class NTK_CapApp(App):
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         self.update_Apose_note()
         #import pdb;pdb.set_trace()
-    def button_task_record(self, layout,instance):
+    def button_task_record(self,instance):
         
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
@@ -1316,7 +1402,7 @@ class NTK_CapApp(App):
 
             # Yes button
             yes_btn = Button(text='Yes')
-            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_no_Apose(instance, popup,date,layout))
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_no_Apose(instance, popup,date))
             button_layout.add_widget(yes_btn)
 
             no_btn.bind(on_release=lambda *args: popup.dismiss())
@@ -1327,7 +1413,7 @@ class NTK_CapApp(App):
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))==0: ## check if path exist
             #camera_Motion_record(self.config_path, self.record_path, self.label_PatientID_real.text, self.label_task_real.text, date, button_capture=False, button_stop=False)
-            self.camera_motion_final(self,date,layout)
+            self.camera_motion_final(self,date)
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         
         else:
@@ -1344,7 +1430,7 @@ class NTK_CapApp(App):
 
             # Yes button
             yes_btn = Button(text='Yes')
-            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_same_task(instance, popup,date,layout))
+            yes_btn.bind(on_release=lambda instance: self.perform_Motion_recording_same_task(instance, popup,date))
             button_layout.add_widget(yes_btn)
 
             no_btn.bind(on_release=lambda *args: popup.dismiss())
@@ -1355,17 +1441,17 @@ class NTK_CapApp(App):
             self.label_log.text = self.label_PatientID_real.text + " : " + self.label_task_real.text + ", film finished"
         self.add_log(self.label_log.text)
     
-    def perform_Motion_recording_same_task(self, instance, popup,date,layout):
+    def perform_Motion_recording_same_task(self, instance, popup,date):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data',self.label_task_real.text))
-        self.camera_motion_final(self,date,layout)
-    def perform_Motion_recording_no_Apose(self, instance, popup,date,layout):
+        self.camera_motion_final(self,date)
+    def perform_Motion_recording_no_Apose(self, instance, popup,date):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
-        self.camera_motion_final(self, date,layout)
+        self.camera_motion_final(self, date)
 
-    def camera_motion_final(self,instance, date,layout):
+    def camera_motion_final(self,instance, date):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
         if self.mode_select == 'VICON Recording':
@@ -1377,7 +1463,7 @@ class NTK_CapApp(App):
 
         else:
             print('Error from mode select')
-        self.update_tasklist(layout,date)
+        self.update_tasklist(date)
         self.update_Task_note()
     
     def button_calculate_Marker(self, instance):
