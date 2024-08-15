@@ -1,7 +1,4 @@
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmdet-m/end2end.engine filter=lfs diff=lfs merge=lfs -text
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmdet-m/end2end.onnx filter=lfs diff=lfs merge=lfs -text
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.onnx filter=lfs diff=lfs merge=lfs -text
 *.caffemodel filter=lfs diff=lfs merge=lfs -text
-*.uff filter=lfs diff=lfs merge=lfs -text
 *.engine filter=lfs diff=lfs merge=lfs -text
