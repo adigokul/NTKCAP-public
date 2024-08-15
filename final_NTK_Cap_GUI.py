@@ -1255,7 +1255,7 @@ class NTK_CapApp(App):
             self.label_log.text = 'check Patient ID'
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))==0: ## check if path exist
             camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
-            self.update_Apose_note(self)
+            self.update_Apose_note()
         else:
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not change the Patient ID, Do you want to replace the original Apose?')
@@ -1285,7 +1285,7 @@ class NTK_CapApp(App):
         popup.dismiss()  # Dismiss the popup first
         shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
-        self.update_Apose_note(self)
+        self.update_Apose_note()
         #import pdb;pdb.set_trace()
     def button_task_record(self, layout,instance):
         
@@ -1378,7 +1378,7 @@ class NTK_CapApp(App):
         else:
             print('Error from mode select')
         self.update_tasklist(layout,date)
-        self.update_Task_note(self)
+        self.update_Task_note()
     
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'

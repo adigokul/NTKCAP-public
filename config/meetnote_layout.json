@@ -2,13 +2,13 @@
     {
         "type": "input",
         "title": "symptoms",
-        "content": "A01.05: Typhoid osteomyelitis / 傷寒骨髓炎, A00.1: Cholera due to Vibrio cholerae 01, biovar eltor / 血清型01 eltor霍亂弧菌所致之霍亂",
+        "content": "H02.123: Mechanical ectropion of right eye, unspecified eyelid / 右側眼機械性眼瞼外翻，未明示上或下眼瞼",
         "notetype": "meet"
     },
     {
         "type": "input",
         "title": "Level of fall risk",
-        "content": "10",
+        "content": "12",
         "notetype": "meet"
     },
     {

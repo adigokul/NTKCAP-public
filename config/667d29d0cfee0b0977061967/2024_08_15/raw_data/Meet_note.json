@@ -1,0 +1,20 @@
+[
+    {
+        "type": "input",
+        "title": "symptoms",
+        "content": "H02.123: Mechanical ectropion of right eye, unspecified eyelid / 右側眼機械性眼瞼外翻，未明示上或下眼瞼",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Level of fall risk",
+        "content": "12",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "note",
+        "content": "meet note",
+        "notetype": "meet"
+    }
+]
