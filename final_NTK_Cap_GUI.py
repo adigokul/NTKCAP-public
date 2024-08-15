@@ -7,6 +7,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.properties import StringProperty
 from kivy.clock import Clock
@@ -26,7 +27,17 @@ from tkinter import filedialog
 from kivy.animation import Animation
 from NTK_CAP.script_py.kivy_file_chooser import select_directories_and_return_list
 import traceback
+from kivy.metrics import dp
 SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+class MyLabel(Label):
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            if touch.is_double_tap:
+                if hasattr(self, 'on_name_double_tap'):
+                    self.on_name_double_tap(self)
+                return True
+        return super().on_touch_down(touch)
+        
 class NumberedInputBox(BoxLayout):
     def __init__(self, text, parent_layout, **kwargs):
         super().__init__(**kwargs)
@@ -205,6 +216,23 @@ class NTK_CapApp(App):
         layout.add_widget(btn_extrinsic_calculate)
         btn_extrinsic_manual_calculate = Button(text='2-2a人工外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_manual_calculate, font_name=self.font_path)
         layout.add_widget(btn_extrinsic_manual_calculate)
+
+        btn_multiperson_name_record = Button(text='multiperson_name', size_hint=(0.19, 0.05), size=(btn_wide, 50), pos_hint={'center_x': 0.5, 'center_y': 0.5}, on_release=self.button_show_names, font_name=self.font_path)
+        layout.add_widget(btn_multiperson_name_record)
+        self.central_area = FloatLayout(size_hint=(1, None), height=200)
+        layout.add_widget(self.central_area)
+        # self.central_area = BoxLayout(orientation='horizontal', size_hint=(1, None), height=200, pos=(1, 1))
+        # layout.add_widget(self.central_area)
+        self.input_box = TextInput(size_hint=(0.2, None), height=40, multiline=False, pos_hint={'center_x': 0.5, 'center_y': 0.4})
+        self.input_box.bind(on_text_validate=self.on_enter)
+        layout.add_widget(self.input_box)
+        btn_finish = Button(text='Finish', size_hint=(0.19, 0.05), pos_hint={'center_x': 0.5, 'center_y': 0.3}, on_release=self.finish_input, font_name=self.font_path)
+        layout.add_widget(btn_finish)
+
+        self.name_list = []
+        self.multi_name_file_path = os.path.join(self.patient_path, 'multi_person')
+        
+
         # btn_extrinsic_check = Button(text='2-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50),  pos_hint={'center_x': pos_ref_x[2], 'center_y':pos_ref_y[2]}, on_release=self.button_extrinsic_check, font_name=self.font_path)
         # layout.add_widget(btn_extrinsic_check)
         # btn_extrinsic_check = Button(text='3-3檢查外參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 400), on_press=self.button_extrinsic_check, font_name=self.font_path)
@@ -309,6 +337,81 @@ class NTK_CapApp(App):
         layout.add_widget(self.COM_input)
         return layout
     
+    def button_show_names(self, instance):
+        self.input_box.focus = True
+    def refocus_input_box(self, dt):
+        self.input_box.text = ''
+        self.input_box.focus = True
+    def on_enter(self, instance):
+        name = self.input_box.text
+        if name:
+            self.name_list.append(name)
+            self.update_display()
+        Clock.schedule_once(self.refocus_input_box, 0.01)
+            
+    def update_display(self):
+        self.central_area.clear_widgets()
+        name_show = self.name_list[-5:]
+        position = (-320, -80)
+        if name_show != []:
+            for idx, name in enumerate(name_show):
+                if idx == 0:
+                    name0_label = MyLabel(text=name)
+                    name0_label.texture_update()
+                    name0_label.size = name0_label.texture_size
+                    name0_label.on_name_double_tap = self.on_name_double_tap
+                    name0_label.pos = position
+                    self.central_area.add_widget(name0_label)
+                    position = (position[0]+name0_label.texture_size[0]*1.5, -80)
+                if idx == 1:
+                    name1_label = MyLabel(text=name)
+                    name1_label.texture_update()
+                    name1_label.size = name1_label.texture_size
+                    name1_label.on_name_double_tap = self.on_name_double_tap
+                    name1_label.pos = position
+                    self.central_area.add_widget(name1_label)
+                    position = (position[0]+name1_label.texture_size[0]*1.5, -80)
+                if idx == 2:
+                    name2_label = MyLabel(text=name)
+                    name2_label.texture_update()
+                    name2_label.size = name2_label.texture_size
+                    name2_label.on_name_double_tap = self.on_name_double_tap
+                    name2_label.pos = position
+                    self.central_area.add_widget(name2_label)
+                    position = (position[0]+name2_label.texture_size[0]*1.5, -80)
+                if idx == 3:
+                    name3_label = MyLabel(text=name)
+                    name3_label.texture_update()
+                    name3_label.size = name3_label.texture_size
+                    name3_label.on_name_double_tap = self.on_name_double_tap
+                    name3_label.pos = position
+                    self.central_area.add_widget(name3_label)
+                    position = (position[0]+name3_label.texture_size[0]*1.5, -80)    
+                if idx == 4:
+                    name4_label = MyLabel(text=name)
+                    name4_label.texture_update()
+                    name4_label.size = name4_label.texture_size
+                    name4_label.on_name_double_tap = self.on_name_double_tap
+                    name4_label.pos = position
+                    self.central_area.add_widget(name4_label)
+                    
+    def on_name_double_tap(self, instance):
+        name_to_remove = instance.text
+        if name_to_remove in self.name_list:
+            self.name_list.remove(name_to_remove)
+            self.update_display()   
+
+    
+    def finish_input(self, instance):
+        print(self.label_task_real.text)
+        full_path = os.path.join(self.multi_name_file_path, datetime.now().strftime("%Y_%m_%d"), 'raw_data', self.label_task_real.text, 'name.txt')
+        
+        with open(full_path, 'w') as file:
+            for name in self.name_list:
+                file.write(name + '\n')
+        print(f"Saved names to {full_path}")
+        self.name_list = []
+        
     def on_spinner_select(self, spinner, text):
         print(f'Selected feature: {text}')
         self.mode_select = text
@@ -483,6 +586,7 @@ class NTK_CapApp(App):
             self.label_log.text = 'check intrinsic and extrinsic exist'
             self.err_calib_extri.text = 'no calibration file found'
         self.add_log(self.label_log.text)
+    
     def button_extrinsic_manual_calculate(self, instance):
         self.label_log.text = '計算外參'
         self.label_log.text = 'caculating extrinsic'

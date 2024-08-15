@@ -1049,11 +1049,11 @@ def triangulate_all(config):
         cam_dist_tot.append(cam_dist)
         strongness_exclusion_tot.append(strongness_exclusion)
     kp_json_file = []
-    import pdb; pdb.set_trace()
+    
     for i in range(len(Q_tot)):
         data = []
-        data.append(Q_tot[i][:22].tolist())
-        person2_data.append(Q_tot[i][22:].tolist())
+        data.append(Q_tot[i].tolist())
+        
     
     with open('kp_data.json', 'w') as json_file:
         json.dump(kp_json_file, json_file)       

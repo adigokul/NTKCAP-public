@@ -370,8 +370,24 @@ json_path = r"C:\Users\Brian\NTKCAP\Patient_data\0715MULTI_test6\2024_07_15\2024
 with open(json_path, 'r') as file:
     data = json.load(file)
     
+import toml
+import cv2
+def calculate_camera_position(calib_file=r'C:\Users\Brian\NTKCAP\NTK_CAP\template\Empty_project\User\Config.toml'):
+    calib = toml.load(calib_file)
+    camera_positions = []
+    
+    for cam in calib.keys():
+        if cam != 'metadata':
+            K = np.array(calib[cam]['matrix'])
+            dist = np.array(calib[cam]['distortions'])
+            rotation_vector = np.array(calib[cam]['rotation'])
+            translation_vector = np.array(calib[cam]['translation'])
 
-
+            R, _ = cv2.Rodrigues(rotation_vector)
+            cam_center = -np.dot(R.T, translation_vector)
+            camera_positions.append(cam_center)
+    
+    return camera_positions
 # tracker[f'person1']['keypoints'] = real_data_1
 # tracker[f'person2']['keypoints'] = real_data_2
 # fig = plt.figure()
@@ -423,6 +439,13 @@ num_people = len(data)
 
 scatters = {}
 lines = {}
+camera_positions = calculate_camera_position()
+camera_scatter = ax.scatter(
+    [pos[0] for pos in camera_positions],
+    [pos[1] for pos in camera_positions],
+    [pos[2] for pos in camera_positions],
+    c='blue', marker='^', s=100, label='Camera'
+)
 # 初始化散点图和骨架线条
 for person_id in range(num_people):
     kps = data[person_id][0]  # 第0帧的数据

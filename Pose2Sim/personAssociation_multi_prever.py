@@ -595,79 +595,110 @@ def rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range):
 from Pose2Sim.common import weighted_triangulation
 import re
 
-def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
+def outsider(js, calib_file, f, P, frame_range, json_tracked_files_f, state):
     
-    kp_idx = 18 # Neck
-    nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))]) # maximum num of people detected
-    person_to_remove = [] # index for outsiders
-    for p in range(nb_det_max_p): # check if the person is outsid the area
+    kp_idx = 18
+    nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))])
+    person_to_remove = []
+    for p in range(nb_det_max_p):
         
-        count = 0 # count for how many cameras have not detected the person
+        count = 0
         for i in js:
             if i["people"][p] == {}:
                 count += 1
-        if count >= len(js) - 2: # if there are more than 2 cameras didn't detect the person
-            person_to_remove.append(p) # remove
+        if count >= len(js) - 2:
+            person_to_remove.append(p)
             continue
         
         kp_2D = []
         cam_indices = []
         for cam in range(len(js)):
             if js[cam]['people'][p] != {}:
-                # record 2D keypoints and the according camera indices
                 cam_indices.append(cam)
                 kp_2D.append(js[cam]['people'][p]['pose_keypoints_2d'][kp_idx*3:(kp_idx+1)*3] )
+        
+        # kp_2D_indices = list(enumerate(kp_2D))
+        
+        # sorted_data = sorted(kp_2D_indices, key=lambda x: x[1][2], reverse=True)
+        # best_two_kp_2D = sorted_data[:2]
+        
+        # original_indices = [x[0] for x in sorted_data]
+        # best_two_kp_2D = [x[1] for x in sorted_data]
         
         P_all = []
         x_all = []
         y_all = []
         lik_all = []
         for idx in range(len(kp_2D)):
-            P_all.append(P[cam_indices[idx]]) # projection matrix
-            x_all.append(kp_2D[idx][0]) # x
-            y_all.append(kp_2D[idx][1]) # y
-            lik_all.append(kp_2D[idx][2]) # z
+            P_all.append(P[cam_indices[idx]])
+            x_all.append(kp_2D[idx][0])
+            y_all.append(kp_2D[idx][1])
+            lik_all.append(kp_2D[idx][2])
         
-        Q = weighted_triangulation(P_all, x_all, y_all, lik_all) # triangulate 3D coordinate for Neck
+        Q = weighted_triangulation(P_all, x_all, y_all, lik_all)
+        
+        # p1 = np.array(projection_matrix(original_indices[0], calib_file))
+        # p2 = np.array(projection_matrix(original_indices[1], calib_file))
+        # points1 = np.array(best_two_kp_2D[0][:2])
+        # points2 = np.array(best_two_kp_2D[1][:2])
 
+        # points1_hom = np.vstack((points1.T, np.ones((1, points1.shape[0]))))
+        # points2_hom = np.vstack((points2.T, np.ones((1, points2.shape[0]))))
+
+
+
+        # points_3D_hom = cv2.triangulatePoints(p1, p2, points1_hom, points2_hom)
+        # kp_3D = points_3D_hom[:3, :] / points_3D_hom[3, :]
+        # average_point = np.mean(kp_3D, axis=1)
+        
+        
+        # current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # print("Current Time:", current_time)
+        height = 2 # customized
         pos = []
-        pos = calculate_camera_position(calib_file) # compute camera position
+        pos = calculate_camera_position(calib_file)
+        # pos_combination = it.combinations(range(len(pos)), 3)
+        # normals = []
+        # for comb in pos_combination:
+        #     p1, p2, p3 = pos[comb[0]], pos[comb[1]], pos[comb[2]]
+        #     normal = compute_normal_vector(p1, p2, p3)
+        #     normals.append(normal)
+        # normal_ver = np.mean(normals, axis=0)
+        # average_normal = normal_ver / np.linalg.norm(normal_ver) 
+        # pos_all = pos.copy()
+        # for point in pos:
+        #     pos_all.append(point + average_normal * height) 
+        # pos_all = np.array(pos_all)
         
         pos_2d = [d[:2] for d in pos]
-        delaunay = Delaunay(pos_2d) # create Convex hull
+        delaunay = Delaunay(pos_2d)
         
-        if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+        if not is_point_in_hull(Q[:2], delaunay):
             person_to_remove.append(p)
-        
-    
-    if nb_det_max_p - len(person_to_remove) == 0: # there is no person in the area
-        # state = None # whether the previous frame has person in the area : None means no, True means yes 
-        if (state) and (frame != 0): # previous frame has person in the area. The situation happens in which the person walks out the area.
-            
-            all_range_fill = frame_range - frame # the frames that are needed to be filled up
-            pattern = re.compile(r'(\d+)\.json') # create json file name template
+    if nb_det_max_p - len(person_to_remove) == 0:
+        state = None
+        if state:
+            all_range_fill = frame_range - f
+            pattern = re.compile(r'(\d+)\.json')
             kp_f = []
-            template_all = []
-            
-            for js_tr_file in json_tracked_files_f:
-                start, end = re.search(pattern, js_tr_file).span(1)
-                temp_js_tr_file = js_tr_file[:start] + '{:05d}' + js_tr_file[end:]
-                template_all.append(temp_js_tr_file)
-                pre_kp_js_file = temp_js_tr_file.format(frame-1)
-                with open(pre_kp_js_file, 'r') as f:
+            for temp_js_tr_file in json_tracked_files_f:
+                start, end = re.search(pattern, temp_js_tr_file).span(1)
+                pre_js_tr_file = temp_js_tr_file[:start] + '{:05d}' + temp_js_tr_file[end:]
+                kp_js_file = pre_js_tr_file.format(f-1)
+                with open(kp_js_file, 'r') as f:
                     data = json.load(f) 
                 kp_f.append(data)
-            
             for i in range(all_range_fill):
                 all_path = []
-                for js_tr_file in template_all:
-                    
-                    kp_js_file = js_tr_file.format(frame+i)
+                for temp_js_tr_file in json_tracked_files_f:
+                    start, end = re.search(pattern, temp_js_tr_file).span(1)
+                    pre_js_tr_file = temp_js_tr_file[:start] + '{:05d}' + temp_js_tr_file[end:]
+                    kp_js_file = pre_js_tr_file.format(f+i)
                     all_path.append(kp_js_file)
-                
-            
-            state = 'terminate'
+                rewrite_js_file(len(all_path), all_path, js)
             return state
+
+                    
 
         else:
             js_empty_template = {
@@ -688,46 +719,37 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             }
             js_new = [js_empty_template] * len(js)
             state = None
-           
             rewrite_js_file(len(js), json_tracked_files_f, js_new)
             return state
     else:
+        
         for index in sorted(person_to_remove, reverse=True):
             for cam in range(len(js)):
                 if index <= len(js[cam]['people']):
                     del js[cam]['people'][index]
         if state is None:
-
-            template_all = []
             pattern = re.compile(r'(\d+)\.json')
-            for tracked_cam in json_tracked_files_f:
-                tracked_cam_temp = tracked_cam
-                match = pattern.search(tracked_cam_temp)
-                if match:
-                    num_str = match.group(1)
-                    start, end = match.span(1)
-                    template = tracked_cam_temp[:start] + '{:05d}' + tracked_cam_temp[end:]
-                template_all.append(template)
-                
-            for idx in range(frame+1):
-                # print(idx)
-                all_path = []
-                for tracked_cam in template_all:
-                    path = tracked_cam.format(idx)
-                    all_path.append(path)
-    
-                rewrite_js_file(len(js), all_path, js)
-            state = True
+            tracked_cam_temp = json_tracked_files_f[0]
+            match = pattern.search(tracked_cam_temp)
+            if match:
+                num_str = match.group(1)
+                start, end = match.span(1)
+                template = tracked_cam_temp[:start] + '{:05d}' + tracked_cam_temp[end:]
+                for idx in range(f):
+                    all_path = []
+                    for tracked_cam in json_tracked_files_f:
+                        path = template.format(idx)
+                        all_path.append(path)
+                    rewrite_js_file(len(js), all_path, js)
+            state = 'terminal'
             return state
         else:
-            
             rewrite_js_file(len(js), json_tracked_files_f, js)
-            state = True
             return state
     
 
 
-def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, frame_range, state):
+def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, frame_range):
     
     '''
     Write new json files with correct association of people across cameras.
@@ -743,6 +765,7 @@ def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_
     '''
     js_new_all = []
     for cam in range(n_cams):
+        # with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
         json_files_f
         with open(json_files_f[cam], 'r') as json_f:
             js = json.load(json_f)
@@ -755,12 +778,17 @@ def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_
                 else:
                     js_new['people'] += [{}]
         js_new_all.append(js_new)
+            # json_tracked_f.write(json.dumps(js_new))
     
     state = outsider(js_new_all, calib_file, f, P, frame_range, json_tracked_files_f, state)
-    if state == 'terminate':
+    if state == 'terminal':
         return False
-    return state
-    
+    # else:
+    #     rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range)
+    #     return True
+    # for cam in range(n_cams):
+    #     with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
+    #         json_tracked_f.write(json.dumps(js_allin_range[cam]))
 
 def recap_tracking(config, error, nb_cams_excluded):
     '''
@@ -876,11 +904,13 @@ def track_2d_all(config):
     f_range = [[min([len(j) for j in json_files])] if frame_range==[] else frame_range][0] # 155
     n_cams = len(json_dirs_names) # 4
     error_min_tot, cameras_off_tot = [], []
-
+    
+    
 
 
     Q_kpt = [np.array([0., 0., 0., 1.])]
-    state = True
+    
+    # import pdb; pdb.set_trace()
     for f in tqdm(range(*f_range)): # 所有幀數
         
         json_files_f = [json_files[c][f] for c in range(n_cams)] # 不同相機的同一幀，是檔案路徑
@@ -922,11 +952,12 @@ def track_2d_all(config):
             affinity[affinity<min_affinity] = 0
             proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
             
+            # import time
+            # time.sleep(1)
+            # print(proposals)
             
-            
-            state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
-            
-            if (not state) and (state is not None):
+            state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range)
+            if not state:
                 break
             
     # recap message

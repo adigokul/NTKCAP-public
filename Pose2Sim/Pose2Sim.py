@@ -201,14 +201,15 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     logging.info(f'Tracking took {end-start:.2f} s.')
     
     
-def triangulation(config=os.path.join('User', 'Config.toml')):
+def triangulation_multi(k, cal_time):
+    config = os.path.join('User', 'Config.toml')
     '''
     Robust triangulation of 2D points coordinates.
     
     config can either be a path or a dictionary (for batch processing)
     '''
 
-    from Pose2Sim.triangulation import triangulate_all
+    from Pose2Sim.triangulation_multi import triangulate_all
 
 
     if type(config)==dict:
@@ -217,18 +218,17 @@ def triangulation(config=os.path.join('User', 'Config.toml')):
         #import pdb;pdb.set_trace()
         config_dict = read_config_file(config)
     project_dir, seq_name, frames = base_params(config_dict)
-
+    
     logging.info("\n\n---------------------------------------------------------------------")
     logging.info(f"Triangulation of 2D points for {seq_name}, for {frames}.")
     logging.info("---------------------------------------------------------------------")
     logging.info(f"\nProject directory: {project_dir}")
     start = time.time()
     
-    triangulate_all(config_dict)
+    triangulate_all(config_dict, k, cal_time)
     
     end = time.time()
     logging.info(f'Triangulation took {end-start:.2f} s.')
-    
     
 def filtering(config=os.path.join('User', 'Config.toml')):
     '''

@@ -207,8 +207,6 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
                     temp_keypoints.append(each_score)
                 temp['people'].append({'person_id' : person_id, "pose_keypoints_2d" : temp_keypoints})
             data1.append(temp) #存成相同格式
-            
-                
         frame_id += 1
     
     ###將檔案放入json檔案中
@@ -424,7 +422,7 @@ def rtm2json_cpu(Video_path,out_dir,out_video):
     json.dump(result, save_file, indent = 6)  
     save_file.close() 
     
-    os.chdir(AlphaPose_to_OpenPose )
+    os.chdir(AlphaPose_to_OpenPose)
     subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
     os.chdir(temp_dir)
     os.remove(json_dir)
@@ -450,7 +448,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
     temp_dir = os.getcwd()
     output_file = Path(out_video).parent.parent
     check_track = os.path.join(output_file,'pose-2d-tracked','pose_cam' + str(camera_num ) +'_json')
-    output_file = os.path.join(output_file,'pose-2d','pose_cam' + str(camera_num ) +'_json')
+    output_file = os.path.join(output_file,'pose-2d-tracked','pose_cam' + str(camera_num ) +'_json')
     
     #import pdb;pdb.set_trace()
     output_json = os.listdir(output_file)
@@ -476,6 +474,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
     keypointsy= np.empty((1,1,26))
     keypoint_scores = np.empty((1,26))
     track_state = np.empty((1))
+    
     for i in range(len(output_json)):
         f = open(os.path.join(output_file,output_json[frame_temp]))
         temp = json.load(f) #載入同檔名的json file
@@ -493,13 +492,15 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
         else:
             track_state = np.append(track_state,[1])
         
+        if temp["people"][0] == {}:
+            x = np.zeros(26)
+            y = np.zeros(26)
+            scores = np.zeros(26)
+        else:
+            x = np.array(temp["people"][0]['pose_keypoints_2d'])[dots]
+            y = np.array(temp["people"][0]['pose_keypoints_2d'])[dots+1]
+            scores =np.array(temp["people"][0]['pose_keypoints_2d'])[dots+2]
         
-        #import pdb;pdb.set_trace()
-        x = np.array(temp["people"][0]['pose_keypoints_2d'])[dots]
-        y = np.array(temp["people"][0]['pose_keypoints_2d'])[dots+1]
-        scores =np.array(temp["people"][0]['pose_keypoints_2d'])[dots+2]
-        #import pdb;pdb.set_trace()
-        #import pdb;pdb.set_trace()
         keypointsx = np.append(keypointsx,[[x]],axis=0)
         keypointsy = np.append(keypointsy,[[y]],axis=0)
         keypoint_scores = np.append(keypoint_scores,[scores],axis=0)
@@ -514,10 +515,11 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
 
     while True:
         ret, frame = cap.read()
-        if not ret:
-                    break
-        
         frame_count = count_frame
+        if (not ret) or (frame_count>=len(keypoint_scores)-1):
+            break
+        
+        
         
         #第一個0代表第幾幀，第二個0代表畫面中的第幾+1位辨識體，第三個0代表第幾個節點
         count = 0
@@ -533,6 +535,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
                     rpj_state = False
             else:
                 rpj_state = False
+            
             p = keypoint_scores[frame_count][count]*255 #隨score顏色進行變換
             #若keypoint score太低，則標示出來
             if keypoint_scores[frame_count][count]>=show_tr and keypoint_scores[frame_count][count]<0.5 and rpj_state == False and track_state[frame_count]==1:

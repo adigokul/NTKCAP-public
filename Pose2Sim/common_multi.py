@@ -105,7 +105,6 @@ def computeP(calib_file, undistort=False):
    
     return P # 長度為相機數，一個相機有一組相機變換矩陣
 
-
 def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
     '''
     Triangulation with direct linear transform,
@@ -119,14 +118,13 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
     OUTPUT:
     - Q: array of triangulated point (x,y,z,1.)
     '''
-    
     A = np.empty((0,4))
     for c in range(len(x_all)):
         ch = c
         P_cam = P_all[c]
         A = np.vstack((A, (P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
         A = np.vstack((A, (P_cam[1] - y_all[c]*P_cam[2]) * likelihood_all[c] ))
-        #import pdb;pdb.set_trace()
+        
     # np.vstack() 堆疊
     if np.shape(A)[0] >= 4: # >=4代表至少兩組(x,y)座標，有滿足條件最小兩台相機
         S, U, Vt = cv2.SVDecomp(A)
@@ -134,9 +132,7 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
         Q = np.array([V[0][3]/V[3][3], V[1][3]/V[3][3], V[2][3]/V[3][3], 1])
     else: 
         Q = np.array([0.,0.,0.,1])
-        
     return Q
-
 
 def reprojection(P_all, Q):
     '''
@@ -157,7 +153,6 @@ def reprojection(P_all, Q):
         y_calc.append(P_cam[1].dot(Q) / P_cam[2].dot(Q))
         
     return x_calc, y_calc
-        
 
 def euclidean_distance(q1, q2):
     '''

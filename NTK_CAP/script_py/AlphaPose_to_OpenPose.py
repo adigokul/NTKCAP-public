@@ -91,11 +91,6 @@ def AlphaPose_to_OpenPose_func(*args):
             with open(json_file, 'w') as js_f:
                 js_f.write(json.dumps(json_dict))
 
-                
-        
-        
-    
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_alphapose_json_file', required = True, help='input AlphaPose single json file')
