@@ -1,0 +1,33 @@
+[
+    {
+        "type": "spinner",
+        "title": "Task name",
+        "options": [
+            "Walk",
+            "Run",
+            "TUG",
+            "Stair"
+        ],
+        "content": "Walk"
+    },
+    {
+        "type": "input",
+        "title": "Task number",
+        "content": "1"
+    },
+    {
+        "type": "input",
+        "title": "symptoms",
+        "content": "A00: Cholera / 霍亂"
+    },
+    {
+        "type": "input",
+        "title": "Level of fall risk",
+        "content": "2"
+    },
+    {
+        "type": "input",
+        "title": "note",
+        "content": "4"
+    }
+]

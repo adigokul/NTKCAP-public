@@ -202,8 +202,8 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     
     
 # def triangulation(k, cal_time):
-def triangulation():
-    config = os.path.join('User', 'Config.toml')
+def triangulation(config=os.path.join('User', 'Config.toml')):
+    
     '''
     Robust triangulation of 2D points coordinates.
     

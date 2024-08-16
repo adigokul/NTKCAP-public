@@ -4,7 +4,6 @@ __pycache__/
 .ipynb_checkpoints/
 patient/testing/
 /*venv*/
-
 # Ignore everything in Patient_data except Patient_ID
 Patient_data/*
 !Patient_data/Patient_ID/
