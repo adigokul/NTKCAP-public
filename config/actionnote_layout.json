@@ -8,19 +8,19 @@
             "TUG",
             "Stair"
         ],
-        "content": "Choose an option",
+        "content": "TUG",
         "notetype": "action"
     },
     {
         "type": "input",
         "title": "Task number",
-        "content": "",
+        "content": "13",
         "notetype": "action"
     },
     {
         "type": "input",
         "title": "note",
-        "content": "",
+        "content": "action note1",
         "notetype": "action"
     }
 ]
