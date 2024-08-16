@@ -2,19 +2,19 @@
     {
         "type": "input",
         "title": "symptoms",
-        "content": "A02.21: Salmonella meningitis / 沙門桿菌腦膜炎, A01.3: Paratyphoid fever C / C型副傷寒",
+        "content": "A01.00: Typhoid fever, unspecified / 傷寒",
         "notetype": "meet"
     },
     {
         "type": "input",
         "title": "Level of fall risk",
-        "content": "12",
+        "content": "1",
         "notetype": "meet"
     },
     {
         "type": "input",
         "title": "note",
-        "content": "meet note1",
+        "content": "12",
         "notetype": "meet"
     }
 ]
