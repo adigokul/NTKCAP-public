@@ -655,7 +655,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
                 template_all.append(temp_js_tr_file)
                 pre_kp_js_file = temp_js_tr_file.format(frame-1)
                 with open(pre_kp_js_file, 'r') as f:
-                    data = json.load(f) 
+                    data = json.load(f)
                 kp_f.append(data)
             
             for i in range(all_range_fill):
@@ -664,7 +664,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
                     
                     kp_js_file = js_tr_file.format(frame+i)
                     all_path.append(kp_js_file)
-                
+                rewrite_js_file(len(kp_f), all_path, kp_f)
             
             state = 'terminate'
             return state
