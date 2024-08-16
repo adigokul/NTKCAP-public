@@ -30,8 +30,10 @@ call pip install tkfilebrowser
 call pip install kivy
 call pip install matplotlib==3.8.4
 call pip install pyserial
-call conda install opensim-org::opensim
+call conda install -c opensim-org opensim=4.5=py310np121
 call pip install func_timeout
 call pip install pygltflib
-vtk
+call pip install natsort
+call pip install openpyxl
+
 
