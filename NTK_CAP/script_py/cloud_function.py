@@ -370,7 +370,6 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
         #import pdb;pdb.set_trace()
-    
     while response.status_code == 400:
         message =  json.loads(response.text)
         message = message['message']
@@ -380,7 +379,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             
             findmeetIdtemp= findmeetIdtemp.json()
             findmeetIdtemp['resources'][0]
-            matching_records = [item for item in findmeetIdtemp['resources'] if item['datetime'] == timestring] 
+            matching_records = [item for item in findmeetIdtemp['resources'] if item['actionName'] == actionname] 
             actionId = matching_records[0]['id']
             del output['datetime']
             del output['location']

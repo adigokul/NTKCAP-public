@@ -56,270 +56,6 @@ class TaskEDITInputScreen(Screen):
         self.layout = BoxLayout(orientation='vertical')
         self.current_directory = os.getcwd()
         self.config_path = os.path.join(self.current_directory, "config")
-        self.meetdir = meetdir
-        self.actiondir = actiondir
-
-        # Add "Choose Layout" button
-        self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
-        self.choose_layout_button.bind(on_press=self.open_file_chooser)
-        self.layout.add_widget(self.choose_layout_button)
-
-        # Create the ScrollView to take up 80% of the layout
-        self.results_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.8))
-        self.layout.add_widget(self.results_layout)
-
-        # Create a button at the bottom right
-        bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
-        bottom_right_button.bind(on_press=self.print_task_info)
-        self.layout.add_widget(bottom_right_button)
-
-        # Initialize instance variables for the task input boxes and spinner
-        self.task_name_input = None
-        self.task_number_input = None
-        self.task_spinner = None
-        self.layout_json_dir_meet = ''
-        self.layout_json_dir_action = ''
-        self.add_widget(self.layout)
-
-    def open_file_chooser(self, instance):
-        # 创建文件选择弹出窗口
-        file_chooser = FileChooserIconView(path='.', filters=['*.json'])
-        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        popup_layout.add_widget(file_chooser)
-        
-        # 确认按钮
-        confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
-        confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
-        popup_layout.add_widget(confirm_button)
-        
-        self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
-        self.popup.open()
-    def save_data(self, instance):
-        data_to_save_meetnote = {}
-        data_to_save_actionnote = {}
-        
-        # Iterate over all widgets in the results layout
-        for box in self.left_half.children:
-            
-            if isinstance(box, BoxLayout):
-                title_label = box.children[1]  # Assuming the Label is always the second widget
-                title = title_label.text
-                
-                # Handle different input types
-                input_widget = box.children[0]  # Assuming the input widget is always the first widget
-                
-                if isinstance(input_widget, TextInput):
-                    data_to_save_meetnote[title] = input_widget.text
-                elif isinstance(input_widget, Spinner):
-                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
-                elif isinstance(input_widget, BoxLayout):
-                    data_to_save_meetnote[title] = input_widget.children[1].text
-                print(data_to_save_meetnote)
-        for box in self.right_half.children:
-            
-            if isinstance(box, BoxLayout):
-                title_label = box.children[1]  # Assuming the Label is always the second widget
-                title = title_label.text
-                
-                # Handle different input types
-                input_widget = box.children[0]  # Assuming the input widget is always the first widget
-                
-                if isinstance(input_widget, TextInput):
-                    data_to_save_actionnote[title] = input_widget.text
-                elif isinstance(input_widget, Spinner):
-                    data_to_save_actionnote[title] = input_widget.text  # Spinner's current selection
-                elif isinstance(input_widget, BoxLayout):
-                    data_to_save_actionnote[title] = input_widget.children[1].text
-                print(data_to_save_actionnote)
-
-        # import pdb;pdb.set_trace()
-        # Now `data_to_save` contains all the titles and values
-        # You can print it or save it to a file, database, etc.
-        print(data_to_save_actionnote)
-        
-        with open(self.layout_json_dir_meet , 'r', encoding='utf-8') as f:
-            layout_data_meet = json.load(f)
-        
-        with open(self.layout_json_dir_action, 'r', encoding='utf-8') as f:
-            layout_data_action = json.load(f)
-        # Clear the current layout
-        layout_data = layout_data_meet+layout_data_action
-
-        # Separate lists for 'meet' and 'action' items
-        meetnote_data = []
-        actionnote_data = []
-
-        # Divide the items into the respective lists
-        for item in layout_data:
-            title = item['title']
-            if item["notetype"] == 'meet':
-                if title in data_to_save_meetnote:
-                    item['content'] = data_to_save_meetnote[title]
-                meetnote_data.append(item)
-            elif item["notetype"] == 'action':
-                if title in data_to_save_actionnote:
-                    item['content'] = data_to_save_actionnote[title]
-                actionnote_data.append(item)
-
-        # Save 'meet' items to a separate JSON file
-       
-        with open(self.layout_json_dir_meet, 'w', encoding='utf-8') as json_file:
-            json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
-        # Save 'action' items to a separate JSON file
-        with open(self.layout_json_dir_action, 'w', encoding='utf-8') as json_file:
-            json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
-
-        
-    def load_layout(self, meetdir,actiondir):
-       
-            
-            # Read the selected layout file
-            self.layout_json_dir_meet = meetdir
-            with open( meetdir, 'r', encoding='utf-8') as f:
-                layout_data_meet = json.load(f)
-            self.layout_json_dir_action = actiondir
-            with open( actiondir, 'r', encoding='utf-8') as f:
-                layout_data_action = json.load(f)
-            # Clear the current layout
-            layout_data = layout_data_meet+layout_data_action
-            self.results_layout.clear_widgets()
-
-            # Create left and right halves with size_hint
-           
-            left_scroll_view = ScrollView(size_hint=(0.5, 1))
-            self.left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
-            self.left_half.bind(minimum_height=self.left_half.setter('height'))  # Ensure scrolling works as expected
-            left_scroll_view.add_widget(self.left_half)
-
-            # Create scrollable right half
-            right_scroll_view = ScrollView(size_hint=(0.5, 1))
-            self.right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
-            self.right_half.bind(minimum_height=self.right_half.setter('height'))  # Ensure scrolling works as expected
-            right_scroll_view.add_widget(self.right_half)
-            title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
-            self.left_half.add_widget(title_label)
-            title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
-            self.right_half.add_widget(title_label)
-            for item in layout_data:
-                # Determine whether to place in the left or right half
-                target_layout = self.left_half if item.get('notetype') == 'meet' else self.right_half
-                
-                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
-                    title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
-                    new_box.add_widget(title_label)
-
-                    input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
-                    self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
-                    input_and_button_box.add_widget(self.idc_result_input)
-
-                    search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
-                    search_button.bind(on_press=self.open_search_popup)
-                    input_and_button_box.add_widget(search_button)
-
-                    new_box.add_widget(input_and_button_box)
-                    target_layout.add_widget(new_box)
-
-                elif item['type'] == 'input':
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
-                    new_box.add_widget(title_label)
-                    
-                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
-                                        # Check the title to assign to the correct instance variable
-                    if item['title'].lower() == 'task name':
-                        self.task_name_input = string_input
-                    elif item['title'].lower() == 'task number':
-                        self.task_number_input = string_input
-                    new_box.add_widget(string_input)
-                    
-                    target_layout.add_widget(new_box)
-
-                elif item['type'] == 'spinner':
-                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
-                    new_box.add_widget(title_label)
-                    
-                    spinner = Spinner(
-                        text=item['content'],
-                        values=item['options'],
-                        size_hint=(1, None),
-                        height=40
-                    )
-                        # Check the title to assign to the correct instance variable
-                    if item['title'].lower() == 'task name':
-                        self.task_name_input = spinner
-                    elif item['title'].lower() == 'task number':
-                        self.task_number_input = spinner
-                    new_box.add_widget(spinner)
-                    
-                    target_layout.add_widget(new_box)
-
-            # Add the halves to the results layout
-            self.results_layout.add_widget(left_scroll_view)
-            self.results_layout.add_widget(right_scroll_view)
-
-
-                    
-
-    def open_search_popup(self, instance):
-        # 创建弹出窗口
-        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        
-        self.popup_input = TextInput(size_hint_y=None, height=40, font_name=FONT_PATH)
-        self.popup_input.bind(text=self.on_text)
-        popup_layout.add_widget(self.popup_input)
-        
-        # 创建滚动视图来显示搜索结果
-        self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
-        self.result_layout = GridLayout(cols=1, size_hint_y=None)
-        self.result_layout.bind(minimum_height=self.result_layout.setter('height'))
-        self.results_view.add_widget(self.result_layout)
-        popup_layout.add_widget(self.results_view)
-        
-        self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
-        self.popup.open()
-    
-    def on_text(self, instance, value):
-        self.result_layout.clear_widgets()
-        if value.strip():  # 检查输入是否为空
-            search_results = fuzzy_search(value)
-            for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
-                result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
-                result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
-                self.result_layout.add_widget(result_button)
-    
-    def select_result(self, code, en_description, cn_description):
-        print(f"Selected: {code}: {en_description} / {cn_description}")
-        
-        # 在右侧布局的输入框中显示选择的IDC结果，结果用逗号分隔
-        current_text = self.idc_result_input.text
-        new_text = f"{code}: {en_description} / {cn_description}"
-        if current_text:
-            self.idc_result_input.text = f"{current_text}, {new_text}"
-        else:
-            self.idc_result_input.text = new_text
-        
-        self.popup.dismiss()
-
-    def print_task_info(self, instance):
-        
-        if self.task_name_input and self.task_number_input:
-            task_name = self.task_name_input.text
-            task_number = self.task_number_input.text
-            self.manager.parent_app.task_name = f"{task_name} {task_number}"
-            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
-            print(f"Task: {self.manager.parent_app.task_name}")
-            self.save_data(instance)
-            self.manager.current = 'main'  # Switch back to the main screen
-        else:
-            print("Task Name or Task Number input not found")
-class TaskInputScreen(Screen):
-    def __init__(self, layout_dir=None, **kwargs):
-        super(TaskInputScreen, self).__init__(**kwargs)
-        self.layout = BoxLayout(orientation='vertical')
-        self.current_directory = os.getcwd()
-        self.config_path = os.path.join(self.current_directory, "config")
         
         # Add "Choose Layout" button
         self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
@@ -344,7 +80,7 @@ class TaskInputScreen(Screen):
         self.layout_json_dir = ''
         self.add_widget(self.layout)
         self.layouts = None 
-    
+        self.load_layout(os.path.join(self.config_path,'layout.json'))
         # Function to fetch data from the API
     def fetch_layouts(self):
         if self.layouts is None:  # Only fetch if layouts have not been fetched yet
@@ -400,14 +136,14 @@ class TaskInputScreen(Screen):
             btn_action.bind(on_press=lambda x, ld=layout_data: self.on_layout_selected(x, 'action', ld))
             self.action_buttons.append(btn_action)
             action_layout.add_widget(btn_action)
-
+        
         # Create scrollable views for both layouts
         meet_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
         meet_scroll.add_widget(meet_layout)
 
         action_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
         action_scroll.add_widget(action_layout)
-
+        
         # Create the main layout for the popup
         scroll_layout = BoxLayout(orientation='horizontal')
 
@@ -415,24 +151,22 @@ class TaskInputScreen(Screen):
         header_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
         header_layout.add_widget(Label(text='Catalog: meet', size_hint=(0.5, 1)))
         header_layout.add_widget(Label(text='Catalog: action', size_hint=(0.5, 1)))
-
+        
         # Add the scroll views to the main layout
         scroll_layout.add_widget(meet_scroll)
         scroll_layout.add_widget(action_scroll)
 
         # Create a Select button, always enabled
-        self.btn_select = Button(text="Select", size_hint=(0.2, 0.1), pos_hint={'right': 1})
-        self.btn_select.bind(on_release=self.final_selection_made)
+        self.btn_select_final = Button(text="Select", size_hint=(0.2, 0.1))
+        self.btn_select_final.bind(on_release=self.final_selection_made)
 
         # Add the Select button at the bottom of the popup
-        button_layout = BoxLayout(size_hint_y=None, height=50, padding=[0, 10, 10, 10])
-        button_layout.add_widget(self.btn_select)
 
         # Create the popup layout
         popup_layout = BoxLayout(orientation='vertical')
         popup_layout.add_widget(header_layout)
         popup_layout.add_widget(scroll_layout)  # Add the scrollable columns
-        popup_layout.add_widget(button_layout)
+        popup_layout.add_widget(self.btn_select_final)
 
         # Create the actual popup
         self.popup = Popup(title='Layout IDs',
@@ -443,70 +177,71 @@ class TaskInputScreen(Screen):
         self.popup.open()
     
     def final_selection_made(self, instance):
-            def transform_fields(fields, catalog):
-                transformed_fields = []
+        
+        def transform_fields(fields, catalog):
+            transformed_fields = []
 
-                for field in fields:
-                    # Create the basic transformed structure
-                    transformed_field = {
-                        "type": field["elementType"],  # Map elementType to type
-                        "title": field["title"],  # Title remains the same
-                        "content": "",  # Default content is an empty string
-                        "notetype": catalog  # Map catalog to notetype
-                    }
+            for field in fields:
+                # Create the basic transformed structure
+                transformed_field = {
+                    "type": field["elementType"],  # Map elementType to type
+                    "title": field["title"],  # Title remains the same
+                    "content": "",  # Default content is an empty string
+                    "notetype": catalog  # Map catalog to notetype
+                }
 
-                    # If the field has options, add the options and set default content
-                    if "options" in field and field["options"] is not None:
-                        transformed_field["options"] = field["options"]
-                        transformed_field["content"] = "Choose an option"
-                    
-                    # Append transformed field to the list
-                    transformed_fields.append(transformed_field)
+                # If the field has options, add the options and set default content
+                if "options" in field and field["options"] is not None:
+                    transformed_field["options"] = field["options"]
+                    transformed_field["content"] = "Choose an option"
+                
+                # Append transformed field to the list
+                transformed_fields.append(transformed_field)
 
-                return transformed_fields
+            return transformed_fields
 
-            # Transform and combine fields from both meet and action
-            combined_data = {}  # Will store layoutId and fields together
-            combined_fields = []
+        # Transform and combine fields from both meet and action
+        combined_data = {}  # Will store layoutId and fields together
+        combined_fields = []
 
-            # Transform and combine meet fields
-            if self.selected_meet_data:
-                transformed_meet_fields = transform_fields(self.selected_meet_data.get('fields', []), 'meet')
-                print("Transformed Meet Fields:")
-                print(transformed_meet_fields)
-                combined_fields += transformed_meet_fields  # Add meet fields to combined list
-                combined_data["meet_layoutId"] = self.selected_meet_data['layoutId']  # Save meet layoutId
-            else:
-                print("No Meet Layout selected.")
+        # Transform and combine meet fields
+        if self.selected_meet_data:
+            transformed_meet_fields = transform_fields(self.selected_meet_data.get('fields', []), 'meet')
+            print("Transformed Meet Fields:")
+            print(transformed_meet_fields)
+            combined_fields += transformed_meet_fields  # Add meet fields to combined list
+            combined_data["meet_layoutId"] = self.selected_meet_data['layoutId']  # Save meet layoutId
+        else:
+            print("No Meet Layout selected.")
 
-            # Transform and combine action fields
-            if self.selected_action_data:
-                transformed_action_fields = transform_fields(self.selected_action_data.get('fields', []), 'action')
-                print("Transformed Action Fields:")
-                print(transformed_action_fields)
-                combined_fields += transformed_action_fields  # Add action fields to combined list
-                combined_data["action_layoutId"] = self.selected_action_data['layoutId']  # Save action layoutId
-            else:
-                print("No Action Layout selected.")
+        # Transform and combine action fields
+        if self.selected_action_data:
+            transformed_action_fields = transform_fields(self.selected_action_data.get('fields', []), 'action')
+            print("Transformed Action Fields:")
+            print(transformed_action_fields)
+            combined_fields += transformed_action_fields  # Add action fields to combined list
+            combined_data["action_layoutId"] = self.selected_action_data['layoutId']  # Save action layoutId
+        else:
+            print("No Action Layout selected.")
 
-            # Add combined fields to the final data
-            combined_data["fields"] = combined_fields
+        # Add combined fields to the final data
+        combined_data["fields"] = combined_fields
 
-            # Print the combined data
-            print("Combined Data with IDs and Fields:")
-            print(combined_data)
-            # Save combined_data to a JSON file
-            with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
-                json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
-                print("Data saved to combined_fields_with_id.json")
-            # Add logic to close the popup after printing
-            if hasattr(self, 'popup'):
-                self.popup.dismiss()  # Close the popup if it's open
+        # Print the combined data
+        print("Combined Data with IDs and Fields:")
+        print(combined_data)
+        # Save combined_data to a JSON file
+        with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
+            json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
+            print("Data saved to combined_fields_with_id.json")
+        # Add logic to close the popup after printing
+        if hasattr(self, 'popup'):
+            self.popup.dismiss()  # Close the popup if it's open
 
-
+        self.load_layout(os.path.join(self.config_path,'layout.json'))
     def open_file_chooser(self, instance):
         self.show_layouts_popup(self)
-        self.load_layout(os.path.join(self.config_path,'layout.json'))
+        
         # You can add additional logic here for what to do after selection
         ###############################
         # # 创建文件选择弹出窗口
@@ -592,9 +327,700 @@ class TaskInputScreen(Screen):
         actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
         with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
-        with open(self.layout_json_dir,'r')as file:
+        with open(self.layout_json_dir,'r',encoding='utf-8')as file:
             temp = json.load(file)
-            temp['fields']
+            temp['fields'] =meetnote_data+actionnote_data
+        with open(self.layout_json_dir,'w',encoding='utf-8')as json_file:
+            json.dump(temp, json_file, indent=4, ensure_ascii=False)
+        
+    def load_layout(self, layout_file):
+            self.layout_json_dir = layout_file
+            with open(layout_file, 'r', encoding='utf-8') as f:
+                layout_data = json.load(f)
+            #import pdb;pdb.set_trace()
+            # Clear the current layout
+            layout_data = layout_data['fields']
+            self.results_layout.clear_widgets()
+
+            # Create left and right halves with size_hint
+           
+            left_scroll_view = ScrollView(size_hint=(0.5, 1))
+            self.left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.left_half.bind(minimum_height=self.left_half.setter('height'))  # Ensure scrolling works as expected
+            left_scroll_view.add_widget(self.left_half)
+
+            # Create scrollable right half
+            right_scroll_view = ScrollView(size_hint=(0.5, 1))
+            self.right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+            self.right_half.bind(minimum_height=self.right_half.setter('height'))  # Ensure scrolling works as expected
+            right_scroll_view.add_widget(self.right_half)
+            title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
+            self.left_half.add_widget(title_label)
+            title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
+            self.right_half.add_widget(title_label)
+            for item in layout_data:
+                # Determine whether to place in the left or right half
+                target_layout = self.left_half if item.get('notetype') == 'meet' else self.right_half
+                
+                if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
+                    new_box.add_widget(title_label)
+
+                    input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
+                    self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
+                    input_and_button_box.add_widget(self.idc_result_input)
+
+                    search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
+                    search_button.bind(on_press=self.open_search_popup)
+                    input_and_button_box.add_widget(search_button)
+
+                    new_box.add_widget(input_and_button_box)
+                    target_layout.add_widget(new_box)
+
+                elif item['type'] == 'input':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+                                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task type' and item.get('notetype') == 'action':
+                        self.task_name_input = string_input
+                    elif item['title'].lower() == 'task number' and item.get('notetype') == 'action':
+                        self.task_number_input = string_input
+                    new_box.add_widget(string_input)
+                    
+                    target_layout.add_widget(new_box)
+
+                elif item['type'] == 'spinner':
+                    new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+                    title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+                    new_box.add_widget(title_label)
+                    
+                    spinner = Spinner(
+                        text=item['content'],
+                        values=item['options'],
+                        size_hint=(1, None),
+                        height=40
+                    )
+                        # Check the title to assign to the correct instance variable
+                    if item['title'].lower() == 'task type' and item.get('notetype') == 'action':
+                        self.task_name_input = spinner
+                    elif item['title'].lower() == 'task number' and item.get('notetype') == 'action':
+                        self.task_number_input = spinner
+                    new_box.add_widget(spinner)
+                    
+                    target_layout.add_widget(new_box)
+
+            # Add the halves to the results layout
+            self.results_layout.add_widget(left_scroll_view)
+            self.results_layout.add_widget(right_scroll_view)
+
+
+                    
+
+    def open_search_popup(self, instance):
+        # 创建弹出窗口
+        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        self.popup_input = TextInput(size_hint_y=None, height=40, font_name=FONT_PATH)
+        self.popup_input.bind(text=self.on_text)
+        popup_layout.add_widget(self.popup_input)
+        
+        # 创建滚动视图来显示搜索结果
+        self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
+        self.result_layout = GridLayout(cols=1, size_hint_y=None)
+        self.result_layout.bind(minimum_height=self.result_layout.setter('height'))
+        self.results_view.add_widget(self.result_layout)
+        popup_layout.add_widget(self.results_view)
+        
+        self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
+        self.popup.open()
+    
+    def on_text(self, instance, value):
+        self.result_layout.clear_widgets()
+        if value.strip():  # 检查输入是否为空
+            search_results = fuzzy_search(value)
+            for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
+                result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
+                result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
+                self.result_layout.add_widget(result_button)
+    
+    def select_result(self, code, en_description, cn_description):
+        print(f"Selected: {code}: {en_description} / {cn_description}")
+        
+        # 在右侧布局的输入框中显示选择的IDC结果，结果用逗号分隔
+        current_text = self.idc_result_input.text
+        new_text = f"{code}: {en_description} / {cn_description}"
+        if current_text:
+            self.idc_result_input.text = f"{current_text}, {new_text}"
+        else:
+            self.idc_result_input.text = new_text
+        
+        self.popup.dismiss()
+
+    def print_task_info(self, instance):
+        
+        if self.task_name_input and self.task_number_input:
+            task_name = self.task_name_input.text
+            task_number = self.task_number_input.text
+            self.manager.parent_app.task_name = f"{task_name} {task_number}"
+            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+            print(f"Task: {self.manager.parent_app.task_name}")
+            
+            self.save_data(instance)
+            
+            
+            self.manager.current = 'main'  # Switch back to the main screen
+        else:
+            print("Task Name or Task Number input not found")
+# class TaskEDITInputScreen(Screen):
+#     def __init__(self, meetdir=None, actiondir=None, **kwargs):
+#         super(TaskEDITInputScreen, self).__init__(**kwargs)
+#         self.layout = BoxLayout(orientation='vertical')
+#         self.current_directory = os.getcwd()
+#         self.config_path = os.path.join(self.current_directory, "config")
+#         self.meetdir = meetdir
+#         self.actiondir = actiondir
+
+#         # Add "Choose Layout" button
+#         self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
+#         self.choose_layout_button.bind(on_press=self.open_file_chooser)
+#         self.layout.add_widget(self.choose_layout_button)
+
+#         # Create the ScrollView to take up 80% of the layout
+#         self.results_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.8))
+#         self.layout.add_widget(self.results_layout)
+
+#         # Create a button at the bottom right
+#         bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
+#         bottom_right_button.bind(on_press=self.print_task_info)
+#         self.layout.add_widget(bottom_right_button)
+
+#         # Initialize instance variables for the task input boxes and spinner
+#         self.task_name_input = None
+#         self.task_number_input = None
+#         self.task_spinner = None
+#         self.layout_json_dir_meet = ''
+#         self.layout_json_dir_action = ''
+#         self.add_widget(self.layout)
+
+#     def open_file_chooser(self, instance):
+#         # 创建文件选择弹出窗口
+#         file_chooser = FileChooserIconView(path='.', filters=['*.json'])
+#         popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+#         popup_layout.add_widget(file_chooser)
+        
+#         # 确认按钮
+#         confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
+#         confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
+#         popup_layout.add_widget(confirm_button)
+        
+#         self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
+#         self.popup.open()
+#     def save_data(self, instance):
+#         data_to_save_meetnote = {}
+#         data_to_save_actionnote = {}
+        
+#         # Iterate over all widgets in the results layout
+#         for box in self.left_half.children:
+            
+#             if isinstance(box, BoxLayout):
+#                 title_label = box.children[1]  # Assuming the Label is always the second widget
+#                 title = title_label.text
+                
+#                 # Handle different input types
+#                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+#                 if isinstance(input_widget, TextInput):
+#                     data_to_save_meetnote[title] = input_widget.text
+#                 elif isinstance(input_widget, Spinner):
+#                     data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
+#                 elif isinstance(input_widget, BoxLayout):
+#                     data_to_save_meetnote[title] = input_widget.children[1].text
+#                 print(data_to_save_meetnote)
+#         for box in self.right_half.children:
+            
+#             if isinstance(box, BoxLayout):
+#                 title_label = box.children[1]  # Assuming the Label is always the second widget
+#                 title = title_label.text
+                
+#                 # Handle different input types
+#                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+#                 if isinstance(input_widget, TextInput):
+#                     data_to_save_actionnote[title] = input_widget.text
+#                 elif isinstance(input_widget, Spinner):
+#                     data_to_save_actionnote[title] = input_widget.text  # Spinner's current selection
+#                 elif isinstance(input_widget, BoxLayout):
+#                     data_to_save_actionnote[title] = input_widget.children[1].text
+#                 print(data_to_save_actionnote)
+
+#         # import pdb;pdb.set_trace()
+#         # Now `data_to_save` contains all the titles and values
+#         # You can print it or save it to a file, database, etc.
+#         print(data_to_save_actionnote)
+        
+#         with open(self.layout_json_dir_meet , 'r', encoding='utf-8') as f:
+#             layout_data_meet = json.load(f)
+        
+#         with open(self.layout_json_dir_action, 'r', encoding='utf-8') as f:
+#             layout_data_action = json.load(f)
+#         # Clear the current layout
+#         layout_data = layout_data_meet+layout_data_action
+
+#         # Separate lists for 'meet' and 'action' items
+#         meetnote_data = []
+#         actionnote_data = []
+
+#         # Divide the items into the respective lists
+#         for item in layout_data:
+#             title = item['title']
+#             if item["notetype"] == 'meet':
+#                 if title in data_to_save_meetnote:
+#                     item['content'] = data_to_save_meetnote[title]
+#                 meetnote_data.append(item)
+#             elif item["notetype"] == 'action':
+#                 if title in data_to_save_actionnote:
+#                     item['content'] = data_to_save_actionnote[title]
+#                 actionnote_data.append(item)
+
+#         # Save 'meet' items to a separate JSON file
+       
+#         with open(self.layout_json_dir_meet, 'w', encoding='utf-8') as json_file:
+#             json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
+#         # Save 'action' items to a separate JSON file
+#         with open(self.layout_json_dir_action, 'w', encoding='utf-8') as json_file:
+#             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
+        
+        
+#     def load_layout(self, meetdir,actiondir):
+       
+            
+#             # Read the selected layout file
+#             self.layout_json_dir_meet = meetdir
+#             with open( meetdir, 'r', encoding='utf-8') as f:
+#                 layout_data_meet = json.load(f)
+#             self.layout_json_dir_action = actiondir
+#             with open( actiondir, 'r', encoding='utf-8') as f:
+#                 layout_data_action = json.load(f)
+#             # Clear the current layout
+#             layout_data = layout_data_meet+layout_data_action
+#             self.results_layout.clear_widgets()
+
+#             # Create left and right halves with size_hint
+           
+#             left_scroll_view = ScrollView(size_hint=(0.5, 1))
+#             self.left_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+#             self.left_half.bind(minimum_height=self.left_half.setter('height'))  # Ensure scrolling works as expected
+#             left_scroll_view.add_widget(self.left_half)
+
+#             # Create scrollable right half
+#             right_scroll_view = ScrollView(size_hint=(0.5, 1))
+#             self.right_half = BoxLayout(orientation='vertical', size_hint_y=None, spacing=10, pos_hint={'top': 1})
+#             self.right_half.bind(minimum_height=self.right_half.setter('height'))  # Ensure scrolling works as expected
+#             right_scroll_view.add_widget(self.right_half)
+#             title_label = Label(text='Meet Note', size_hint=(0.5, None), height=40)
+#             self.left_half.add_widget(title_label)
+#             title_label = Label(text='Action Note', size_hint=(0.5, None), height=40)
+#             self.right_half.add_widget(title_label)
+#             for item in layout_data:
+#                 # Determine whether to place in the left or right half
+#                 target_layout = self.left_half if item.get('notetype') == 'meet' else self.right_half
+                
+#                 if item['type'] == 'input' and item['title'].lower() == 'symptoms':
+#                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
+#                     title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
+#                     new_box.add_widget(title_label)
+
+#                     input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
+#                     self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
+#                     input_and_button_box.add_widget(self.idc_result_input)
+
+#                     search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
+#                     search_button.bind(on_press=self.open_search_popup)
+#                     input_and_button_box.add_widget(search_button)
+
+#                     new_box.add_widget(input_and_button_box)
+#                     target_layout.add_widget(new_box)
+
+#                 elif item['type'] == 'input':
+#                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+#                     title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+#                     new_box.add_widget(title_label)
+                    
+#                     string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
+#                                         # Check the title to assign to the correct instance variable
+#                     if item['title'].lower() == 'task name':
+#                         self.task_name_input = string_input
+#                     elif item['title'].lower() == 'task number':
+#                         self.task_number_input = string_input
+#                     new_box.add_widget(string_input)
+                    
+#                     target_layout.add_widget(new_box)
+
+#                 elif item['type'] == 'spinner':
+#                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+#                     title_label = Label(text=item['title'], size_hint=(0.5, None), size_hint_y=None, height=40)
+#                     new_box.add_widget(title_label)
+                    
+#                     spinner = Spinner(
+#                         text=item['content'],
+#                         values=item['options'],
+#                         size_hint=(1, None),
+#                         height=40
+#                     )
+#                         # Check the title to assign to the correct instance variable
+#                     if item['title'].lower() == 'task name':
+#                         self.task_name_input = spinner
+#                     elif item['title'].lower() == 'task number':
+#                         self.task_number_input = spinner
+#                     new_box.add_widget(spinner)
+                    
+#                     target_layout.add_widget(new_box)
+
+#             # Add the halves to the results layout
+#             self.results_layout.add_widget(left_scroll_view)
+#             self.results_layout.add_widget(right_scroll_view)
+
+
+                    
+
+#     def open_search_popup(self, instance):
+#         # 创建弹出窗口
+#         popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+#         self.popup_input = TextInput(size_hint_y=None, height=40, font_name=FONT_PATH)
+#         self.popup_input.bind(text=self.on_text)
+#         popup_layout.add_widget(self.popup_input)
+        
+#         # 创建滚动视图来显示搜索结果
+#         self.results_view = ScrollView(size_hint=(1, None), size=(popup_layout.width, 300))
+#         self.result_layout = GridLayout(cols=1, size_hint_y=None)
+#         self.result_layout.bind(minimum_height=self.result_layout.setter('height'))
+#         self.results_view.add_widget(self.result_layout)
+#         popup_layout.add_widget(self.results_view)
+        
+#         self.popup = Popup(title="Enter Search Query", content=popup_layout, size_hint=(0.9, 0.9))
+#         self.popup.open()
+    
+#     def on_text(self, instance, value):
+#         self.result_layout.clear_widgets()
+#         if value.strip():  # 检查输入是否为空
+#             search_results = fuzzy_search(value)
+#             for code, en_description, cn_description in search_results[:25]:  # 显示前25个结果
+#                 result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
+#                 result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
+#                 self.result_layout.add_widget(result_button)
+    
+#     def select_result(self, code, en_description, cn_description):
+#         print(f"Selected: {code}: {en_description} / {cn_description}")
+        
+#         # 在右侧布局的输入框中显示选择的IDC结果，结果用逗号分隔
+#         current_text = self.idc_result_input.text
+#         new_text = f"{code}: {en_description} / {cn_description}"
+#         if current_text:
+#             self.idc_result_input.text = f"{current_text}, {new_text}"
+#         else:
+#             self.idc_result_input.text = new_text
+        
+#         self.popup.dismiss()
+
+#     def print_task_info(self, instance):
+        
+#         if self.task_name_input and self.task_number_input:
+#             task_name = self.task_name_input.text
+#             task_number = self.task_number_input.text
+#             self.manager.parent_app.task_name = f"{task_name} {task_number}"
+#             self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+#             print(f"Task: {self.manager.parent_app.task_name}")
+#             self.save_data(instance)
+#             self.manager.current = 'main'  # Switch back to the main screen
+#         else:
+#             print("Task Name or Task Number input not found")
+class TaskInputScreen(Screen):
+    def __init__(self, layout_dir=None, **kwargs):
+        super(TaskInputScreen, self).__init__(**kwargs)
+        self.layout = BoxLayout(orientation='vertical')
+        self.current_directory = os.getcwd()
+        self.config_path = os.path.join(self.current_directory, "config")
+        
+        # Add "Choose Layout" button
+        self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
+        self.choose_layout_button.bind(on_press=self.open_file_chooser)
+        self.layout.add_widget(self.choose_layout_button)
+
+        # Create the ScrollView to take up 80% of the layout
+
+        self.results_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.8))
+        
+        self.layout.add_widget(self.results_layout)
+
+        # Create a button at the bottom right
+        bottom_right_button = Button(text="Print Task", size_hint=(0.3, 0.1), pos_hint={'right': 1, 'bottom': 1})
+        bottom_right_button.bind(on_press=self.print_task_info)
+        self.layout.add_widget(bottom_right_button)
+
+        # Initialize instance variables for the task input boxes and spinner
+        self.task_name_input = None
+        self.task_number_input = None
+        self.task_spinner = None
+        self.layout_json_dir = ''
+        self.add_widget(self.layout)
+        self.layouts = None 
+        self.load_layout(os.path.join(self.config_path,'layout.json'))
+        # Function to fetch data from the API
+    def fetch_layouts(self):
+        if self.layouts is None:  # Only fetch if layouts have not been fetched yet
+            host = "https://motion-service.yuyi-ocean.com"
+            url = f"{host}/api/layouts"
+            response = requests.get(url)
+            if response.status_code == 200:
+                self.layouts = response.json()['resources']  # Store the fetched layouts
+        return self.layouts
+
+    # Function to handle the selection of buttons
+    def on_layout_selected(self, instance, column, layout_data):
+        # Deselect all buttons in the same column and select only the current one
+        if column == 'meet':
+            for btn in self.meet_buttons:
+                btn.background_color = (1, 1, 1, 1)  # Deselect (white background)
+            self.selected_meet_data = layout_data  # Store full data for meet
+        elif column == 'action':
+            for btn in self.action_buttons:
+                btn.background_color = (1, 1, 1, 1)  # Deselect (white background)
+            self.selected_action_data = layout_data  # Store full data for action
+
+        # Highlight the selected button
+        instance.background_color = (0, 1, 0, 1)  # Selected (green background)
+
+    # Function to create and show popup
+    def show_layouts_popup(self, instance):
+        layouts = self.fetch_layouts()  # Fetch layout data from the API or use cached data
+
+        # Create separate GridLayouts for "meet" and "action"
+        meet_layout = GridLayout(cols=1, padding=10, spacing=10, size_hint_y=None)
+        action_layout = GridLayout(cols=1, padding=10, spacing=10, size_hint_y=None)
+
+        # Bind layout heights to allow dynamic resizing
+        meet_layout.bind(minimum_height=meet_layout.setter('height'))
+        action_layout.bind(minimum_height=action_layout.setter('height'))
+
+        # Add layout IDs as buttons to their respective layouts
+        meet_layouts = [res for res in layouts if res.get('catalog') == 'meet']
+        action_layouts = [res for res in layouts if res.get('catalog') == 'action']
+
+        self.meet_buttons = []
+        self.action_buttons = []
+
+        for layout_data in meet_layouts:
+            btn_meet = Button(text=layout_data['layoutId'], size_hint_y=None, height=40)
+            btn_meet.bind(on_press=lambda x, ld=layout_data: self.on_layout_selected(x, 'meet', ld))
+            self.meet_buttons.append(btn_meet)
+            meet_layout.add_widget(btn_meet)
+
+        for layout_data in action_layouts:
+            btn_action = Button(text=layout_data['layoutId'], size_hint_y=None, height=40)
+            btn_action.bind(on_press=lambda x, ld=layout_data: self.on_layout_selected(x, 'action', ld))
+            self.action_buttons.append(btn_action)
+            action_layout.add_widget(btn_action)
+        
+        # Create scrollable views for both layouts
+        meet_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
+        meet_scroll.add_widget(meet_layout)
+
+        action_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
+        action_scroll.add_widget(action_layout)
+        
+        # Create the main layout for the popup
+        scroll_layout = BoxLayout(orientation='horizontal')
+
+        # Add headers for the columns
+        header_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+        header_layout.add_widget(Label(text='Catalog: meet', size_hint=(0.5, 1)))
+        header_layout.add_widget(Label(text='Catalog: action', size_hint=(0.5, 1)))
+        
+        # Add the scroll views to the main layout
+        scroll_layout.add_widget(meet_scroll)
+        scroll_layout.add_widget(action_scroll)
+
+        # Create a Select button, always enabled
+        self.btn_select_final = Button(text="Select", size_hint=(0.2, 0.1))
+        self.btn_select_final.bind(on_release=self.final_selection_made)
+
+        # Add the Select button at the bottom of the popup
+
+        # Create the popup layout
+        popup_layout = BoxLayout(orientation='vertical')
+        popup_layout.add_widget(header_layout)
+        popup_layout.add_widget(scroll_layout)  # Add the scrollable columns
+        popup_layout.add_widget(self.btn_select_final)
+
+        # Create the actual popup
+        self.popup = Popup(title='Layout IDs',
+                           content=popup_layout,
+                           size_hint=(0.8, 0.8))
+
+        # Open the popup
+        self.popup.open()
+    
+    def final_selection_made(self, instance):
+        
+        def transform_fields(fields, catalog):
+            transformed_fields = []
+
+            for field in fields:
+                # Create the basic transformed structure
+                transformed_field = {
+                    "type": field["elementType"],  # Map elementType to type
+                    "title": field["title"],  # Title remains the same
+                    "content": "",  # Default content is an empty string
+                    "notetype": catalog  # Map catalog to notetype
+                }
+
+                # If the field has options, add the options and set default content
+                if "options" in field and field["options"] is not None:
+                    transformed_field["options"] = field["options"]
+                    transformed_field["content"] = "Choose an option"
+                
+                # Append transformed field to the list
+                transformed_fields.append(transformed_field)
+
+            return transformed_fields
+
+        # Transform and combine fields from both meet and action
+        combined_data = {}  # Will store layoutId and fields together
+        combined_fields = []
+
+        # Transform and combine meet fields
+        if self.selected_meet_data:
+            transformed_meet_fields = transform_fields(self.selected_meet_data.get('fields', []), 'meet')
+            print("Transformed Meet Fields:")
+            print(transformed_meet_fields)
+            combined_fields += transformed_meet_fields  # Add meet fields to combined list
+            combined_data["meet_layoutId"] = self.selected_meet_data['layoutId']  # Save meet layoutId
+        else:
+            print("No Meet Layout selected.")
+
+        # Transform and combine action fields
+        if self.selected_action_data:
+            transformed_action_fields = transform_fields(self.selected_action_data.get('fields', []), 'action')
+            print("Transformed Action Fields:")
+            print(transformed_action_fields)
+            combined_fields += transformed_action_fields  # Add action fields to combined list
+            combined_data["action_layoutId"] = self.selected_action_data['layoutId']  # Save action layoutId
+        else:
+            print("No Action Layout selected.")
+
+        # Add combined fields to the final data
+        combined_data["fields"] = combined_fields
+
+        # Print the combined data
+        print("Combined Data with IDs and Fields:")
+        print(combined_data)
+        # Save combined_data to a JSON file
+        with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
+            json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
+            print("Data saved to combined_fields_with_id.json")
+        # Add logic to close the popup after printing
+        if hasattr(self, 'popup'):
+            self.popup.dismiss()  # Close the popup if it's open
+
+        self.load_layout(os.path.join(self.config_path,'layout.json'))
+    def open_file_chooser(self, instance):
+        self.show_layouts_popup(self)
+        
+        # You can add additional logic here for what to do after selection
+        ###############################
+        # # 创建文件选择弹出窗口
+        # file_chooser = FileChooserIconView(path='.', filters=['*.json'])
+        # popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        # popup_layout.add_widget(file_chooser)
+        
+        # # 确认按钮
+        # confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
+        # confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
+        # popup_layout.add_widget(confirm_button)
+        
+        # self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
+        # self.popup.open()
+    def save_data(self, instance):
+        data_to_save_meetnote = {}
+        data_to_save_actionnote = {}
+        
+        # Iterate over all widgets in the results layout
+        for box in self.left_half.children:
+            
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save_meetnote[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save_meetnote[title] = input_widget.children[1].text
+                print(data_to_save_meetnote)
+        for box in self.right_half.children:
+            
+            if isinstance(box, BoxLayout):
+                title_label = box.children[1]  # Assuming the Label is always the second widget
+                title = title_label.text
+                
+                # Handle different input types
+                input_widget = box.children[0]  # Assuming the input widget is always the first widget
+                
+                if isinstance(input_widget, TextInput):
+                    data_to_save_actionnote[title] = input_widget.text
+                elif isinstance(input_widget, Spinner):
+                    data_to_save_actionnote[title] = input_widget.text  # Spinner's current selection
+                elif isinstance(input_widget, BoxLayout):
+                    data_to_save_actionnote[title] = input_widget.children[1].text
+                print(data_to_save_actionnote)
+
+        # import pdb;pdb.set_trace()
+        # Now `data_to_save` contains all the titles and values
+        # You can print it or save it to a file, database, etc.
+        print(data_to_save_actionnote)
+
+        with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
+            layout_data = json.load(f)
+        layout_data = layout_data['fields']
+        # Separate lists for 'meet' and 'action' items
+        meetnote_data = []
+        actionnote_data = []
+
+        # Divide the items into the respective lists
+        for item in layout_data:
+            title = item['title']
+            if item["notetype"] == 'meet':
+                if title in data_to_save_meetnote:
+                    item['content'] = data_to_save_meetnote[title]
+                meetnote_data.append(item)
+            elif item["notetype"] == 'action':
+                if title in data_to_save_actionnote:
+                    item['content'] = data_to_save_actionnote[title]
+                actionnote_data.append(item)
+
+        # Save 'meet' items to a separate JSON file
+        meetnote_file_path = os.path.join(self.config_path, 'meetnote_layout.json')
+        with open(meetnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
+
+        # Save 'action' items to a separate JSON file
+        actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
+        with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
+        with open(self.layout_json_dir,'r',encoding='utf-8')as file:
+            temp = json.load(file)
+            temp['fields'] =meetnote_data+actionnote_data
+        with open(self.layout_json_dir,'w',encoding='utf-8')as json_file:
+            json.dump(temp, json_file, indent=4, ensure_ascii=False)
         
     def load_layout(self, layout_file):
             self.layout_json_dir = layout_file
@@ -1154,7 +1580,7 @@ class NTK_CapApp(App):
     def set_taskinput_screen_with_param(self, screen_name,meetdir,actiondir, **kwargs):
         # Get the screen instance
         screen = self.sm.get_screen(screen_name)
-        screen.load_layout(meetdir,actiondir)
+        #screen.load_layout(meetdir,actiondir)
         # Pass the additional parameters to the screen
         for key, value in kwargs.items():
             setattr(screen, key, value)
@@ -1193,7 +1619,7 @@ class NTK_CapApp(App):
             
                 actiondir = os.path.join(dir_list_tasks,filtered_folders[taskname],'Action_note.json')
                 meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
-                
+                import pdb;pdb.set_trace()
                 if os.path.exists(meetdir) and os.path.exists(actiondir):
                     btn.bind(on_press=lambda instance, meetdir = meetdir,actiondir =actiondir: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir))
                 else:
