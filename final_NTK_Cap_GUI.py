@@ -592,7 +592,9 @@ class TaskInputScreen(Screen):
         actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
         with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
-
+        with open(self.layout_json_dir,'r')as file:
+            temp = json.load(file)
+            temp['fields']
         
     def load_layout(self, layout_file):
             self.layout_json_dir = layout_file
@@ -1569,23 +1571,23 @@ class NTK_CapApp(App):
             print(status)
             print('upload fail')
         else:
-            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'),'meetId.json', 'w') as json_file:
+            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','meetId.json'), 'w') as json_file:
                 json.dump(data, json_file, indent=4)
         return meetId
 
     def actionnoteupload(self,taskname,meetId):
         date_str = datetime.now().strftime("%Y_%m_%d")
         date_str=datetime.strptime(date_str, "%Y_%m_%d").isoformat() + 'Z'
-        action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,date_str,'walk1',meetId)
-        status,message,meetId =meet_postupdate(os.path.join(self.config_path,'layout.json'),os.path.join(self.config_path, 'action_layout.json'),os.path.join(self.config_path, 'location.json'),self.patient_genID,date_str,taskname,meetId)
         data = {
             "meetId" : meetId
         }
+        status,message,actionId = action_postupdate(os.path.join(self.config_path,'layout.json'),os.path.join(self.config_path, 'actionnote_layout.json'),os.path.join(self.config_path, 'location.json'),self.patient_genID,date_str,taskname,meetId)
+
         if status!=200 and status!= 201:
             print(status)
             print('upload fail')
         else:
-            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',taskname),'actionId.json', 'w') as json_file:
+            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',taskname,'actionId.json'), 'w') as json_file:
                 json.dump(data, json_file, indent=4)
     def button_Apose_record(self, instance):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
@@ -1631,6 +1633,9 @@ class NTK_CapApp(App):
             popup.dismiss()  # Dismiss the popup first
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         self.update_Apose_note()
+        if self.btn_toggle_cloud_sinlge.text == 'Cloud':
+            self.meetId = self.meetnoteupload()
+            self.actionnoteupload('Apose',self.meetId)
         #import pdb;pdb.set_trace()
     def button_task_record(self,instance):
         
@@ -1709,7 +1714,10 @@ class NTK_CapApp(App):
         popup.dismiss()  # Dismiss the popup first
         date = datetime.now().strftime("%Y_%m_%d")
         self.camera_motion_final(self, date)
-
+        if self.btn_toggle_cloud_sinlge.text == 'Cloud':
+            self.meetId = self.meetnoteupload()
+            self.actionnoteupload(self.label_task_real.text,self.meetId)
+    
     def camera_motion_final(self,instance, date):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
@@ -1724,6 +1732,13 @@ class NTK_CapApp(App):
             print('Error from mode select')
         self.update_tasklist(date)
         self.update_Task_note()
+        if self.btn_toggle_cloud_sinlge.text == 'Cloud':
+            if self.meetId=='':
+                with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','meetId.json'),'r') as file:
+                    temp= json.load(file)
+                    self.meetId = temp['meetId']
+            
+            self.actionnoteupload(self.label_task_real.text,self.meetId)
     
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'

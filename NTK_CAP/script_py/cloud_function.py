@@ -305,31 +305,60 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
     return response.status_code,message,meetId
 def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,meetId):
     message = []
-    with open(dir_layout , 'r', encoding='utf-8') as f:
-        layout = json.load(f)
-    with open(dir_notevalue , 'r', encoding='utf-8') as f:
-        value = json.load(f)
-    with open(dir_location , 'r', encoding='utf-8') as f:
-        location = json.load(f)
-    url =f"{host}/api/layouts/layoutId/"+ layout["action_layoutId"]
-    response = requests.get(url)
-    layout = response.json()
-    value = [{'title': item['title'], 'content': item['content']} for item in value]
-    location = location['location'][0]
-    patientId
-    output = {
-    "patientId": patientId,
-    "datetime": timestring,  # Use the provided timestring
-    "location": location,  # Use the provided location
-    "actionName": actionname,
-    "layout": layout,  # Make sure layout is a properly structured variable
-    "notes": [
-        {
-            "title": item["title"],  # Keep the title as is from value
-            "content": [] if ((item["content"] == "") or (item["content"] == "Choose an option")) else [item["content"]]  # Handle empty and non-empty content
-        } for item in value  # Iterate through the value list to generate notes
-    ]
-}
+    if actionname!='Apose':
+        
+        with open(dir_layout , 'r', encoding='utf-8') as f:
+            layout = json.load(f)
+        with open(dir_notevalue , 'r', encoding='utf-8') as f:
+            value = json.load(f)
+        with open(dir_location , 'r', encoding='utf-8') as f:
+            location = json.load(f)
+        url =f"{host}/api/layouts/layoutId/"+ layout["action_layoutId"]
+        response = requests.get(url)
+        layout = response.json()
+        value = [{'title': item['title'], 'content': item['content']} for item in value]
+        location = location['location'][0]
+        patientId
+        output = {
+        "patientId": patientId,
+        "datetime": timestring,  # Use the provided timestring
+        "location": location,  # Use the provided location
+        "actionName": actionname,
+        "layout": layout,  # Make sure layout is a properly structured variable
+        "notes": [
+            {
+                "title": item["title"],  # Keep the title as is from value
+                "content": [] if ((item["content"] == "") or (item["content"] == "Choose an option")) else [item["content"]]  # Handle empty and non-empty content
+            } for item in value  # Iterate through the value list to generate notes
+        ]
+    }
+    else:
+        with open(dir_layout , 'r', encoding='utf-8') as f:
+            layout = json.load(f)
+        with open(dir_notevalue , 'r', encoding='utf-8') as f:
+            value = json.load(f)
+        with open(dir_location , 'r', encoding='utf-8') as f:
+            location = json.load(f)
+        url =f"{host}/api/layouts/layoutId/"+ layout["action_layoutId"]
+        response = requests.get(url)
+        layout = response.json()
+        value = [{'title': item['title'], 'content': item['content']} for item in value]
+        location = location['location'][0]
+        patientId
+        output = {
+        "patientId": patientId,
+        "datetime": timestring,  # Use the provided timestring
+        "location": location,  # Use the provided location
+        "actionName": actionname,
+        "layout": layout,  # Make sure layout is a properly structured variable
+        "notes": [
+            {
+                "title": item["title"],  # Keep the title as is from value
+                "content": [] # Handle empty and non-empty content
+            } for item in value  # Iterate through the value list to generate notes
+        ]
+    }
+    #import pdb;pdb.set_trace()
     #### check if calculated folder exist
     
     #import pdb;pdb.set_trace()
@@ -339,7 +368,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
     response.text
     if response.status_code ==201:
         actionId = response.headers["Location"].split('/')[-1]
-        print('Successfully create a meet')
+        print('Successfully create an action')
         #import pdb;pdb.set_trace()
     
     while response.status_code == 400:
@@ -359,7 +388,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             del output['actionName']
             
             output["actionId"] = actionId
-            utput = {
+            output = {
                 "actionId":output["actionId"],
                 "layout": output['layout'],
                 "notes": output['notes']
