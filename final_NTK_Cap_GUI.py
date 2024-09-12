@@ -51,7 +51,7 @@ def fuzzy_search(query):
     results = cursor.fetchall()
     return results
 class TaskEDITInputScreen(Screen):
-    def __init__(self, meetdir=None, actiondir=None, **kwargs):
+    def __init__(self, meetdir=None, actiondir=None,meetId=None,actionId = None, **kwargs):
         super(TaskEDITInputScreen, self).__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical')
         self.current_directory = os.getcwd()
@@ -1619,9 +1619,15 @@ class NTK_CapApp(App):
             
                 actiondir = os.path.join(dir_list_tasks,filtered_folders[taskname],'Action_note.json')
                 meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
+                with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
+                    temp= json.load(file)
+                    actionId = temp['meetId']
+                with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
+                    temp= json.load(file)
+                    meetId = temp['meetId']
                 import pdb;pdb.set_trace()
                 if os.path.exists(meetdir) and os.path.exists(actiondir):
-                    btn.bind(on_press=lambda instance, meetdir = meetdir,actiondir =actiondir: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir))
+                    btn.bind(on_press=lambda instance, meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir,meetId,actionId))
                 else:
                     name_dir = os.path.join(dir_list_tasks)
                     name = filtered_folders[taskname]
