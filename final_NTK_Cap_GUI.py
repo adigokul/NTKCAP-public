@@ -1,4 +1,3 @@
-
 import logging
 import kivy
 from kivy.app import App
@@ -344,20 +343,184 @@ class TaskInputScreen(Screen):
         self.task_spinner = None
         self.layout_json_dir = ''
         self.add_widget(self.layout)
+        self.layouts = None 
+    
+        # Function to fetch data from the API
+    def fetch_layouts(self):
+        if self.layouts is None:  # Only fetch if layouts have not been fetched yet
+            host = "https://motion-service.yuyi-ocean.com"
+            url = f"{host}/api/layouts"
+            response = requests.get(url)
+            if response.status_code == 200:
+                self.layouts = response.json()['resources']  # Store the fetched layouts
+        return self.layouts
+
+    # Function to handle the selection of buttons
+    def on_layout_selected(self, instance, column, layout_data):
+        # Deselect all buttons in the same column and select only the current one
+        if column == 'meet':
+            for btn in self.meet_buttons:
+                btn.background_color = (1, 1, 1, 1)  # Deselect (white background)
+            self.selected_meet_data = layout_data  # Store full data for meet
+        elif column == 'action':
+            for btn in self.action_buttons:
+                btn.background_color = (1, 1, 1, 1)  # Deselect (white background)
+            self.selected_action_data = layout_data  # Store full data for action
+
+        # Highlight the selected button
+        instance.background_color = (0, 1, 0, 1)  # Selected (green background)
+
+    # Function to create and show popup
+    def show_layouts_popup(self, instance):
+        layouts = self.fetch_layouts()  # Fetch layout data from the API or use cached data
+
+        # Create separate GridLayouts for "meet" and "action"
+        meet_layout = GridLayout(cols=1, padding=10, spacing=10, size_hint_y=None)
+        action_layout = GridLayout(cols=1, padding=10, spacing=10, size_hint_y=None)
+
+        # Bind layout heights to allow dynamic resizing
+        meet_layout.bind(minimum_height=meet_layout.setter('height'))
+        action_layout.bind(minimum_height=action_layout.setter('height'))
+
+        # Add layout IDs as buttons to their respective layouts
+        meet_layouts = [res for res in layouts if res.get('catalog') == 'meet']
+        action_layouts = [res for res in layouts if res.get('catalog') == 'action']
+
+        self.meet_buttons = []
+        self.action_buttons = []
+
+        for layout_data in meet_layouts:
+            btn_meet = Button(text=layout_data['layoutId'], size_hint_y=None, height=40)
+            btn_meet.bind(on_press=lambda x, ld=layout_data: self.on_layout_selected(x, 'meet', ld))
+            self.meet_buttons.append(btn_meet)
+            meet_layout.add_widget(btn_meet)
+
+        for layout_data in action_layouts:
+            btn_action = Button(text=layout_data['layoutId'], size_hint_y=None, height=40)
+            btn_action.bind(on_press=lambda x, ld=layout_data: self.on_layout_selected(x, 'action', ld))
+            self.action_buttons.append(btn_action)
+            action_layout.add_widget(btn_action)
+
+        # Create scrollable views for both layouts
+        meet_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
+        meet_scroll.add_widget(meet_layout)
+
+        action_scroll = ScrollView(size_hint=(0.5, None), size=(200, 300))
+        action_scroll.add_widget(action_layout)
+
+        # Create the main layout for the popup
+        scroll_layout = BoxLayout(orientation='horizontal')
+
+        # Add headers for the columns
+        header_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
+        header_layout.add_widget(Label(text='Catalog: meet', size_hint=(0.5, 1)))
+        header_layout.add_widget(Label(text='Catalog: action', size_hint=(0.5, 1)))
+
+        # Add the scroll views to the main layout
+        scroll_layout.add_widget(meet_scroll)
+        scroll_layout.add_widget(action_scroll)
+
+        # Create a Select button, always enabled
+        self.btn_select = Button(text="Select", size_hint=(0.2, 0.1), pos_hint={'right': 1})
+        self.btn_select.bind(on_release=self.final_selection_made)
+
+        # Add the Select button at the bottom of the popup
+        button_layout = BoxLayout(size_hint_y=None, height=50, padding=[0, 10, 10, 10])
+        button_layout.add_widget(self.btn_select)
+
+        # Create the popup layout
+        popup_layout = BoxLayout(orientation='vertical')
+        popup_layout.add_widget(header_layout)
+        popup_layout.add_widget(scroll_layout)  # Add the scrollable columns
+        popup_layout.add_widget(button_layout)
+
+        # Create the actual popup
+        self.popup = Popup(title='Layout IDs',
+                           content=popup_layout,
+                           size_hint=(0.8, 0.8))
+
+        # Open the popup
+        self.popup.open()
+    
+    def final_selection_made(self, instance):
+            def transform_fields(fields, catalog):
+                transformed_fields = []
+
+                for field in fields:
+                    # Create the basic transformed structure
+                    transformed_field = {
+                        "type": field["elementType"],  # Map elementType to type
+                        "title": field["title"],  # Title remains the same
+                        "content": "",  # Default content is an empty string
+                        "notetype": catalog  # Map catalog to notetype
+                    }
+
+                    # If the field has options, add the options and set default content
+                    if "options" in field and field["options"] is not None:
+                        transformed_field["options"] = field["options"]
+                        transformed_field["content"] = "Choose an option"
+                    
+                    # Append transformed field to the list
+                    transformed_fields.append(transformed_field)
+
+                return transformed_fields
+
+            # Transform and combine fields from both meet and action
+            combined_data = {}  # Will store layoutId and fields together
+            combined_fields = []
+
+            # Transform and combine meet fields
+            if self.selected_meet_data:
+                transformed_meet_fields = transform_fields(self.selected_meet_data.get('fields', []), 'meet')
+                print("Transformed Meet Fields:")
+                print(transformed_meet_fields)
+                combined_fields += transformed_meet_fields  # Add meet fields to combined list
+                combined_data["meet_layoutId"] = self.selected_meet_data['layoutId']  # Save meet layoutId
+            else:
+                print("No Meet Layout selected.")
+
+            # Transform and combine action fields
+            if self.selected_action_data:
+                transformed_action_fields = transform_fields(self.selected_action_data.get('fields', []), 'action')
+                print("Transformed Action Fields:")
+                print(transformed_action_fields)
+                combined_fields += transformed_action_fields  # Add action fields to combined list
+                combined_data["action_layoutId"] = self.selected_action_data['layoutId']  # Save action layoutId
+            else:
+                print("No Action Layout selected.")
+
+            # Add combined fields to the final data
+            combined_data["fields"] = combined_fields
+
+            # Print the combined data
+            print("Combined Data with IDs and Fields:")
+            print(combined_data)
+            # Save combined_data to a JSON file
+            with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
+                json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
+                print("Data saved to combined_fields_with_id.json")
+            # Add logic to close the popup after printing
+            if hasattr(self, 'popup'):
+                self.popup.dismiss()  # Close the popup if it's open
+
 
     def open_file_chooser(self, instance):
-        # 创建文件选择弹出窗口
-        file_chooser = FileChooserIconView(path='.', filters=['*.json'])
-        popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        popup_layout.add_widget(file_chooser)
+        self.show_layouts_popup(self)
+        self.load_layout(os.path.join(self.config_path,'layout.json'))
+        # You can add additional logic here for what to do after selection
+        ###############################
+        # # 创建文件选择弹出窗口
+        # file_chooser = FileChooserIconView(path='.', filters=['*.json'])
+        # popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        # popup_layout.add_widget(file_chooser)
         
-        # 确认按钮
-        confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
-        confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
-        popup_layout.add_widget(confirm_button)
+        # # 确认按钮
+        # confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
+        # confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
+        # popup_layout.add_widget(confirm_button)
         
-        self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
-        self.popup.open()
+        # self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
+        # self.popup.open()
     def save_data(self, instance):
         data_to_save_meetnote = {}
         data_to_save_actionnote = {}
@@ -403,7 +566,7 @@ class TaskInputScreen(Screen):
 
         with open(self.layout_json_dir, 'r', encoding='utf-8') as f:
             layout_data = json.load(f)
-
+        layout_data = layout_data['fields']
         # Separate lists for 'meet' and 'action' items
         meetnote_data = []
         actionnote_data = []
@@ -431,20 +594,13 @@ class TaskInputScreen(Screen):
             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
 
         
-    def load_layout(self, selection):
-        if selection:
-            layout_file = selection[0]
-            try:
-                self.popup.dismiss()
-            except:
-                print('no pop up')
-            
-            # Read the selected layout file
+    def load_layout(self, layout_file):
             self.layout_json_dir = layout_file
             with open(layout_file, 'r', encoding='utf-8') as f:
                 layout_data = json.load(f)
-            
+            #import pdb;pdb.set_trace()
             # Clear the current layout
+            layout_data = layout_data['fields']
             self.results_layout.clear_widgets()
 
             # Create left and right halves with size_hint
@@ -490,9 +646,9 @@ class TaskInputScreen(Screen):
                     
                     string_input = TextInput(size_hint=(1, None), height=40, text=item['content'])
                                         # Check the title to assign to the correct instance variable
-                    if item['title'].lower() == 'task name':
+                    if item['title'].lower() == 'task type' and item.get('notetype') == 'action':
                         self.task_name_input = string_input
-                    elif item['title'].lower() == 'task number':
+                    elif item['title'].lower() == 'task number' and item.get('notetype') == 'action':
                         self.task_number_input = string_input
                     new_box.add_widget(string_input)
                     
@@ -510,9 +666,9 @@ class TaskInputScreen(Screen):
                         height=40
                     )
                         # Check the title to assign to the correct instance variable
-                    if item['title'].lower() == 'task name':
+                    if item['title'].lower() == 'task type' and item.get('notetype') == 'action':
                         self.task_name_input = spinner
-                    elif item['title'].lower() == 'task number':
+                    elif item['title'].lower() == 'task number' and item.get('notetype') == 'action':
                         self.task_number_input = spinner
                     new_box.add_widget(spinner)
                     
@@ -573,11 +729,15 @@ class TaskInputScreen(Screen):
             self.manager.parent_app.task_name = f"{task_name} {task_number}"
             self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
             print(f"Task: {self.manager.parent_app.task_name}")
+            
             self.save_data(instance)
+            
+            
             self.manager.current = 'main'  # Switch back to the main screen
         else:
             print("Task Name or Task Number input not found")
 class ResultsPopup(Popup):
+    
     def __init__(self, parent_app, **kwargs):
         super(ResultsPopup, self).__init__(**kwargs)
         self.parent_app = parent_app  # Save the parent app reference
@@ -823,7 +983,7 @@ class NTK_CapApp(App):
         self.layout.add_widget(btn_config)
         btn_check_cam = Button(text='1-3檢查相機', size_hint=(0.19,0.1), size=(btn_wide, 50), pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[0]},on_release=self.button_check_cam, font_name=self.font_path)
         self.layout.add_widget(btn_check_cam)
-
+        self.meetId = ''
         # 相機校正
         # btn_intrinsic_record = Button(text='2-1拍攝內參', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(20, 500), on_press=self.button_intrinsic_record, font_name=self.font_path)
         # self.layout.add_widget(btn_intrinsic_record)
@@ -1396,8 +1556,37 @@ class NTK_CapApp(App):
         newdir_actionnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',self.label_task_real.text,'Action_note.json')
         shutil.copy2(olddir_meetnote,newdir_meetnote)
         shutil.copy2(olddir_actionnote, newdir_actionnote)
-
+    
 ############### Apose 不能隔天重拍，要就要當下
+    def meetnoteupload(self):
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        date_str=datetime.strptime(date_str, "%Y_%m_%d").isoformat() + 'Z'
+        status,message,meetId =meet_postupdate(os.path.join(self.config_path,'layout.json'),os.path.join(self.config_path, 'meetnote_layout.json'),os.path.join(self.config_path, 'location.json'),self.patient_genID,date_str)
+        data = {
+            "meetId" : meetId
+        }
+        if status!=200 and status!= 201:
+            print(status)
+            print('upload fail')
+        else:
+            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'),'meetId.json', 'w') as json_file:
+                json.dump(data, json_file, indent=4)
+        return meetId
+
+    def actionnoteupload(self,taskname,meetId):
+        date_str = datetime.now().strftime("%Y_%m_%d")
+        date_str=datetime.strptime(date_str, "%Y_%m_%d").isoformat() + 'Z'
+        action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,date_str,'walk1',meetId)
+        status,message,meetId =meet_postupdate(os.path.join(self.config_path,'layout.json'),os.path.join(self.config_path, 'action_layout.json'),os.path.join(self.config_path, 'location.json'),self.patient_genID,date_str,taskname,meetId)
+        data = {
+            "meetId" : meetId
+        }
+        if status!=200 and status!= 201:
+            print(status)
+            print('upload fail')
+        else:
+            with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',taskname),'actionId.json', 'w') as json_file:
+                json.dump(data, json_file, indent=4)
     def button_Apose_record(self, instance):
         if self.btn_toggle_cloud_sinlge.text == 'Single':
             self.patient_genID =self.txt_patientID_real.text
@@ -1408,6 +1597,9 @@ class NTK_CapApp(App):
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))==0: ## check if path exist
             camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
             self.update_Apose_note()
+            if self.btn_toggle_cloud_sinlge.text == 'Cloud':
+                self.meetId = self.meetnoteupload()
+                self.actionnoteupload('Apose',self.meetId)
         else:
             content = BoxLayout(orientation='vertical', padding=10, spacing=10)
             message = Label(text='You did not change the Patient ID, Do you want to replace the original Apose?')
@@ -1419,7 +1611,6 @@ class NTK_CapApp(App):
 
             # Create the popup
             popup = Popup(title='Confirm Action', content=content, size_hint=(None, None), size=(400, 200))
-
             # Yes button
             yes_btn = Button(text='Yes')
             yes_btn.bind(on_release=lambda instance: self.perform_Apose_recording(instance, popup))
@@ -1428,14 +1619,16 @@ class NTK_CapApp(App):
             no_btn.bind(on_release=lambda *args: popup.dismiss())
 
             content.add_widget(button_layout)
-
             popup.open()
             self.label_log.text = self.label_PatientID_real.text + " film A-pose finished"
             self.add_log(self.label_log.text)
 
     def perform_Apose_recording(self, instance, popup):
-        popup.dismiss()  # Dismiss the popup first
-        shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
+        if os.path.exists(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data')):
+        
+            shutil.rmtree(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data'))
+        if popup:
+            popup.dismiss()  # Dismiss the popup first
         camera_Apose_record(self.config_path,self.record_path,self.patient_genID,datetime.now().strftime("%Y_%m_%d"),button_capture=False,button_stop=False) 
         self.update_Apose_note()
         #import pdb;pdb.set_trace()

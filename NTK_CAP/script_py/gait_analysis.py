@@ -14,6 +14,7 @@ from scipy.interpolate import splrep, splev
 from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
+import json
 Gait_version = r'Gait 20240703'
 Patient_data_dir =r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data'
 body_parts = {
@@ -56,7 +57,7 @@ def choose_file(directory):
     print('Files not starting with "w" or "W":')
     for file in matching_files:
         print(file)
-    
+    #import pdb;pdb.set_trace()
     return matching_files
 def choose_file_GUI(Patient_data_dir):
 # Create a popup window for directory selection
@@ -282,7 +283,7 @@ def create_post_analysis_dir(dir_task):
     else:
         print(f'Folder already exists: {post_analysis_dir}')
 def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
-
+    
     vR = vr30
     vL = vl30
     xR = data[:,18]
@@ -373,7 +374,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
         if ntemp_L.size > 0:
             n_L.append(ntemp_L[-1])
     
-
+    
     # Save results to All array (assuming All is a global variable or passed as an argument)
     # All[aim, 38] = locs_possible_min_L[n_L]
     # All[aim, 24] = [locs_possible_min_L[n_L[0]], locs_possible_min_L[p_L]]
@@ -428,6 +429,12 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     axs[0].scatter(R_locs_possible_min_n , vR[R_locs_possible_min_n ], color='r', s=100)
     axs[0].scatter(R_locs_possible_min_p, vR[R_locs_possible_min_p], color='y', s=100)
     axs[0].scatter(final_locs_R, vR[final_locs_R], color='g', s=100)
+    #import pdb;pdb.set_trace()
+    try:
+        axs[0].axhline(np.mean(vR) - 0.2 * np.std(vR), color='k', linestyle='--')
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
     axs[0].axhline(np.mean(vR) - 0.2 * np.std(vR), color='k', linestyle='--')
     axs[1].plot(vL, linewidth=1.5)
     axs[1].scatter(L_locs_possible_min_n , vL[L_locs_possible_min_n ], color='r', s=100)
@@ -438,13 +445,16 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     axs[1].set_title('Left Heel Velocity')
     plt.suptitle('Find Heel Strike'  +title, fontsize=20)
     #plt.savefig(f'{post_analysis_dir}/Heel_segment.png')
-    plt.savefig(os.path.join(dir_task,'post_analysis','Find Heel Strike'  +title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','Find Heel Strike'  +title+ '.png'))
     frame_R_heel_sground = np.concatenate((R_locs_possible_min_n[:1], R_locs_possible_min_p))
     frame_L_heel_sground = np.concatenate((L_locs_possible_min_n[:1], L_locs_possible_min_p))
     frame_R_heel_lground = R_locs_possible_min_n 
     frame_L_heel_lground = L_locs_possible_min_n 
+    
     return frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground
 def initial_read_data(IK_dir,trc_dir,dir_task,title):
+    
     data = trc_read(trc_dir)
     angle = motfile_read(IK_dir)
     cm = COM_define(trc_dir)
@@ -452,6 +462,7 @@ def initial_read_data(IK_dir,trc_dir,dir_task,title):
     vr30, vl30 = heel_v_xy_plane(trc_dir, SRd)
     vcm30 = gaitspeedcm(trc_dir, SRd)
     frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =find_foot_strike(data,vr30,vl30,SR,dir_task,title)
+    
     return data ,angle,cm,vr30,vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground
 def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
 
@@ -603,8 +614,9 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     ax2.set_ylim([center_plotz - 0.05, center_plotz + 0.05])
     ax2.set_xlim([center_ploty - 0.15, center_ploty + 0.15])
     ax2.grid(True)
-    fig.suptitle('COM for '+ title, fontsize=20)
-    plt.savefig(os.path.join(dir_task,'post_analysis','COM for '+ title+ '.png'))
+    fig.suptitle('COM for '+ title, fontsize=20)    
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','COM for '+ title+ '.png'))
 
     #plt.show()
     # Save the figure
@@ -700,7 +712,8 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     plt.legend()
     plt.title('calibrated COM on xy ' + title,fontsize =20)
     plt.grid(True)
-    plt.savefig(os.path.join(dir_task,'post_analysis','calibrated COM on xy ' + title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','calibrated COM on xy ' + title+ '.png'))
     #plt.show()
 
     # Perform calibration
@@ -855,7 +868,8 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     plt.legend()
     plt.grid(True)
     plt.title('COM lateral for ' + title ,fontsize = 20)
-    plt.savefig(os.path.join(dir_task,'post_analysis','COM lateral for ' + title + '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','COM lateral for ' + title + '.png'))
 
     #plt.show()
     # Compute areas
@@ -989,7 +1003,8 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     plt.legend()
     plt.grid(True)
     plt.suptitle('COM vertical '+ title, fontsize=20)
-    plt.savefig(os.path.join(dir_task,'post_analysis','COM vertical '+ title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','COM vertical '+ title+ '.png'))
 
     #plt.show()
     
@@ -1107,7 +1122,8 @@ def Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,tit
 
     # Save the figure
     #plt.savefig(os.path.join(post_anlaysis_dir, 'COM_vertical.png'))
-    plt.savefig(os.path.join(dir_task,'post_analysis','Speed '+ title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','Speed '+ title+ '.png'))
     #plt.show()
     return rms_final_steady,rms_start_end,rms_All,np.max(mean_velocity)
 def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title):
@@ -1226,7 +1242,8 @@ def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
 
     # Adding legend and title
     plt.legend()
-    plt.savefig(os.path.join(dir_task,'post_analysis','Stride length '+ title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','Stride length '+ title+ '.png'))
     # Show the plot
     #plt.show()
 
@@ -1303,7 +1320,8 @@ def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgrou
     plt.legend()
     # plt.title(f'{png_name} knee', fontsize=20)
     # plt.savefig(os.path.join(post_analysis_dir, 'knee.png'))
-    plt.savefig(os.path.join(dir_task,'post_analysis','knee flexion '+ title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','knee flexion '+ title+ '.png'))
 
     #plt.show()
     return  [R_knee[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2) - 1)]]],[L_knee[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2) - 1)]]],R_knee[loc_max_finalR],L_knee[loc_max_finalL]
@@ -1372,7 +1390,8 @@ def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgro
     plt.legend()
     
     plt.title('ankle dorsiflexion '+ title,fontsize = 20)
-    plt.savefig(os.path.join(dir_task,'post_analysis','ankle dorsiflexion '+ title+ '.png'))
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','ankle dorsiflexion '+ title+ '.png'))
 
     #plt.show()
     return [R_ankle[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2)) - 1]]],[L_ankle[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2)) - 1]]],R_ankle[loc_max_finalR], L_ankle[loc_max_finalL]
@@ -1451,8 +1470,9 @@ def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgroun
     plt.legend()
     plt.grid(True)
     plt.title('hip flexion '+ title,fontsize = 20)
-    plt.savefig(os.path.join(dir_task,'post_analysis','hip flexion '+ title+ '.png'))
-
+    if title !='False':
+        plt.savefig(os.path.join(dir_task,'post_analysis','hip flexion '+ title+ '.png'))
+    #import pdb;pdb.set_trace()
     #plt.show()
     return [R_Hip[loc_max_finalR[round_half_up((len(loc_max_finalR) + 1) / 2) - 1]]],[L_Hip[loc_max_finalL[round_half_up((len(loc_max_finalL) + 1) / 2) - 1]]],R_Hip[loc_max_finalR], L_Hip[loc_max_finalL]
 def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l):
@@ -1461,23 +1481,23 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
                 'Patient ID',
                 'Task Date',
                 'Task Name',
-                'Maximum Hip Angle Right',
-                'Maximum Hip Angle Left',
-                'Maximum Knee Angle Right',
-                'Maximum Knee Angle Left',
-                'Maximum Ankle Angle Right',
-                'Maximum Ankle Angle Left',
+                'Maximum Hip Angle Right in steady state',
+                'Maximum Hip Angle Left in steady state',
+                'Maximum Knee Angle Right in steady state',
+                'Maximum Knee Angle Left in steady state',
+                'Maximum Ankle Angle Right in steady state',
+                'Maximum Ankle Angle Left in steady state',
                 'Maximum Mean Speed',
                 'Variability of speed on steady state (rms)',
                 'Variability of speed on Acceleration and Decceleration state (rms)',
                 'Variability of speed on All state (rms)',
-                'Center of Mass of Lateral direction for AUC on Right side',
-                'Center of Mass of Lateral direction for AUC on Left side',
-                'Center of Mass of vertical direction for distance swings at Right side',
-                'Center of Mass of vertical direction for distance swings at Left side',
-                'Stride lenght Right',
-                'Stride length Left'],
-    'Value': [  'Gait1_python',
+                'Center of Mass of Lateral direction for AUC on Right side in steady state',
+                'Center of Mass of Lateral direction for AUC on Left side in steady state',
+                'Center of Mass of vertical direction for distance swings at Right side in steady state',
+                'Center of Mass of vertical direction for distance swings at Left side in steady state',
+                'Stride lenght Right in steady state',
+                'Stride length Left in steady state'],
+    'Value': [  'Gait_Walk_startend',
                 patient_id,
                 date_str,
                 task_str,
@@ -1568,9 +1588,31 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
 
     workbook.save(file_path)
 
+def dict_output(R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l):
+    output = {
+    'Version': 'Gait_Walk_startend',
+    'Maximum Hip Angle Right in steady state':  R_hip_steady[0],
+    'Maximum Hip Angle Left in steady state':L_hip_steady[0],
+    'Maximum Knee Angle Right in steady state': R_knee_steady[0],
+    'Maximum Knee Angle Left in steady state':L_knee_steady[0],
+    'Maximum Ankle Angle Right in steady state':R_ankle_steady[0],
+    'Maximum Ankle Angle Left in steady state':L_ankle_steady[0],
+    'Maximum Mean Speed':max_mean_velocity,
+    'Variability of speed on steady state (rms)': rms_final_steady,
+    'Variability of speed on Acceleration and Decceleration state (rms)': rms_start_end,
+    'Variability of speed on All state (rms)':rms_All,
+    'Center of Mass of Lateral direction for AUC on Right side in steady state': AUC_R,
+    'Center of Mass of Lateral direction for AUC on Left side in steady state': AUC_L,
+    'Center of Mass of vertical direction for distance swings at Right side in steady state':vertical_maxR-vertical_minR,
+    'Center of Mass of vertical direction for distance swings at Left side in steady state':vertical_maxL-vertical_minL,
+    'Stride lenght Right in steady state':  max(temp_r),
+    'Stride length Left in steady state': max(temp_l)
+    }         
+    return output
 
 def gait1(dir_calculated):
     tasks=choose_file(dir_calculated)
+    #
     for i in range(len(tasks)):
         dir_task = tasks[i]
         create_post_analysis_dir(dir_task)
@@ -1584,6 +1626,7 @@ def gait1(dir_calculated):
         IK_dir = os.path.join(dir_task, 'opensim', 'Balancing_for_IK_BODY.mot')
         trc_dir = os.path.join(dir_task, 'opensim', 'Empty_project_filt_0-30.trc')
         data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
+        #import pdb;pdb.set_trace()
         AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
         rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
         pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
@@ -1609,20 +1652,31 @@ def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):
     R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
     R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
     excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+def gait1_dictoutput(IK_dir,trc_dir,output_dir):
+    dir_task = output_dir
+    path_parts = dir_task.split(os.sep)
+    title = 'False'
+    data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
+    AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
+    rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
+    pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
+    R_knee_steady,L_knee_steady,R_knee,L_knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+    output = dict_output(R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+    return output
 
 
 
-
-# ####### Input parameter
-# IK_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51\opensim\Balancing_for_IK_BODY.mot'
-# trc_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51\opensim\Empty_project_filt_0-30.trc'
-# output_dir=r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\Maurice_camtest2\2024_06_24\2024_07_23_15_12_calculated_DLT_Norm_mean\walk51'
+####### Input parameter
+# IK_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1\opensim\Balancing_for_IK_BODY.mot'
+# trc_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1\opensim\Empty_project_filt_0-30.trc'
+# output_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1'
 # patient_id='Maurice_camtest2'
 # date_str='2024_06_24'
-# task_str='walk51'
+# task_str='walk1'
 # ######## Function to be called
-# gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str)
-
+# output = gait1_dictoutput(IK_dir,trc_dir,output_dir)
 
 
 
@@ -1633,5 +1687,5 @@ def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):
 
 #######Ignored Here
 
-# dir_calculated = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\2024_07_11post-tra\20240711\2024_07_11_14_31_calculated'
+# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated'
 # gait1(dir_calculated)

@@ -1,6 +1,6 @@
-set root=C:\ProgramData\Anaconda3
+set root=C:\Users\mauricetemp\anaconda3
 call %root%\Scripts\activate.bat %root%
-cd C:\Users\Hermes\Desktop\NTKCAP
+cd C:\Users\mauricetemp\Desktop\NTKCAP
 
 
 call conda activate pose2
@@ -10,7 +10,7 @@ call pip install setuptools==69.5.0
 call python setup.py develop --user
 call pip install -U openmim
 call mim install mmengine
-call mim install "mmcv>=2.0.1"
+call mim install "mmcv>=2.1.0"
 call mim install "mmdet>=3.3.0"
 call cd ..
 call cd mmpose
