@@ -303,6 +303,7 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
             break
 
     return response.status_code,message,meetId
+
 def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,meetId):
     message = []
     if actionname!='Apose':
@@ -404,6 +405,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
 
     return response.status_code,message,actionId
 def meet_update(dir_layout,dir_notevalue,meetId):
+    message =''
     with open(dir_layout , 'r', encoding='utf-8') as f:
         layout = json.load(f)
     with open(dir_notevalue , 'r', encoding='utf-8') as f:
@@ -412,7 +414,6 @@ def meet_update(dir_layout,dir_notevalue,meetId):
     response = requests.get(url)
     layout = response.json()
     value = [{'title': item['title'], 'content': item['content']} for item in value]
-    location = location['location'][0]
     output = {
     "id" : str(meetId),
     "prescription": None,  # Set to None as per your example
@@ -433,23 +434,19 @@ def meet_update(dir_layout,dir_notevalue,meetId):
         message =  json.loads(response.text)
         message = message['message']
         print("fail to update meet note " +message)
-def action_update(dir_layout,dir_notevalue,dir_location,timestring,meetId):
+    return response.status_code,message
+def action_update(dir_layout,dir_notevalue,actionId):
+    message = ''
     with open(dir_layout , 'r', encoding='utf-8') as f:
         layout = json.load(f)
     with open(dir_notevalue , 'r', encoding='utf-8') as f:
         value = json.load(f)
-    with open(dir_location , 'r', encoding='utf-8') as f:
-        location = json.load(f)
+   
     url =f"{host}/api/layouts/layoutId/"+ layout["action_layoutId"]
     response = requests.get(url)
     layout = response.json()
     value = [{'title': item['title'], 'content': item['content']} for item in value]
-    location = location['location'][0]
-    findmeetIdtemp = requests.get(f"{host}/api/meets/" +str(meetId) +'/actions')
-    findmeetIdtemp= findmeetIdtemp.json()
-    findmeetIdtemp['resources'][0]
-    matching_records = [item for item in findmeetIdtemp['resources'] if item['datetime'] == timestring] 
-    actionId = matching_records[0]['id']
+    actionId
     output = {
     "actionId":actionId ,
     "layout": layout,  # Make sure layout is a properly structured variable
@@ -462,10 +459,87 @@ def action_update(dir_layout,dir_notevalue,dir_location,timestring,meetId):
 }   
     response = requests.put(f"{host}/api/actions",json = output)
     print(response.status_code)
-    response.text
-    print('Successfully update a action')
-    return response.status_code,actionId
+    if response.status_code == 200:
+        print('Successfully update a action')
+    else:
+        message =  json.loads(response.text)
+        message = message['message']
+        print("fail to update action note " +message)
+    return response.status_code,message 
 
+def MeetActionID2json(meetId, actionId, outputdir):
+    # Fetch action and meet data from API
+    response = requests.get(f"{host}/api/actions/" + actionId)
+    actionoutput = response.json()
+    
+    response = requests.get(f"{host}/api/meets/" + meetId)
+    meetoutput = response.json()
+
+    # Function to get content from notes
+    def get_content_from_notes(notes, title, element_type):
+        for note in notes:
+            if note['title'] == title:
+                # Return "Choose an option" if it's a spinner, or an empty string if it's an input
+                if element_type == "spinner":
+                    return note['content'][0] if note['content'] else "Choose an option"
+                elif element_type == "input":
+                    return note['content'][0] if note['content'] else ""
+        return "Choose an option" if element_type == "spinner" else ""
+
+    # Transform the meet and action data into the desired format
+    def transform_data(meet_data, action_data):
+        # Initial structure
+        new_data = {
+            "meet_layoutId": meet_data['layout']['layoutId'],
+            "action_layoutId": action_data['layout']['layoutId'],
+            "fields": []
+        }
+
+        # Process meet data fields
+        for field in meet_data['layout']['fields']:
+            # Get content from notes based on title and element type
+            content = get_content_from_notes(meet_data['notes'], field['title'], field['elementType'])
+            
+            new_field = {
+                "type": field['elementType'],
+                "title": field['title'],
+                "content": content,  # Set content from notes
+                "notetype": "meet"
+            }
+
+            # Add options if they exist
+            if field.get('options'):
+                new_field['options'] = field['options']
+
+            new_data["fields"].append(new_field)
+
+        # Process action data fields
+        for field in action_data['layout']['fields']:
+            # Get content from notes based on title and element type
+            content = get_content_from_notes(action_data['notes'], field['title'], field['elementType'])
+            
+            new_field = {
+                "type": field['elementType'],
+                "title": field['title'],
+                "content": content,  # Set content from notes
+                "notetype": "action"
+            }
+
+            # Add options if they exist
+            if field.get('options'):
+                new_field['options'] = field['options']
+
+            new_data["fields"].append(new_field)
+
+        return new_data
+
+    # Transform the data and write to output file
+    new_json_data = transform_data(meetoutput, actionoutput)
+    
+    with open(outputdir, 'w', encoding='utf-8') as json_file:
+        json.dump(new_json_data, json_file, indent=4, ensure_ascii=False)
+
+    
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\meetnote_layout.json'
 dir_location=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\location.json'
@@ -493,3 +567,8 @@ meetId ='66e15635bd48a32ea268b0f2'
 
 #action_update(dir_layout,dir_notevalue,dir_location,date_str,meetId)
 #marker_calculate_upload
+
+meetId ="66e26cb4bd48a32ea268b0f5"
+actionId = "66e2959abd48a32ea268b0fa"
+outputdir = r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout_temp.json'
+#MeetActionID2json(meetId,actionId,outputdir)

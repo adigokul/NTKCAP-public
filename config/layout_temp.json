@@ -11,7 +11,7 @@
         {
             "type": "spinner",
             "title": "Task outin",
-            "content": "Choose an option",
+            "content": "Inside camera",
             "notetype": "meet",
             "options": [
                 "Inside camera",
@@ -21,7 +21,7 @@
         {
             "type": "spinner",
             "title": "Facing",
-            "content": "Choose an option",
+            "content": "Window",
             "notetype": "meet",
             "options": [
                 "Door",
@@ -31,7 +31,7 @@
         {
             "type": "input",
             "title": "Symptoms",
-            "content": "",
+            "content": "A01: Typhoid and paratyphoid fevers / 傷寒及副傷寒",
             "notetype": "meet"
         },
         {
@@ -49,7 +49,7 @@
         {
             "type": "input",
             "title": "Level of Mood",
-            "content": "",
+            "content": "1234",
             "notetype": "meet"
         },
         {
@@ -66,7 +66,7 @@
         {
             "type": "spinner",
             "title": "Cloth Color",
-            "content": "Choose an option",
+            "content": "Purple",
             "notetype": "meet",
             "options": [
                 "Red",
@@ -80,7 +80,7 @@
         {
             "type": "spinner",
             "title": "Task Type",
-            "content": "Choose an option",
+            "content": "Walk",
             "notetype": "action",
             "options": [
                 "Walk",
@@ -92,7 +92,7 @@
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Cane",
+            "content": "Crutch",
             "notetype": "action",
             "options": [
                 "None",
@@ -111,7 +111,7 @@
         {
             "type": "spinner",
             "title": "Direction",
-            "content": "Choose an option",
+            "content": "BtoA",
             "notetype": "action",
             "options": [
                 "AtoB",
@@ -127,7 +127,7 @@
         {
             "type": "input",
             "title": "Task Number",
-            "content": "",
+            "content": "4",
             "notetype": "action"
         }
     ]

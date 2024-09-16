@@ -51,12 +51,13 @@ def fuzzy_search(query):
     results = cursor.fetchall()
     return results
 class TaskEDITInputScreen(Screen):
-    def __init__(self, meetdir=None, actiondir=None,meetId=None,actionId = None, **kwargs):
+    def __init__(self, btn= None,meetdir=None, actiondir=None,meetId=None,actionId = None, **kwargs):
         super(TaskEDITInputScreen, self).__init__(**kwargs)
         self.layout = BoxLayout(orientation='vertical')
         self.current_directory = os.getcwd()
         self.config_path = os.path.join(self.current_directory, "config")
-        
+        self.meetdir = meetdir
+        self.actiondir = actiondir
         # Add "Choose Layout" button
         self.choose_layout_button = Button(text="Choose Layout", size_hint_y=None, height=40)
         self.choose_layout_button.bind(on_press=self.open_file_chooser)
@@ -77,11 +78,14 @@ class TaskEDITInputScreen(Screen):
         self.task_name_input = None
         self.task_number_input = None
         self.task_spinner = None
-        self.layout_json_dir = ''
+        self.layout_json_dir =os.path.join(self.config_path,'layout_temp.json')
         self.add_widget(self.layout)
         self.layouts = None 
-        self.load_layout(os.path.join(self.config_path,'layout.json'))
+        
         # Function to fetch data from the API
+    def save_load_from_selected_action(self,meetId,actionId ):
+        MeetActionID2json(meetId,actionId,self.layout_json_dir)
+        self.load_layout(self.layout_json_dir)
     def fetch_layouts(self):
         if self.layouts is None:  # Only fetch if layouts have not been fetched yet
             host = "https://motion-service.yuyi-ocean.com"
@@ -231,31 +235,16 @@ class TaskEDITInputScreen(Screen):
         print("Combined Data with IDs and Fields:")
         print(combined_data)
         # Save combined_data to a JSON file
-        with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
+        with open(self.layout_json_dir, "w") as json_file:
             json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
-            print("Data saved to combined_fields_with_id.json")
+            
         # Add logic to close the popup after printing
         if hasattr(self, 'popup'):
             self.popup.dismiss()  # Close the popup if it's open
 
-        self.load_layout(os.path.join(self.config_path,'layout.json'))
+        self.load_layout(self.layout_json_dir)
     def open_file_chooser(self, instance):
         self.show_layouts_popup(self)
-        
-        # You can add additional logic here for what to do after selection
-        ###############################
-        # # 创建文件选择弹出窗口
-        # file_chooser = FileChooserIconView(path='.', filters=['*.json'])
-        # popup_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        # popup_layout.add_widget(file_chooser)
-        
-        # # 确认按钮
-        # confirm_button = Button(text="Load Layout", size_hint_y=None, height=40)
-        # confirm_button.bind(on_press=lambda x: self.load_layout(file_chooser.selection))
-        # popup_layout.add_widget(confirm_button)
-        
-        # self.popup = Popup(title="Choose Layout File", content=popup_layout, size_hint=(0.9, 0.9))
-        # self.popup.open()
     def save_data(self, instance):
         data_to_save_meetnote = {}
         data_to_save_actionnote = {}
@@ -319,20 +308,23 @@ class TaskEDITInputScreen(Screen):
                 actionnote_data.append(item)
 
         # Save 'meet' items to a separate JSON file
-        meetnote_file_path = os.path.join(self.config_path, 'meetnote_layout.json')
-        with open(meetnote_file_path, 'w', encoding='utf-8') as json_file:
+        self.meetnote_file_path = os.path.join(self.meetdir, 'Meet_note.json')
+        with open(self.meetnote_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(meetnote_data, json_file, indent=4, ensure_ascii=False)
 
         # Save 'action' items to a separate JSON file
-        actionnote_file_path = os.path.join(self.config_path, 'actionnote_layout.json')
-        with open(actionnote_file_path, 'w', encoding='utf-8') as json_file:
+        self.actionnote_file_path = os.path.join(self.actiondir, 'Action_note.json')
+        with open(self.actionnote_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(actionnote_data, json_file, indent=4, ensure_ascii=False)
         with open(self.layout_json_dir,'r',encoding='utf-8')as file:
             temp = json.load(file)
             temp['fields'] =meetnote_data+actionnote_data
         with open(self.layout_json_dir,'w',encoding='utf-8')as json_file:
             json.dump(temp, json_file, indent=4, ensure_ascii=False)
-        
+    def upload_cloud(self):
+        Mstatus,Mmessage = meet_update(self.layout_json_dir,self.meetnote_file_path,self.meetId)
+        Astatus,Amessage =action_update(self.layout_json_dir,self.actionnote_file_path,self.actionId)
+        return Mstatus,Mmessage,Astatus,Amessage
     def load_layout(self, layout_file):
             self.layout_json_dir = layout_file
             with open(layout_file, 'r', encoding='utf-8') as f:
@@ -446,7 +438,27 @@ class TaskEDITInputScreen(Screen):
                 result_button = Button(text=f"{code}: {en_description} / {cn_description}", size_hint_y=None, height=40, font_name=FONT_PATH)
                 result_button.bind(on_press=lambda x, c=code, e=en_description, cn=cn_description: self.select_result(c, e, cn))
                 self.result_layout.add_widget(result_button)
-    
+    def rename_folder(self,old_folder_name, new_folder_name):
+    # Check if the old folder exists
+        
+        if not os.path.exists(old_folder_name):
+            print(f"Folder does not exist.")
+            return f"Folder does not exist."
+        
+        # Check if the old and new folder names are the same
+        if old_folder_name == new_folder_name:
+            print(f"The old folder '{old_folder_name}' is the same as the new folder name. No renaming needed.")
+            return 1
+        
+        # Check if the new folder already exists
+        if os.path.exists(new_folder_name):
+            print(f"Error: The target folder already exists.")
+            # Optionally: handle the situation, like merging or deleting the existing folder
+            # shutil.rmtree(new_folder_name)  # Use carefully to delete the existing folder
+            return f"Error: The rename folder already exists."
+
+        os.rename(old_folder_name, new_folder_name)
+        return 1
     def select_result(self, code, en_description, cn_description):
         print(f"Selected: {code}: {en_description} / {cn_description}")
         
@@ -459,22 +471,46 @@ class TaskEDITInputScreen(Screen):
             self.idc_result_input.text = new_text
         
         self.popup.dismiss()
+    def show_warning_popup(self,warning_text):
+        # Layout for the popup
+                layout = BoxLayout(orientation="vertical", padding=10, spacing=10)
 
+                # Add a label with the message
+                message_label = Label(text=warning_text)
+                layout.add_widget(message_label)
+
+                # Add the close button
+                close_button = Button(text="Close", size_hint=(1, 0.5))
+                close_button.bind(on_press=self.close_popup)
+                layout.add_widget(close_button)
+
+                # Create the popup window
+                self.popup_window = Popup(title="Popup Example", content=layout, size_hint=(0.7, 0.4))
+                self.popup_window.open()
+
+    def close_popup(self, instance):
+        # Close the popup window
+        self.popup_window.dismiss()
     def print_task_info(self, instance):
-        
-        if self.task_name_input and self.task_number_input:
-            task_name = self.task_name_input.text
-            task_number = self.task_number_input.text
-            self.manager.parent_app.task_name = f"{task_name} {task_number}"
-            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
-            print(f"Task: {self.manager.parent_app.task_name}")
-            
-            self.save_data(instance)
-            
-            
-            self.manager.current = 'main'  # Switch back to the main screen
+        task_name = self.task_name_input.text
+        task_number = self.task_number_input.text
+        self.save_data(instance)
+        Mstatus,Mmessage,Astatus,Amessage =self.upload_cloud()
+        if Mstatus==200 and Astatus==200:
+            rename_status =self.rename_folder(self.actiondir, os.path.join(self.meetdir,f"{task_name}_{task_number}"))
+            if rename_status ==1:
+                print(f"Task: {self.manager.parent_app.task_name}")
+                self.actiondir = os.path.join(self.meetdir,f"{task_name}_{task_number}")
+                
+                self.btn.text = f"{task_name}_{task_number}"
+                self.btn.unbind(on_press=None)
+                self.btn.bind(on_press=lambda instance, btn=self.btn,meetdir =self.meetdir,actiondir =os.path.join(self.meetdir,f"{task_name}_{task_number}"),meetId=self.meetId,actionId=self.actionId: self.manager.parent_app.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
+                self.manager.current = 'main'  # Switch back to the main screen
+            else:
+                
+                self.show_warning_popup(rename_status)
         else:
-            print("Task Name or Task Number input not found")
+            self.show_warning_popup(Mmessage +' \n' + Amessage)
 # class TaskEDITInputScreen(Screen):
 #     def __init__(self, meetdir=None, actiondir=None, **kwargs):
 #         super(TaskEDITInputScreen, self).__init__(**kwargs)
@@ -922,7 +958,6 @@ class TaskInputScreen(Screen):
         # Save combined_data to a JSON file
         with open(os.path.join(self.config_path,'layout.json'), "w") as json_file:
             json.dump(combined_data, json_file, indent=4)  # Save with indentation for readability
-            print("Data saved to combined_fields_with_id.json")
         # Add logic to close the popup after printing
         if hasattr(self, 'popup'):
             self.popup.dismiss()  # Close the popup if it's open
@@ -1154,8 +1189,8 @@ class TaskInputScreen(Screen):
         if self.task_name_input and self.task_number_input:
             task_name = self.task_name_input.text
             task_number = self.task_number_input.text
-            self.manager.parent_app.task_name = f"{task_name} {task_number}"
-            self.manager.parent_app.task_button.text =f"{task_name} {task_number}"
+            self.manager.parent_app.task_name = f"{task_name}_{task_number}"
+            self.manager.parent_app.task_button.text =f"{task_name}_{task_number}"
             print(f"Task: {self.manager.parent_app.task_name}")
             
             self.save_data(instance)
@@ -1577,9 +1612,16 @@ class NTK_CapApp(App):
 
 
         return self.layout
-    def set_taskinput_screen_with_param(self, screen_name,meetdir,actiondir, **kwargs):
+    def set_taskinput_screen_with_param(self, screen_name,btn,meetdir,actiondir,meetId,actionId ,**kwargs):
         # Get the screen instance
         screen = self.sm.get_screen(screen_name)
+        screen.meetdir = meetdir
+        screen.actiondir = actiondir
+        screen.meetId = meetId
+        screen.actionId = actionId
+        screen.save_load_from_selected_action(meetId,actionId )
+        #import pdb;pdb.set_trace()
+        screen.btn=btn
         #screen.load_layout(meetdir,actiondir)
         # Pass the additional parameters to the screen
         for key, value in kwargs.items():
@@ -1621,13 +1663,15 @@ class NTK_CapApp(App):
                 meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
                 with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
                     temp= json.load(file)
-                    actionId = temp['meetId']
+                    actionId = temp['actionId']
                 with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
                     temp= json.load(file)
                     meetId = temp['meetId']
-                import pdb;pdb.set_trace()
+                meetdir=dir_list_tasks
+                actiondir =os.path.join(dir_list_tasks,filtered_folders[taskname])
                 if os.path.exists(meetdir) and os.path.exists(actiondir):
-                    btn.bind(on_press=lambda instance, meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', meetdir, actiondir,meetId,actionId))
+                    
+                    btn.bind(on_press=lambda instance, btn=btn,meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
                 else:
                     name_dir = os.path.join(dir_list_tasks)
                     name = filtered_folders[taskname]
@@ -2010,11 +2054,11 @@ class NTK_CapApp(App):
     def actionnoteupload(self,taskname,meetId):
         date_str = datetime.now().strftime("%Y_%m_%d")
         date_str=datetime.strptime(date_str, "%Y_%m_%d").isoformat() + 'Z'
-        data = {
-            "meetId" : meetId
-        }
+        
         status,message,actionId = action_postupdate(os.path.join(self.config_path,'layout.json'),os.path.join(self.config_path, 'actionnote_layout.json'),os.path.join(self.config_path, 'location.json'),self.patient_genID,date_str,taskname,meetId)
-
+        data = {
+            "actionId" : actionId
+        }
         if status!=200 and status!= 201:
             print(status)
             print('upload fail')
