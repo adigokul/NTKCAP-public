@@ -491,26 +491,38 @@ class TaskEDITInputScreen(Screen):
     def close_popup(self, instance):
         # Close the popup window
         self.popup_window.dismiss()
+    def dir_update(self,action):
+        self.actiondir = action
+        self.actionnote_file_path =  os.path.join(self.actiondir, 'Action_note.json')
     def print_task_info(self, instance):
         task_name = self.task_name_input.text
         task_number = self.task_number_input.text
+        #self.actiondir =os.path.join(self.meetdir,f"{task_name}_{task_number}")
+        
         self.save_data(instance)
-        Mstatus,Mmessage,Astatus,Amessage =self.upload_cloud()
-        if Mstatus==200 and Astatus==200:
-            rename_status =self.rename_folder(self.actiondir, os.path.join(self.meetdir,f"{task_name}_{task_number}"))
-            if rename_status ==1:
-                print(f"Task: {self.manager.parent_app.task_name}")
-                self.actiondir = os.path.join(self.meetdir,f"{task_name}_{task_number}")
+        
+        
+        rename_status =self.rename_folder(self.actiondir, os.path.join(self.meetdir,f"{task_name}_{task_number}"))
+        if rename_status ==1:
+            print(f"Task: {self.manager.parent_app.task_name}")
+            self.dir_update(os.path.join(self.meetdir,f"{task_name}_{task_number}"))
+            
+            Mstatus,Mmessage,Astatus,Amessage =self.upload_cloud()
+            if Mstatus==200 and Astatus==200:
+                
                 
                 self.btn.text = f"{task_name}_{task_number}"
                 self.btn.unbind(on_press=None)
-                self.btn.bind(on_press=lambda instance, btn=self.btn,meetdir =self.meetdir,actiondir =os.path.join(self.meetdir,f"{task_name}_{task_number}"),meetId=self.meetId,actionId=self.actionId: self.manager.parent_app.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
+                date = datetime.now().strftime("%Y_%m_%d")
+                self.manager.parent_app.update_tasklist(date)
+                #self.btn.bind(on_press=lambda instance, btn=self.btn,meetdir =self.meetdir,actiondir =os.path.join(self.meetdir,f"{task_name}_{task_number}"),meetId=self.meetId,actionId=self.actionId: self.manager.parent_app.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
                 self.manager.current = 'main'  # Switch back to the main screen
             else:
-                
-                self.show_warning_popup(rename_status)
+                self.show_warning_popup(Mmessage +' \n' + Amessage)
         else:
-            self.show_warning_popup(Mmessage +' \n' + Amessage)
+            
+            self.show_warning_popup(rename_status)
+        
 # class TaskEDITInputScreen(Screen):
 #     def __init__(self, meetdir=None, actiondir=None, **kwargs):
 #         super(TaskEDITInputScreen, self).__init__(**kwargs)
@@ -1622,6 +1634,7 @@ class NTK_CapApp(App):
         screen.save_load_from_selected_action(meetId,actionId )
         #import pdb;pdb.set_trace()
         screen.btn=btn
+        
         #screen.load_layout(meetdir,actiondir)
         # Pass the additional parameters to the screen
         for key, value in kwargs.items():
@@ -2206,8 +2219,8 @@ class NTK_CapApp(App):
 
         else:
             print('Error from mode select')
-        self.update_tasklist(date)
-        self.update_Task_note()
+       
+        
         if self.btn_toggle_cloud_sinlge.text == 'Cloud':
             if self.meetId=='':
                 with open(os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','meetId.json'),'r') as file:
@@ -2215,7 +2228,8 @@ class NTK_CapApp(App):
                     self.meetId = temp['meetId']
             
             self.actionnoteupload(self.label_task_real.text,self.meetId)
-    
+        self.update_Task_note()
+        self.update_tasklist(date)
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
         try:

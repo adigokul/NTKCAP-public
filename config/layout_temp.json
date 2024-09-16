@@ -11,7 +11,7 @@
         {
             "type": "spinner",
             "title": "Task outin",
-            "content": "Inside camera",
+            "content": "Choose an option",
             "notetype": "meet",
             "options": [
                 "Inside camera",
@@ -21,7 +21,7 @@
         {
             "type": "spinner",
             "title": "Facing",
-            "content": "Window",
+            "content": "Choose an option",
             "notetype": "meet",
             "options": [
                 "Door",
@@ -31,13 +31,13 @@
         {
             "type": "input",
             "title": "Symptoms",
-            "content": "A01: Typhoid and paratyphoid fevers / 傷寒及副傷寒",
+            "content": "I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）",
             "notetype": "meet"
         },
         {
             "type": "input",
             "title": "Fall Risk Level",
-            "content": "",
+            "content": "12",
             "notetype": "meet"
         },
         {
@@ -49,13 +49,13 @@
         {
             "type": "input",
             "title": "Level of Mood",
-            "content": "1234",
+            "content": "",
             "notetype": "meet"
         },
         {
             "type": "spinner",
             "title": "Treatment Phase",
-            "content": "Choose an option",
+            "content": "Post-trainging",
             "notetype": "meet",
             "options": [
                 "Pre phase",
@@ -66,7 +66,7 @@
         {
             "type": "spinner",
             "title": "Cloth Color",
-            "content": "Purple",
+            "content": "Choose an option",
             "notetype": "meet",
             "options": [
                 "Red",
@@ -92,7 +92,7 @@
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Crutch",
+            "content": "Walking Stick",
             "notetype": "action",
             "options": [
                 "None",
@@ -111,7 +111,7 @@
         {
             "type": "spinner",
             "title": "Direction",
-            "content": "BtoA",
+            "content": "AtoB",
             "notetype": "action",
             "options": [
                 "AtoB",
@@ -127,7 +127,7 @@
         {
             "type": "input",
             "title": "Task Number",
-            "content": "4",
+            "content": "5",
             "notetype": "action"
         }
     ]

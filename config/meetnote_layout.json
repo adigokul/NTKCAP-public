@@ -28,13 +28,13 @@
     {
         "type": "input",
         "title": "Symptoms",
-        "content": "",
+        "content": "I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）",
         "notetype": "meet"
     },
     {
         "type": "input",
         "title": "Fall Risk Level",
-        "content": "",
+        "content": "12",
         "notetype": "meet"
     },
     {
@@ -52,7 +52,7 @@
     {
         "type": "spinner",
         "title": "Treatment Phase",
-        "content": "Choose an option",
+        "content": "Post-trainging",
         "notetype": "meet",
         "options": [
             "Pre phase",
