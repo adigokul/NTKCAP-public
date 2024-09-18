@@ -1095,7 +1095,7 @@ def marker_caculate(PWD,cal_data_path):
         now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml")
         os.chdir(now_project_opensim)
         print("切換至" + os.getcwd())
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         halpe26_xml_update(now_project)
         #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
