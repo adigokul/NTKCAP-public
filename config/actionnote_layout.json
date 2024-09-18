@@ -14,7 +14,7 @@
     {
         "type": "spinner",
         "title": "Walking aid",
-        "content": "Walking Stick",
+        "content": "None",
         "notetype": "action",
         "options": [
             "None",
@@ -43,13 +43,13 @@
     {
         "type": "input",
         "title": "Note",
-        "content": "",
+        "content": "123",
         "notetype": "action"
     },
     {
         "type": "input",
         "title": "Task Number",
-        "content": "4",
+        "content": "",
         "notetype": "action"
     }
 ]

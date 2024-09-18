@@ -15,7 +15,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image
 import json
-Gait_version = r'Gait 20240703'
+Tasktype = 'Walking_startend'
+Version = '0'
+
 Patient_data_dir =r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data'
 body_parts = {
         'CHip': 0,
@@ -1477,7 +1479,8 @@ def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgroun
     return [R_Hip[loc_max_finalR[round_half_up((len(loc_max_finalR) + 1) / 2) - 1]]],[L_Hip[loc_max_finalL[round_half_up((len(loc_max_finalL) + 1) / 2) - 1]]],R_Hip[loc_max_finalR], L_Hip[loc_max_finalL]
 def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l):
     excel_output = {
-    'Title': [  'Version',
+    'Title': [  'Tasktype',
+                'Version', 
                 'Patient ID',
                 'Task Date',
                 'Task Name',
@@ -1497,7 +1500,8 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
                 'Center of Mass of vertical direction for distance swings at Left side in steady state',
                 'Stride lenght Right in steady state',
                 'Stride length Left in steady state'],
-    'Value': [  'Gait_Walk_startend',
+    'Value': [  Tasktype,
+                Version,
                 patient_id,
                 date_str,
                 task_str,
@@ -1590,7 +1594,8 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
 
 def dict_output(R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l):
     output = {
-    'Version': 'Gait_Walk_startend',
+    'Tasktype': Tasktype,
+    'Version' : Version,
     'Maximum Hip Angle Right in steady state':  R_hip_steady[0],
     'Maximum Hip Angle Left in steady state':L_hip_steady[0],
     'Maximum Knee Angle Right in steady state': R_knee_steady[0],
@@ -1687,5 +1692,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated'
+# dir_calculated = r'D:\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated'
 # gait1(dir_calculated)

@@ -1,20 +1,14 @@
+import json
 
-from PIL import Image
-import numpy as np
+# Specify the path to your JSON file
+json_file_path =r'C:\Users\mauricetemp\Desktop\kevin\2_processed.json'
 
-# Open the image file
-img = Image.open(r'E:\reID\0002_c1s1_000451_03.jpg')
+# Open and read the JSON file
+with open(json_file_path, 'r') as file:
+    data = json.load(file)  # Load JSON data
+import pdb;pdb.set_trace()
+# Display the loaded JSON data
+print(data)
 
-# Convert image to a NumPy array
-img_array1 = np.array(img)
-
-# Display the shape of the array
-print(img_array1.shape)
-
-img = Image.open(r'E:\reID\8.jpg')
-
-# Convert image to a NumPy array
-img_array2 = np.array(img)
-
-# Display the shape of the array
-print(img_array2.shape)
+# Access individual elements
+print(data['name'])  # If JSON has a key 'name'

@@ -304,7 +304,7 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
 
     return response.status_code,message,meetId
 
-def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,meetId):
+def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,tasktype,meetId):
     message = []
     if actionname!='Apose':
         
@@ -325,6 +325,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         "datetime": timestring,  # Use the provided timestring
         "location": location,  # Use the provided location
         "actionName": actionname,
+        "taskType": 'Walking_start',
         "layout": layout,  # Make sure layout is a properly structured variable
         "notes": [
             {
@@ -343,6 +344,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         url =f"{host}/api/layouts/layoutId/"+ layout["action_layoutId"]
         response = requests.get(url)
         layout = response.json()
+        
         value = [{'title': item['title'], 'content': item['content']} for item in value]
         location = location['location'][0]
         patientId
@@ -351,6 +353,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         "datetime": timestring,  # Use the provided timestring
         "location": location,  # Use the provided location
         "actionName": actionname,
+        "taskType": tasktype,
         "layout": layout,  # Make sure layout is a properly structured variable
         "notes": [
             {
@@ -365,8 +368,13 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
     #import pdb;pdb.set_trace()
     url = f"{host}/api/actions"
     response = requests.post(url,json=output)
+    #url = f"{host}/api/meets/{meetId}"
+    #response = requests.get(url)
     response.status_code
     response.text
+    r''''{"id":"66ea45f6f43367445fa25231","datetime":"2024-09-18T00:00:00Z","location":"NYCU402-1","patient":{"id":"667d29d0cfee0b0977061967","phone":"0910101010","name":"黃亮維","sex":"F","birthday":"2024-05-26T16:00:00Z","height":0.0,"weight":0.0,"careNumber":null,"note":null},"actions":[],"prescription":null,"description":null,"layout":{"id":"66bdd8045421d11d1f523e15","layoutId":"common_01","catalog":"meet","createTime":"2024-08-15T10:27:16.431Z","fields":[{"catalog":"meet","elementType":"input","title":"Task number","options":null},{"catalog":"meet","elementType":"spinner","title":"Task outin","options":["Inside camera","walk from outside"]},{"catalog":"meet","elementType":"spinner","title":"Facing","options":["Door","Window"]},{"catalog":"meet","elementType":"input","title":"Symptoms","options":null},{"catalog":"meet","elementType":"input","title":"Fall Risk Level","options":null},{"catalog":"meet","elementType":"input","title":"Temperature(C)","options":null},{"catalog":"meet","elementType":"input","title":"Level of Mood","options":null},{"catalog":"meet","elementType":"spinner","title":"Treatment Phase","options":["Pre phase","Post-injection","Post-trainging"]},{"catalog":"meet","elementType":"spinner","title":"Cloth Color","options":["Red","Orange","Yellow","Green","Blue","Purple"]}]},"notes":[{"title":"Task number","content":[]},{"title":"Task outin","content":[]},{"title":"Facing","content":[]},{"title":"Symptoms","content":["I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）"]},{"title":"Fall Risk Level","content":["12"]},{"title":"Temperature(C)","content":[]},{"title":"Level of Mood","content":[]},{"title":"Treatment Phase","content":["Post-trainging"]},{"title":"Cloth Color","content":[]}]}'
+    '''
+    #import pdb;pdb.set_trace()
     if response.status_code ==201:
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
@@ -377,7 +385,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         
         if message == "action is created.":
             findmeetIdtemp = requests.get(f"{host}/api/meets/" +str(meetId) +'/actions')
-            
+            #import pdb;pdb.set_trace()
             findmeetIdtemp= findmeetIdtemp.json()
             findmeetIdtemp['resources'][0]
             matching_records = [item for item in findmeetIdtemp['resources'] if item['actionName'] == actionname] 
@@ -391,6 +399,8 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             output = {
                 "actionId":output["actionId"],
                 "layout": output['layout'],
+                "taskType": tasktype,
+                "actionName":actionname,
                 "notes": output['notes']
             }           
             response = requests.put(f"{host}/api/actions",json = output)
@@ -435,7 +445,8 @@ def meet_update(dir_layout,dir_notevalue,meetId):
         message = message['message']
         print("fail to update meet note " +message)
     return response.status_code,message
-def action_update(dir_layout,dir_notevalue,actionId):
+def action_update(dir_layout,dir_notevalue,actionId,tasktype,actionname,samefoldercheck):
+    
     message = ''
     with open(dir_layout , 'r', encoding='utf-8') as f:
         layout = json.load(f)
@@ -447,18 +458,34 @@ def action_update(dir_layout,dir_notevalue,actionId):
     layout = response.json()
     value = [{'title': item['title'], 'content': item['content']} for item in value]
     actionId
-    output = {
-    "actionId":actionId ,
-    "layout": layout,  # Make sure layout is a properly structured variable
-    "notes": [
-        {
-            "title": item["title"],  # Keep the title as is from value
-            "content": [] if ((item["content"] == "") or (item["content"] == "Choose an option")) else [item["content"]]  # Handle empty and non-empty content
-        } for item in value  # Iterate through the value list to generate notes
-    ]
-}   
+    if samefoldercheck == False:
+        output = {
+        "actionId":actionId ,
+        "layout": layout,  # Make sure layout is a properly structured variable
+        "taskType": tasktype,
+        "actionName":actionname,
+        "notes": [
+            {
+                "title": item["title"],  # Keep the title as is from value
+                "content": [] if ((item["content"] == "") or (item["content"] == "Choose an option")) else [item["content"]]  # Handle empty and non-empty content
+            } for item in value  # Iterate through the value list to generate notes
+        ]
+    }   
+    else:
+        output = {
+        "actionId":actionId ,
+        "layout": layout,  # Make sure layout is a properly structured variable
+        "taskType": tasktype,
+        "notes": [
+            {
+                "title": item["title"],  # Keep the title as is from value
+                "content": [] if ((item["content"] == "") or (item["content"] == "Choose an option")) else [item["content"]]  # Handle empty and non-empty content
+            } for item in value  # Iterate through the value list to generate notes
+        ]
+    }   
     response = requests.put(f"{host}/api/actions",json = output)
     print(response.status_code)
+    
     if response.status_code == 200:
         print('Successfully update a action')
     else:
@@ -538,14 +565,34 @@ def MeetActionID2json(meetId, actionId, outputdir):
     
     with open(outputdir, 'w', encoding='utf-8') as json_file:
         json.dump(new_json_data, json_file, indent=4, ensure_ascii=False)
+def getTasktype(actionId=None):
+    content = []
+    url =f"{host}/api/taskTypes"
+    response = requests.get(url)
+    response = response.json()
+    task_types = [item['taskType'] for item in response['resources']]
+    if actionId:
+        url = f"{host}/api/actions/"+ actionId
+        response =requests.get(url)
+        response = response.json()
+        content = response['taskType']
+    return task_types,content
+    #import pdb;pdb.set_trace()
+def getTasknumber(actionId):
+    url =f"{host}/api/actions/{actionId}"
+    response =requests.get(url)
+    response = response.json()
+    #import pdb;pdb.set_trace()
+    task_number = response['actionName'].split('_')[-1]
 
-    
+    return task_number
+getTasktype()  
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\meetnote_layout.json'
 dir_location=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\location.json'
 patientId = "66d94d6626a882267fa69252"
 date_str = datetime.now().strftime("%Y_%m_%d")
-date_str='2024-09-15T00:00:00Z'
+date_str='2024-09-18T00:00:00Z'
 #datetime.strptime(date_str, "%Y_%m_%d").isoformat() + 'Z'
 #timestring = datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
 #meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,date_str)
@@ -559,11 +606,14 @@ date_str='2024-09-15T00:00:00Z'
 
 
 # Replace 'path_to_json_file' with the actual path to your JSON file
+patientId  ='667d29d0cfee0b0977061967'
+date_str='2024-09-18T00:00:00Z'
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\actionnote_layout.json'
 dir_location=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\location.json'
-meetId ='66e15635bd48a32ea268b0f2'
-#action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,date_str,'walk1',meetId)
+meetId="66ea45f6f43367445fa25231"
+task_type ='Walking_start'
+#action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,date_str,'walk1',task_type,meetId)
 
 #action_update(dir_layout,dir_notevalue,dir_location,date_str,meetId)
 #marker_calculate_upload
@@ -572,3 +622,6 @@ meetId ="66e26cb4bd48a32ea268b0f5"
 actionId = "66e2959abd48a32ea268b0fa"
 outputdir = r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout_temp.json'
 #MeetActionID2json(meetId,actionId,outputdir)
+
+actionId = "66eb05d3bd94767b715d512e"
+#getTasknumber(actionId)

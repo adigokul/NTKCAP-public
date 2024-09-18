@@ -37,7 +37,7 @@
         {
             "type": "input",
             "title": "Fall Risk Level",
-            "content": "12",
+            "content": "2",
             "notetype": "meet"
         },
         {
@@ -55,7 +55,7 @@
         {
             "type": "spinner",
             "title": "Treatment Phase",
-            "content": "Post-trainging",
+            "content": "Choose an option",
             "notetype": "meet",
             "options": [
                 "Pre phase",
@@ -80,7 +80,7 @@
         {
             "type": "spinner",
             "title": "Task Type",
-            "content": "Walk",
+            "content": "Run",
             "notetype": "action",
             "options": [
                 "Walk",
@@ -92,7 +92,7 @@
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Walking Stick",
+            "content": "Cane",
             "notetype": "action",
             "options": [
                 "None",
@@ -127,7 +127,7 @@
         {
             "type": "input",
             "title": "Task Number",
-            "content": "5",
+            "content": "",
             "notetype": "action"
         }
     ]

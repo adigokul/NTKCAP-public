@@ -31,13 +31,13 @@
         {
             "type": "input",
             "title": "Symptoms",
-            "content": "I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）",
+            "content": "A00.0: Cholera due to Vibrio cholerae 01, biovar cholerae / 血清型01 cholerae霍亂弧菌所致之霍亂",
             "notetype": "meet"
         },
         {
             "type": "input",
             "title": "Fall Risk Level",
-            "content": "12",
+            "content": "",
             "notetype": "meet"
         },
         {
@@ -55,7 +55,7 @@
         {
             "type": "spinner",
             "title": "Treatment Phase",
-            "content": "Post-trainging",
+            "content": "Choose an option",
             "notetype": "meet",
             "options": [
                 "Pre phase",
@@ -92,7 +92,7 @@
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Walking Stick",
+            "content": "None",
             "notetype": "action",
             "options": [
                 "None",
@@ -121,13 +121,13 @@
         {
             "type": "input",
             "title": "Note",
-            "content": "",
+            "content": "123",
             "notetype": "action"
         },
         {
             "type": "input",
             "title": "Task Number",
-            "content": "4",
+            "content": "",
             "notetype": "action"
         }
     ]
