@@ -1106,10 +1106,10 @@ def marker_caculate(PWD,cal_data_path):
 
     tasks = os.listdir(os.path.join(cal_data_path,'raw_data'))
     for k in tasks:
-        if k == "Apose":
+
+        if k.endswith(("Apose","calibration",".json")):
             continue
-        if k == "calibration":
-            continue
+        #import pdb;pdb.set_trace()
         
         now_task = os.path.join(caculate_finshed_path, k)
         now_project = now_task

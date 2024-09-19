@@ -325,7 +325,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         "datetime": timestring,  # Use the provided timestring
         "location": location,  # Use the provided location
         "actionName": actionname,
-        "taskType": 'Walking_start',
+        "taskType": tasktype,
         "layout": layout,  # Make sure layout is a properly structured variable
         "notes": [
             {
@@ -375,6 +375,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
     r''''{"id":"66ea45f6f43367445fa25231","datetime":"2024-09-18T00:00:00Z","location":"NYCU402-1","patient":{"id":"667d29d0cfee0b0977061967","phone":"0910101010","name":"黃亮維","sex":"F","birthday":"2024-05-26T16:00:00Z","height":0.0,"weight":0.0,"careNumber":null,"note":null},"actions":[],"prescription":null,"description":null,"layout":{"id":"66bdd8045421d11d1f523e15","layoutId":"common_01","catalog":"meet","createTime":"2024-08-15T10:27:16.431Z","fields":[{"catalog":"meet","elementType":"input","title":"Task number","options":null},{"catalog":"meet","elementType":"spinner","title":"Task outin","options":["Inside camera","walk from outside"]},{"catalog":"meet","elementType":"spinner","title":"Facing","options":["Door","Window"]},{"catalog":"meet","elementType":"input","title":"Symptoms","options":null},{"catalog":"meet","elementType":"input","title":"Fall Risk Level","options":null},{"catalog":"meet","elementType":"input","title":"Temperature(C)","options":null},{"catalog":"meet","elementType":"input","title":"Level of Mood","options":null},{"catalog":"meet","elementType":"spinner","title":"Treatment Phase","options":["Pre phase","Post-injection","Post-trainging"]},{"catalog":"meet","elementType":"spinner","title":"Cloth Color","options":["Red","Orange","Yellow","Green","Blue","Purple"]}]},"notes":[{"title":"Task number","content":[]},{"title":"Task outin","content":[]},{"title":"Facing","content":[]},{"title":"Symptoms","content":["I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）"]},{"title":"Fall Risk Level","content":["12"]},{"title":"Temperature(C)","content":[]},{"title":"Level of Mood","content":[]},{"title":"Treatment Phase","content":["Post-trainging"]},{"title":"Cloth Color","content":[]}]}'
     '''
     #import pdb;pdb.set_trace()
+    import pdb;pdb.set_trace()
     if response.status_code ==201:
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
@@ -586,7 +587,7 @@ def getTasknumber(actionId):
     task_number = response['actionName'].split('_')[-1]
 
     return task_number
-getTasktype()  
+#getTasktype()  
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\meetnote_layout.json'
 dir_location=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\location.json'

@@ -2,7 +2,7 @@
     {
         "type": "spinner",
         "title": "Task Type",
-        "content": "Walk",
+        "content": "Choose an option",
         "notetype": "action",
         "options": [
             "Walk",
@@ -14,7 +14,7 @@
     {
         "type": "spinner",
         "title": "Walking aid",
-        "content": "None",
+        "content": "Choose an option",
         "notetype": "action",
         "options": [
             "None",
@@ -33,7 +33,7 @@
     {
         "type": "spinner",
         "title": "Direction",
-        "content": "AtoB",
+        "content": "Choose an option",
         "notetype": "action",
         "options": [
             "AtoB",
@@ -43,7 +43,7 @@
     {
         "type": "input",
         "title": "Note",
-        "content": "123",
+        "content": "",
         "notetype": "action"
     },
     {

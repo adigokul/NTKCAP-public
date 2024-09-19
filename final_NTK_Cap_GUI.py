@@ -1456,16 +1456,16 @@ class NTK_CapApp(App):
             
                 actiondir = os.path.join(dir_list_tasks,filtered_folders[taskname],'Action_note.json')
                 meetdir =os.path.join(dir_list_tasks,'Meet_note.json')
-                with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
-                    temp= json.load(file)
-                    actionId = temp['actionId']
-                with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
-                    temp= json.load(file)
-                    meetId = temp['meetId']
+                
                 meetdir=dir_list_tasks
                 actiondir =os.path.join(dir_list_tasks,filtered_folders[taskname])
-                if os.path.exists(meetdir) and os.path.exists(actiondir):
-                    
+                if self.btn_toggle_cloud_sinlge.text == 'Cloud':
+                    with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
+                        temp= json.load(file)
+                        actionId = temp['actionId']
+                    with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
+                        temp= json.load(file)
+                        meetId = temp['meetId']
                     btn.bind(on_press=lambda instance, btn=btn,meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
                 else:
                     name_dir = os.path.join(dir_list_tasks)
