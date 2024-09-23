@@ -7,7 +7,7 @@ import configparser
 import os
 from datetime import datetime
 import json
-
+from natsort import natsorted
 
 """
 能夠在條件 選擇 calculated ，包含upload.conf 檔案的目錄下
@@ -375,7 +375,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
     r''''{"id":"66ea45f6f43367445fa25231","datetime":"2024-09-18T00:00:00Z","location":"NYCU402-1","patient":{"id":"667d29d0cfee0b0977061967","phone":"0910101010","name":"黃亮維","sex":"F","birthday":"2024-05-26T16:00:00Z","height":0.0,"weight":0.0,"careNumber":null,"note":null},"actions":[],"prescription":null,"description":null,"layout":{"id":"66bdd8045421d11d1f523e15","layoutId":"common_01","catalog":"meet","createTime":"2024-08-15T10:27:16.431Z","fields":[{"catalog":"meet","elementType":"input","title":"Task number","options":null},{"catalog":"meet","elementType":"spinner","title":"Task outin","options":["Inside camera","walk from outside"]},{"catalog":"meet","elementType":"spinner","title":"Facing","options":["Door","Window"]},{"catalog":"meet","elementType":"input","title":"Symptoms","options":null},{"catalog":"meet","elementType":"input","title":"Fall Risk Level","options":null},{"catalog":"meet","elementType":"input","title":"Temperature(C)","options":null},{"catalog":"meet","elementType":"input","title":"Level of Mood","options":null},{"catalog":"meet","elementType":"spinner","title":"Treatment Phase","options":["Pre phase","Post-injection","Post-trainging"]},{"catalog":"meet","elementType":"spinner","title":"Cloth Color","options":["Red","Orange","Yellow","Green","Blue","Purple"]}]},"notes":[{"title":"Task number","content":[]},{"title":"Task outin","content":[]},{"title":"Facing","content":[]},{"title":"Symptoms","content":["I23: Certain current complications following ST elevation (STEMI) and non-ST elevation (NSTEMI) myocardial infarction (within the 28 day period) / ST段上升之心肌梗塞 (STEMI）與非ST段上升之心肌梗塞（NSTEMI）後造成之併發症（28天內）"]},{"title":"Fall Risk Level","content":["12"]},{"title":"Temperature(C)","content":[]},{"title":"Level of Mood","content":[]},{"title":"Treatment Phase","content":["Post-trainging"]},{"title":"Cloth Color","content":[]}]}'
     '''
     #import pdb;pdb.set_trace()
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     if response.status_code ==201:
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
@@ -383,7 +383,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
     while response.status_code == 400:
         message =  json.loads(response.text)
         message = message['message']
-        
+        #import pdb;pdb.set_trace()
         if message == "action is created.":
             findmeetIdtemp = requests.get(f"{host}/api/meets/" +str(meetId) +'/actions')
             #import pdb;pdb.set_trace()
@@ -394,21 +394,19 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             del output['datetime']
             del output['location']
             del output['patientId']
-            del output['actionName']
             
             output["actionId"] = actionId
             output = {
                 "actionId":output["actionId"],
                 "layout": output['layout'],
                 "taskType": tasktype,
-                "actionName":actionname,
                 "notes": output['notes']
             }           
             response = requests.put(f"{host}/api/actions",json = output)
             print(response.status_code)
             response.text
             print('Successfully create a action')
-            #update
+            #pdate
         else:
             #error 
             print("fail to create action note " +message)
@@ -587,6 +585,104 @@ def getTasknumber(actionId):
     task_number = response['actionName'].split('_')[-1]
 
     return task_number
+def check_file(actionId):
+    url =f"{host}/api/actions/{actionId}"
+    response =requests.get(url)
+    response = response.json()
+    filelist = ['mot','json2D','osim','trc']
+    response['actions'].get()
+    none_files = {file_key for file_key in filelist if response.get(file_key) is None}
+    import pdb;pdb.set_trace()
+# def check_actionname(actionId,actionname):
+def checkactioname(raw_data_dir,response,filtered_folders,filtered_actionID):
+    actions = response['actions']
+    id_action_pairs = [(item['id'], item['actionName']) for item in actions]
+    # List of tuples (id, actionName)
+
+    # Check correspondence
+    non_corresponding_pairs = []
+
+    for action_id, folder in zip(filtered_actionID, filtered_folders):
+        if (action_id, folder) not in id_action_pairs:
+            # Save the action_id and folder if they don't correspond
+            output ={
+                'actionName':folder
+            }
+            non_corresponding_pairs.append((action_id, folder))
+    non_corresponding_pairs_with_correct = []
+
+    # Step 1: Rename folders to correct names with 'temp' suffix
+    for action_id, folder in non_corresponding_pairs:
+        # Find the correct folder name for the action_id in id_action_pairs
+        correct_folder = next((correct_folder for id, correct_folder in id_action_pairs if id == action_id), None)
+        
+        if correct_folder:
+            # Save the action_id, incorrect folder, and correct folder in the new list
+            non_corresponding_pairs_with_correct.append((action_id, folder, correct_folder))
+            old_folder_path = os.path.join(raw_data_dir, folder)
+            new_folder_path_temp = os.path.join(raw_data_dir, correct_folder + 'temp')
+            
+            # Rename the folder if it exists
+            if os.path.exists(old_folder_path):
+                os.rename(old_folder_path, new_folder_path_temp)
+                print(f"Renamed folder '{folder}' to '{correct_folder}temp'")
+
+    # Step 2: Remove 'temp' suffix to ensure correct folder name
+    for action_id, wrong_folder, correct_folder in non_corresponding_pairs_with_correct:
+        new_folder_path_temp = os.path.join(raw_data_dir, correct_folder + 'temp')
+        final_folder_path = os.path.join(raw_data_dir, correct_folder)
+        
+        # Rename temp folder to final correct name
+        if os.path.exists(new_folder_path_temp):
+            os.rename(new_folder_path_temp, final_folder_path)
+            print(f"Renamed folder '{correct_folder}temp' to '{correct_folder}'")
+    return non_corresponding_pairs_with_correct
+def rename_actionname(dir_marker_calculated,non_corresponding_pairs_with_correct):
+    for action_id, wrong_folder, correct_folder in non_corresponding_pairs_with_correct:
+        old_folder_path = os.path.join(dir_marker_calculated, wrong_folder )
+        new_folder_path_temp = os.path.join(dir_marker_calculated, correct_folder+ 'temp')
+        
+        # Rename temp folder to final correct name
+        if os.path.exists(old_folder_path):
+            os.rename(old_folder_path, new_folder_path_temp)
+            print(f"Renamed folder '{correct_folder}temp' to '{correct_folder}'")
+    for action_id, wrong_folder, correct_folder in non_corresponding_pairs_with_correct:
+        new_folder_path_temp = os.path.join(dir_marker_calculated, correct_folder + 'temp')
+        final_folder_path = os.path.join(dir_marker_calculated, correct_folder)
+        
+        # Rename temp folder to final correct name
+        if os.path.exists(new_folder_path_temp):
+            os.rename(new_folder_path_temp, final_folder_path)
+            print(f"Renamed folder '{correct_folder}temp' to '{correct_folder}'")
+def recheck(dir_date):
+    raw_data_dir = os.path.join(dir_date,'raw_data')
+    meetId_json = os.path.join(raw_data_dir,'meetId.json')
+    
+    if os.path.exists(meetId_json):
+        response =requests.get(f"{host}/api/meets/{ json.load(open(meetId_json,'r'))['meetId']}").json()
+        items = os.listdir(raw_data_dir)
+        filtered_folders = [
+        item for item in items
+        if not item.endswith('.json') and os.path.isdir(os.path.join(raw_data_dir, item)) and item.lower() != 'calibration'
+    ]
+        print(filtered_folders)
+        filtered_actionID = [
+            json.load(open(os.path.join(raw_data_dir,dir_action,'actionId.json'), 'r'))['actionId'] for  dir_action in filtered_folders
+        ]
+
+        non_corresponding_pairs_with_correct = checkactioname(raw_data_dir,response,filtered_folders,filtered_actionID)
+        calculated_folders = [folder for folder in os.listdir(dir_date) 
+                      if os.path.isdir(os.path.join(dir_date, folder)) and folder.endswith('calculated')]
+        calculated_folders = natsorted(calculated_folders)
+        for dir_marker_calculated in calculated_folders:
+            rename_actionname(os.path.join(dir_date,dir_marker_calculated),non_corresponding_pairs_with_correct)
+        import pdb;pdb.set_trace()
+    
+
+    
+    # checkmeet(dir_meetlocal)
+
+    # checkaction(dir_actionlocal)
 #getTasktype()  
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\meetnote_layout.json'
@@ -626,3 +722,5 @@ outputdir = r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout_temp.json'
 
 actionId = "66eb05d3bd94767b715d512e"
 #getTasknumber(actionId)
+dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\667d29d0cfee0b0977061967\2024_09_23'
+recheck(dir_date)

@@ -33,6 +33,7 @@ import traceback
 import requests
 import sqlite3
 from natsort import natsorted
+from pathlib import Path
 SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
 
 FONT_PATH = os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
@@ -333,6 +334,7 @@ class TaskEDITInputScreen(Screen):
         task_number = self.task_number_input.text
         
         Astatus,Amessage =action_update(self.layout_json_dir,self.actionnote_file_path,self.actionId,task_name,f"{task_name}_{task_number}",samefoldercheck)
+        
         return Mstatus,Mmessage,Astatus,Amessage
     def load_layout(self, layout_file):
             self.layout_json_dir = layout_file
@@ -544,8 +546,8 @@ class TaskEDITInputScreen(Screen):
             
             Mstatus,Mmessage,Astatus,Amessage =self.upload_cloud(samefoldercheck)
             if Mstatus==200 and Astatus==200:
-                
-                
+                os.remove(self.actionnote_file_path)
+                os.remove(self.meetnote_file_path)
                 self.btn.text = f"{task_name}_{task_number}"
                 self.btn.unbind(on_press=None)
                 date = datetime.now().strftime("%Y_%m_%d")
@@ -1426,6 +1428,28 @@ class NTK_CapApp(App):
         self.sm.current = screen_name
 
     def update_tasklist(self,date):
+        def check_and_delete_folder_if_json_missing(json_file_path):
+            json_file = Path(json_file_path)
+            parent_folder = json_file.parent  # Get the folder holding the JSON file
+            
+            # Check if the JSON file exists
+            if json_file.exists() and json_file.suffix == '.json':
+                print(f"JSON file exists: {json_file}")
+                token= True
+            else:
+                print(f"JSON file does not exist or is not a JSON file: {json_file}")
+                token = False
+                # If the folder exists, delete it and all its contents
+                if parent_folder.exists() and parent_folder.is_dir():
+                    
+                    try:
+                        shutil.rmtree(parent_folder)  # Recursively delete folder and all contents
+                        print(f"Folder and all contents deleted: {parent_folder}")
+                    except Exception as e:
+                        print(f"Error deleting folder: {e}")
+                else:
+                    print(f"Folder does not exist or is not a directory: {parent_folder}")
+            return token
         self.layout.remove_widget(self.scroll_view)
         self.layout.remove_widget(self.button_layout)
         self.scroll_view = ScrollView(size_hint=(0.15, 0.4), size=(400, 300), pos_hint={'center_x': self.pos_ref_x[3], 'center_y': self.pos_ref_y[7]},)
@@ -1450,7 +1474,9 @@ class NTK_CapApp(App):
             filtered_folders = natsorted(filtered_folders, reverse=True)
             #mport pdb;pdb.set_trace()
             for taskname in range(len(filtered_folders)):  # Replace 20 with however many items you want
+                
                 btn = Button(text=filtered_folders[taskname], size_hint_y=None, height=40)
+                btn.text_size = (btn.width, None) 
                 
                 # Bind a function to the button that will handle the selection
             
@@ -1460,21 +1486,25 @@ class NTK_CapApp(App):
                 meetdir=dir_list_tasks
                 actiondir =os.path.join(dir_list_tasks,filtered_folders[taskname])
                 if self.btn_toggle_cloud_sinlge.text == 'Cloud':
-                    with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
-                        temp= json.load(file)
-                        actionId = temp['actionId']
-                    with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
-                        temp= json.load(file)
-                        meetId = temp['meetId']
-                    btn.bind(on_press=lambda instance, btn=btn,meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
+                    if check_and_delete_folder_if_json_missing(os.path.join(dir_list_tasks,'meetId.json')) and check_and_delete_folder_if_json_missing(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json')):
+                        with open(os.path.join(dir_list_tasks,'meetId.json'),'r') as file:
+                            temp= json.load(file)
+                            meetId = temp['meetId']
+                        with open(os.path.join(dir_list_tasks,filtered_folders[taskname],'actionId.json'),'r') as file:
+                            temp= json.load(file)
+                            actionId = temp['actionId']
+                        
+                        btn.bind(on_press=lambda instance, btn=btn,meetdir = meetdir,actiondir =actiondir,meetId=meetId,actionId=actionId: self.set_taskinput_screen_with_param('taskEDIT_input', btn,meetdir, actiondir,meetId,actionId))
+                        self.button_layout.add_widget(btn)
+
                 else:
                     name_dir = os.path.join(dir_list_tasks)
                     name = filtered_folders[taskname]
                     btn.bind(on_press=lambda instance, name_dir=name_dir, name=name, btn=btn: self.show_popup_rename_task(name_dir, name, btn))
-
+                    self.button_layout.add_widget(btn)
                 #btn.bind(on_release=self.on_button_select_tasklist)
                 
-                self.button_layout.add_widget(btn)
+                
     def show_popup_rename_task(self, name_dir, name,btn):
         # Create a BoxLayout for the popup's content
         layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
@@ -1822,13 +1852,13 @@ class NTK_CapApp(App):
         olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
         newdir_meetnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','Meet_note.json')
         shutil.copy2(olddir_meetnote, newdir_meetnote)
-    def update_Task_note(self):
-        olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
-        olddir_actionnote =os.path.join(self.config_path, 'actionnote_layout.json')
-        newdir_meetnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','Meet_note.json')
-        newdir_actionnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',self.label_task_real.text,'Action_note.json')
-        shutil.copy2(olddir_meetnote,newdir_meetnote)
-        shutil.copy2(olddir_actionnote, newdir_actionnote)
+    # def update_Task_note(self):
+    #     olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
+    #     olddir_actionnote =os.path.join(self.config_path, 'actionnote_layout.json')
+    #     newdir_meetnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data','Meet_note.json')
+    #     newdir_actionnote = os.path.join(self.record_path, "Patient_data",self.patient_genID,datetime.now().strftime("%Y_%m_%d"),'raw_data',self.label_task_real.text,'Action_note.json')
+    #     shutil.copy2(olddir_meetnote,newdir_meetnote)
+    #     shutil.copy2(olddir_actionnote, newdir_actionnote)
     
 ############### Apose 不能隔天重拍，要就要當下
     def meetnoteupload(self):
@@ -2010,7 +2040,7 @@ class NTK_CapApp(App):
                     self.meetId = temp['meetId']
             
             self.actionnoteupload(self.label_task_real.text,self.tasktype,self.meetId)
-        self.update_Task_note()
+        #self.update_Task_note()
         self.update_tasklist(date)
     def button_calculate_Marker(self, instance):
         # self.label_log.text = '計算Marker以及IK'
