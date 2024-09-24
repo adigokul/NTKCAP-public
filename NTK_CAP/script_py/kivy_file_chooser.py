@@ -7,7 +7,7 @@ from .cloud_function import recheck,getname
 def select_directories_and_return_list(initial_dir):
     # Create the root window
     root = Tk()
-    root.geometry('400x300')
+    root.geometry('700x300')
 
     # List variable to store display names for the Listbox
     display_names = []
@@ -100,21 +100,22 @@ def select_directories_and_return_list(initial_dir):
     listbox.pack(fill=BOTH, expand=True)
 
     # Setup Buttons
-    select_button = Button(root, text='Select directories...', command=get_directories)
-    select_button.pack(side=LEFT, padx=5, pady=5)
-
-    delete_button = Button(root, text='Delete Selected', command=delete_selected)
-    delete_button.pack(side=LEFT, padx=5, pady=5)
-
-    complete_button = Button(root, text='Confirm Completion', command=confirm_completion)
-    complete_button.pack(side=LEFT, padx=5, pady=5)
-
-    # New Buttons for Cloud Today and Cloud All
     cloud_today_button = Button(root, text='Cloud Today', command=cloud_today)
     cloud_today_button.pack(side=LEFT, padx=5, pady=5)
 
     cloud_all_button = Button(root, text='Cloud All', command=cloud_all)
     cloud_all_button.pack(side=LEFT, padx=5, pady=5)
+    select_button = Button(root, text='Select directories...', command=get_directories)
+    select_button.pack(side=LEFT, padx=5, pady=5)
+
+    delete_button = Button(root, text='Delete Selected', command=delete_selected)
+    delete_button.pack(side=LEFT, padx=5, pady=5)
+    # New Buttons for Cloud Today and Cloud All
+ 
+    complete_button = Button(root, text='Confirm Completion', command=confirm_completion)
+    complete_button.pack(side=LEFT, padx=5, pady=5)
+
+
 
     # Run the main loop
     root.mainloop()
