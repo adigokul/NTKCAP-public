@@ -14,7 +14,7 @@
     {
         "type": "spinner",
         "title": "Walking aid",
-        "content": "Walking Stick",
+        "content": "Choose an option",
         "notetype": "action",
         "options": [
             "None",

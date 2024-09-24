@@ -8,7 +8,8 @@ import os
 from datetime import datetime
 import json
 from natsort import natsorted
-
+from .convert_gltf import run_gltf_converter
+import inspect
 """
 能夠在條件 選擇 calculated ，包含upload.conf 檔案的目錄下
 掃描屬於 action 的資料夾，並個別上傳這些檔案
@@ -586,11 +587,11 @@ def getTasknumber(actionId):
     task_number = response['actionName'].split('_')[-1]
 
     return task_number
-def upload_calculated_file(actions_Id,dir_calculated):
+def upload_calculated_file(actions_Id,dir_calculated):    
+    token = 1
     for action_name,id in actions_Id:
-
         files = {
-            "actionId": (None,id ),  # None 表示這是一個普通的表單字段
+            "actionId":id ,  # None 表示這是一個普通的表單字段
             "osim": (
                 "osim_file.osim",
                 open(os.path.join(dir_calculated,action_name,'opensim','Model_Pose2Sim_Halpe26_scaled.osim'), "rb"),
@@ -613,10 +614,23 @@ def upload_calculated_file(actions_Id,dir_calculated):
                 "mot_file.mot",
                 open(os.path.join(dir_calculated,action_name,'opensim','Balancing_for_IK_BODY.mot'), "rb") ,
                 "application/octet-stream",
-            ),
-
+            )
+        if os.path.exists(os.path.join(dir_calculated,action_name,'opensim','Balancing_for_IK_BODY.mot')) and os.path.exists(os.path.join(dir_calculated,action_name,'opensim','Model_Pose2Sim_Halpe26_scaled.osim')):
+            #import pdb;pdb.set_trace()
+            if os.path.exists(os.path.join(dir_calculated,action_name,'opensim','Motion.gltf'))==0:
+                run_gltf_converter(os.path.join(os.path.dirname(inspect.getfile(run_gltf_converter)),'gltf-converter','src'),os.path.join(dir_calculated,action_name,'opensim','Model_Pose2Sim_Halpe26_scaled.osim'), [os.path.join(dir_calculated,action_name,'opensim','Balancing_for_IK_BODY.mot')], os.path.join(dir_calculated,action_name,'opensim','Motion'))
+            files["gltf"] = (
+                "Motion.gltf",
+                open(os.path.join(dir_calculated,action_name,'opensim','Motion.gltf'), "rb") ,
+                "application/octet-stream",
+            )
+        #import pdb;pdb.set_trace()
         response = requests.put(f"{host}/api/actions/files", files=files)
-        import pdb;pdb.set_trace()
+        if response.status_code !=200:
+            token = 0
+
+    return token
+        
 
 def check_zip_pose2d(dir_action):
     token = 0
@@ -653,10 +667,11 @@ def check_calculated_file(response,calculated_folders,dir_date):
         else:
             if action['mot'] is None or action['json2D'] is None or action['osim'] is None or action['trc'] is None:
                 incomplete_actions.append([action['actionName'],action['id']])
-    
+    token = 0
     for calculated_dir in calculated_folders:
-        temp = os.path.join(dir_date,calculated_dir)
         token = 1
+        temp = os.path.join(dir_date,calculated_dir)
+        
         #import pdb;pdb.set_trace()
         for action ,id in incomplete_actions:
             if action =='Apose':
@@ -667,10 +682,10 @@ def check_calculated_file(response,calculated_folders,dir_date):
                     token=0
             #import pdb;pdb.set_trace()    
         if token==1:
-            upload_calculated_file(incomplete_actions,temp)
+            token = upload_calculated_file(incomplete_actions,temp)
             break
         
-    return files_notcalculated
+    return token
 # def check_actionname(actionId,actionname):
 def checkactioname(raw_data_dir,response,filtered_folders,filtered_actionID):
     actions = response['actions']
@@ -732,13 +747,13 @@ def rename_actionname(dir_marker_calculated,non_corresponding_pairs_with_correct
         if os.path.exists(new_folder_path_temp):
             os.rename(new_folder_path_temp, final_folder_path)
             print(f"Renamed folder '{correct_folder}temp' to '{correct_folder}'")
-def recheck(dir_date):
+def recheck(dir_date):##檢查雲的命名跟local raw &local calculated連動，檢查missing calculatd file，如果local檔案存在就重新上傳，若否則回傳需要重跑marker calculated
     raw_data_dir = os.path.join(dir_date,'raw_data')
     meetId_json = os.path.join(raw_data_dir,'meetId.json')
-    
+    marker_calculated_token = 1
     if os.path.exists(meetId_json):
         response =requests.get(f"{host}/api/meets/{ json.load(open(meetId_json,'r'))['meetId']}").json()
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         #import pdb;pdb.set_trace()
         items = os.listdir(raw_data_dir)
         filtered_folders = [
@@ -757,12 +772,12 @@ def recheck(dir_date):
         for dir_marker_calculated in calculated_folders:
             rename_actionname(os.path.join(dir_date,dir_marker_calculated),non_corresponding_pairs_with_correct)
         #import pdb;pdb.set_trace()
-        check_calculated_file(response,calculated_folders,dir_date)
+        marker_calculated_token =check_calculated_file(response,calculated_folders,dir_date)
+    return marker_calculated_token
 
-    
-    # checkmeet(dir_meetlocal)
-
-    # checkaction(dir_actionlocal)
+def getname(patientId):
+    name =requests.get(f"{host}/api/patients/{patientId}").json()['name']
+    return name
 #getTasktype()  
 dir_layout=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout.json'
 dir_notevalue=r'C:\Users\mauricetemp\Desktop\NTKCAP\config\meetnote_layout.json'
@@ -802,5 +817,8 @@ outputdir = r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout_temp.json'
 
 actionId = "66eb05d3bd94767b715d512e"
 #getTasknumber(actionId)
-dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\667d29d0cfee0b0977061967\2024_09_24'
-#recheck(dir_date)
+dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\666ace3f1ed38e11efa3b777\2024_09_24'
+#token = recheck(dir_date)
+#import pdb;pdb.set_trace()\
+patientId = '666ace3f1ed38e11efa3b777'
+getname(patientId)

@@ -31,7 +31,7 @@
         {
             "type": "input",
             "title": "Symptoms",
-            "content": "A00.0: Cholera due to Vibrio cholerae 01, biovar cholerae / 血清型01 cholerae霍亂弧菌所致之霍亂",
+            "content": "A00.1: Cholera due to Vibrio cholerae 01, biovar eltor / 血清型01 eltor霍亂弧菌所致之霍亂",
             "notetype": "meet"
         },
         {
@@ -92,7 +92,7 @@
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Walking Stick",
+            "content": "Choose an option",
             "notetype": "action",
             "options": [
                 "None",
