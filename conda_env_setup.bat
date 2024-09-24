@@ -23,6 +23,8 @@ call pip install keyboard
 call pip install import_ipynb
 call pip install kivy
 call pip install "Pose2Sim==0.4"
+call pip install pygltflib
+call pip install vtk
 call pip install numpy==1.21.6 
 call pip install scipy==1.13.0
 call pip install ultralytics
