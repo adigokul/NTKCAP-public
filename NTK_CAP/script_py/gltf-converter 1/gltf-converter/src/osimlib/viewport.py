@@ -1,0 +1,39 @@
+from pathlib import Path
+import osimlib as osimC
+
+'''
+osimViewort class is a utility that embodies the creation and manipulation of a view
+that will be displayed in a jupyter notebook. the parameters passed in will be used to shape/size and otherwise
+customize the viewport in a manner similar to how matplotlib allows users to customize plots at a high level.
+One benefit of this approach is that the internals of how the window/canvas is created, are all kept internal to
+this class and so can be refactored. For now the customizations will go into one of two places:
+- Scene customization: lights, floors, ... 
+- UI customization: size, labels, ...
+'''
+class osimViewport:
+    def __init__(self, width, hight):
+        self.width = width
+        self.height = hight
+        self._label = ""
+
+    def addModelFile(self, modelFile):
+        self._modelFile = modelFile
+        self._motions = []
+        self._label = ""
+
+    def addModelAndMotionFiles(self, modelFile, motions):
+        self._motions = motions
+        self._modelFile = modelFile
+        self._label = ""
+
+    def  show(self, output):
+        if (len(self._motions)==0):
+            gltfOutput = osimC.convertNativeFileToGLTF(self._modelFile)
+        else:
+            gltfOutput = osimC.convertNativeFileSetToGLTF(self._modelFile, self._motions)
+
+        if (output == None) :
+            shortname = Path(self._modelFile).stem
+        else:
+            shortname = output
+        gltfOutput.save(shortname+'.gltf')

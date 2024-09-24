@@ -569,7 +569,8 @@ def getTasktype(actionId=None):
     url =f"{host}/api/taskTypes"
     response = requests.get(url)
     response = response.json()
-    task_types = [item['taskType'] for item in response['resources']]
+    task_types = [item['taskType'] for item in response['resources'] if item!='Apose']
+    #import pdb;pdb.set_trace()
     if actionId:
         url = f"{host}/api/actions/"+ actionId
         response =requests.get(url)
@@ -585,14 +586,91 @@ def getTasknumber(actionId):
     task_number = response['actionName'].split('_')[-1]
 
     return task_number
-def check_file(actionId):
-    url =f"{host}/api/actions/{actionId}"
-    response =requests.get(url)
-    response = response.json()
-    filelist = ['mot','json2D','osim','trc']
-    response['actions'].get()
-    none_files = {file_key for file_key in filelist if response.get(file_key) is None}
-    import pdb;pdb.set_trace()
+def upload_calculated_file(actions_Id,dir_calculated):
+    for action_name,id in actions_Id:
+
+        files = {
+            "actionId": (None,id ),  # None 表示這是一個普通的表單字段
+            "osim": (
+                "osim_file.osim",
+                open(os.path.join(dir_calculated,action_name,'opensim','Model_Pose2Sim_Halpe26_scaled.osim'), "rb"),
+                "application/octet-stream",
+            ),
+            "json2d": (
+                "json2d.zip",
+                open(os.path.join(dir_calculated,action_name,'pose-2d','pose2d.zip'), "rb"),
+                "application/octet-stream",
+            ),
+            
+            "trc": (
+                "trc_file.trc",
+                open(os.path.join(dir_calculated,action_name,'opensim','Empty_project_filt_0-30.trc'), "rb") ,
+                "application/octet-stream",
+            ),
+        }
+        if os.path.exists(os.path.join(dir_calculated,action_name,'opensim','Balancing_for_IK_BODY.mot')):
+            files["mot"] = (
+                "mot_file.mot",
+                open(os.path.join(dir_calculated,action_name,'opensim','Balancing_for_IK_BODY.mot'), "rb") ,
+                "application/octet-stream",
+            ),
+
+        response = requests.put(f"{host}/api/actions/files", files=files)
+        import pdb;pdb.set_trace()
+
+def check_zip_pose2d(dir_action):
+    token = 0
+    # 查找 pose-2d 目錄下的所有仔文件夾並壓縮
+    check_exist_ppose2d = 0
+    pose_2d_dir = os.path.join(dir_action, "pose-2d")
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for root, dirs, files in os.walk(pose_2d_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zip_file.write(file_path, os.path.relpath(file_path, pose_2d_dir))
+                check_exist_ppose2d  = check_exist_ppose2d +1
+    zip_buffer.seek(0)
+    #import pdb;pdb.set_trace()
+    # 保存 zip 文件到指定目錄
+    if check_exist_ppose2d>0:
+        zip_file_path = os.path.join(pose_2d_dir, "pose2d.zip")
+        token = 1
+        with open(zip_file_path, "wb") as f:
+            f.write(zip_buffer.read())
+    return token
+def check_calculated_file(response,calculated_folders,dir_date):
+    files_notcalculated = []
+    # List to store actionNames where any of 'mot', 'json2D', 'osim', or 'trc' is None
+    incomplete_actions = []
+    
+    # Iterate through each action in the response
+    for action in response['actions']:
+        # Check if any of 'mot', 'json2D', 'osim', or 'trc' is None
+        if action =='Apose':
+            if action['json2D'] is None or action['osim'] is None or action['trc'] is None:
+                incomplete_actions.append([action['actionName'],action['id']])
+        else:
+            if action['mot'] is None or action['json2D'] is None or action['osim'] is None or action['trc'] is None:
+                incomplete_actions.append([action['actionName'],action['id']])
+    
+    for calculated_dir in calculated_folders:
+        temp = os.path.join(dir_date,calculated_dir)
+        token = 1
+        #import pdb;pdb.set_trace()
+        for action ,id in incomplete_actions:
+            if action =='Apose':
+                if os.path.exists(os.path.join(temp,action))==0 or check_zip_pose2d(os.path.join(temp,action))==0 or os.path.exists(os.path.join(temp,action,'opensim','Empty_project_filt_0-30.trc'))==0 or os.path.exists(os.path.join(temp,action,'opensim','Model_Pose2Sim_Halpe26_scaled.osim'))==0:
+                    token=0
+            else:
+                if os.path.exists(os.path.join(temp,action))==0 or check_zip_pose2d(os.path.join(temp,action))==0 or os.path.exists(os.path.join(temp,action,'opensim','Balancing_for_IK_BODY.mot'))==0 or os.path.exists(os.path.join(temp,action,'opensim','Empty_project_filt_0-30.trc'))==0 or os.path.exists(os.path.join(temp,action,'opensim','Model_Pose2Sim_Halpe26_scaled.osim'))==0:
+                    token=0
+            #import pdb;pdb.set_trace()    
+        if token==1:
+            upload_calculated_file(incomplete_actions,temp)
+            break
+        
+    return files_notcalculated
 # def check_actionname(actionId,actionname):
 def checkactioname(raw_data_dir,response,filtered_folders,filtered_actionID):
     actions = response['actions']
@@ -660,6 +738,8 @@ def recheck(dir_date):
     
     if os.path.exists(meetId_json):
         response =requests.get(f"{host}/api/meets/{ json.load(open(meetId_json,'r'))['meetId']}").json()
+        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         items = os.listdir(raw_data_dir)
         filtered_folders = [
         item for item in items
@@ -673,11 +753,11 @@ def recheck(dir_date):
         non_corresponding_pairs_with_correct = checkactioname(raw_data_dir,response,filtered_folders,filtered_actionID)
         calculated_folders = [folder for folder in os.listdir(dir_date) 
                       if os.path.isdir(os.path.join(dir_date, folder)) and folder.endswith('calculated')]
-        calculated_folders = natsorted(calculated_folders)
+        calculated_folders = natsorted(calculated_folders, reverse=True)
         for dir_marker_calculated in calculated_folders:
             rename_actionname(os.path.join(dir_date,dir_marker_calculated),non_corresponding_pairs_with_correct)
-        import pdb;pdb.set_trace()
-    
+        #import pdb;pdb.set_trace()
+        check_calculated_file(response,calculated_folders,dir_date)
 
     
     # checkmeet(dir_meetlocal)
@@ -722,5 +802,5 @@ outputdir = r'C:\Users\mauricetemp\Desktop\NTKCAP\config\layout_temp.json'
 
 actionId = "66eb05d3bd94767b715d512e"
 #getTasknumber(actionId)
-dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\667d29d0cfee0b0977061967\2024_09_23'
-recheck(dir_date)
+dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\667d29d0cfee0b0977061967\2024_09_24'
+#recheck(dir_date)
