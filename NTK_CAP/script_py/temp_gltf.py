@@ -31,5 +31,5 @@ output_file = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\667d29d0cfee0b0
 os.chdir(r'C:\Users\mauricetemp\Downloads\gltf-converter 1\gltf-converter\src')
 run_gltf_converter(osim_file, mot_files, output_file)
 # vtk pygltflib
-#conda install -c conda-forge vtk
-# pip install pygltflib
+#pip install vtk
+#pip install pygltflib
