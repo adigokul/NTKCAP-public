@@ -28,7 +28,7 @@
     {
         "type": "input",
         "title": "Symptoms",
-        "content": "A01.0: Typhoid fever / 傷寒",
+        "content": "A01.00: Typhoid fever, unspecified / 傷寒",
         "notetype": "meet"
     },
     {

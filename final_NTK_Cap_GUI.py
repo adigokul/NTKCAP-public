@@ -2058,6 +2058,7 @@ class NTK_CapApp(App):
             # print("initial_dir:", self.patient_path)
             for dir_sel_loop in range(len(selected_directories)):
                 cal_folder_path =selected_directories[dir_sel_loop]
+
                 folder_calculated = marker_caculate(self.current_directory , cal_folder_path)
                 if self.btn_toggle_cloud_sinlge.text == 'Cloud':
                     recheck(cal_folder_path)

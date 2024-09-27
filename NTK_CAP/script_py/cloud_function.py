@@ -308,7 +308,7 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
 def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,tasktype,meetId):
     message = []
     if actionname!='Apose':
-        
+        import pdb;pdb.set_trace()
         with open(dir_layout , 'r', encoding='utf-8') as f:
             layout = json.load(f)
         with open(dir_notevalue , 'r', encoding='utf-8') as f:
@@ -321,10 +321,12 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         value = [{'title': item['title'], 'content': item['content']} for item in value]
         location = location['location'][0]
         patientId
+        tasknumber =actionname.split('_')[-1]
         output = {
         "patientId": patientId,
         "datetime": timestring,  # Use the provided timestring
         "location": location,  # Use the provided location
+        "taskNumber": tasknumber,
         "actionName": actionname,
         "taskType": tasktype,
         "layout": layout,  # Make sure layout is a properly structured variable
@@ -336,6 +338,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         ]
     }
     else:
+        
         with open(dir_layout , 'r', encoding='utf-8') as f:
             layout = json.load(f)
         with open(dir_notevalue , 'r', encoding='utf-8') as f:
@@ -381,6 +384,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
         #import pdb;pdb.set_trace()
+    import pdb;pdb.set_trace()
     while response.status_code == 400:
         message =  json.loads(response.text)
         message = message['message']
@@ -391,6 +395,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             findmeetIdtemp= findmeetIdtemp.json()
             findmeetIdtemp['resources'][0]
             matching_records = [item for item in findmeetIdtemp['resources'] if item['actionName'] == actionname] 
+            import pdb;pdb.set_trace()
             actionId = matching_records[0]['id']
             del output['datetime']
             del output['location']
