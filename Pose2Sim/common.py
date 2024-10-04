@@ -99,7 +99,62 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
         
     return Q
 
+def computemap(calib_file):
+    # Only map one camera because four cameras has same intrinsic matrix and dist. coeff
+    calib = toml.load(calib_file)
+    mappingx = []
+    mappingy = []
+    for cam in list(calib.keys()):
+        #import pdb;pdb.set_trace()
+        if cam != 'metadata':
+            K = np.array(calib[cam]['matrix'])
+            Kh = np.block([K, np.zeros(3).reshape(3,1)])
+            R, _ = cv2.Rodrigues(np.array(calib[cam]['rotation']))
+            T = np.array(calib[cam]['translation'])
+            H = np.block([[R,T.reshape(3,1)], [np.zeros(3), 1 ]])
+            mappingx,mappingy = cv2.initUndistortRectifyMap(np.array(calib[cam]['matrix']), np.array(calib[cam]['distortions']), None, np.array(calib[cam]['matrix']),np.array([1920,1080]), cv2.CV_32FC1)
+            break
+            #import pdb;pdb.set_trace()
+   
+    return mappingx,mappingy
+def bilinear_interpolate(map, x, y):
+    # Get integer coordinates surrounding the point
+    x0 = int(np.floor(x))
+    x1 = x0 + 1
+    y0 = int(np.floor(y))
+    y1 = y0 + 1
+    
+    # Ensure coordinates are within bounds
+    if x1 >= map.shape[1] or y1 >= map.shape[0]:
+        return map[y0, x0]
+    
+    # Bilinear interpolation
+    Ia = map[y0, x0]
+    Ib = map[y0, x1]
+    Ic = map[y1, x0]
+    Id = map[y1, x1]
 
+    # Interpolation weights
+    wa = (x1 - x) * (y1 - y)
+    wb = (x - x0) * (y1 - y)
+    wc = (x1 - x) * (y - y0)
+    wd = (x - x0) * (y - y0)
+
+    # Calculate the interpolated value
+    return wa * Ia + wb * Ib + wc * Ic + wd * Id
+def undistort_points1(mappingx,mappingy,coords_2D_kpt):
+    x_undistorted = []
+    y_undistorted = []
+    coords_2D_kpt_undistort =[]
+    
+    for x_coor,y_coor,liklihood in list(zip(coords_2D_kpt[0],coords_2D_kpt[1],coords_2D_kpt[2])):
+        
+        x_undistorted.append(bilinear_interpolate(mappingx,x_coor,y_coor))
+        y_undistorted.append(bilinear_interpolate(mappingy,x_coor,y_coor))
+        
+    coords_2D_kpt_undistorted=np.array([np.array(x_undistorted),np.array(y_undistorted),np.array(coords_2D_kpt[2])])
+    #import pdb;pdb.set_trace()
+    return coords_2D_kpt_undistorted
 def reprojection(P_all, Q):
     '''
     Reprojects 3D point on all cameras.

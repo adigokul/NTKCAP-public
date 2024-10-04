@@ -44,7 +44,7 @@ from collections import Counter
 import logging
 
 from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
-    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist
+    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1
 from Pose2Sim.skeletons import *
 
 
@@ -982,7 +982,7 @@ def triangulate_all(config):
     #import pdb;pdb.set_trace()
     # Projection matrix from toml calibration file
     P = computeP(calib_file)
-    
+    mappingx,mappingy =computemap(calib_file)
     # Retrieve keypoints from model
     model = eval(pose_model)
     keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
@@ -1023,6 +1023,7 @@ def triangulate_all(config):
             #import pdb;pdb.set_trace()
         # Triangulate cameras with min reprojection error
             coords_2D_kpt = ( x_files[:, keypoint_idx], y_files[:, keypoint_idx], likelihood_files[:, keypoint_idx] )
+            coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
             id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = -1,-1,-1,-1
             #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = triangulation_from_best_cameras(config, coords_2D_kpt, P)
             Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt,strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, P,keypoints_names[keypoint_idx])
