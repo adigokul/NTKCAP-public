@@ -1360,7 +1360,7 @@ class NTK_CapApp(App):
         #Spinner for feature selection
         self.feature_spinner = Spinner(
             text='Recording',
-            values=('Recording', 'VICON Recording','EEGCygnus Recording''Delay test'),
+            values=('Recording', 'VICON Recording','Delay test'),
             size_hint=(0.19,0.05),
             size=(170, 30),
             pos_hint={'center_x': self.pos_ref_x[2], 'center_y':self.pos_ref_y[4]+0.03},
