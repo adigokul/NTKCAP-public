@@ -308,7 +308,7 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
 def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring,actionname,tasktype,meetId):
     message = []
     if actionname!='Apose':
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         with open(dir_layout , 'r', encoding='utf-8') as f:
             layout = json.load(f)
         with open(dir_notevalue , 'r', encoding='utf-8') as f:
@@ -384,7 +384,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         actionId = response.headers["Location"].split('/')[-1]
         print('Successfully create an action')
         #import pdb;pdb.set_trace()
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     while response.status_code == 400:
         message =  json.loads(response.text)
         message = message['message']
@@ -395,7 +395,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             findmeetIdtemp= findmeetIdtemp.json()
             findmeetIdtemp['resources'][0]
             matching_records = [item for item in findmeetIdtemp['resources'] if item['actionName'] == actionname] 
-            import pdb;pdb.set_trace()
+            #import pdb;pdb.set_trace()
             actionId = matching_records[0]['id']
             del output['datetime']
             del output['location']
@@ -405,7 +405,6 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
             output = {
                 "actionId":output["actionId"],
                 "layout": output['layout'],
-                "taskType": tasktype,
                 "notes": output['notes']
             }           
             response = requests.put(f"{host}/api/actions",json = output)
@@ -463,11 +462,13 @@ def action_update(dir_layout,dir_notevalue,actionId,tasktype,actionname,samefold
     layout = response.json()
     value = [{'title': item['title'], 'content': item['content']} for item in value]
     actionId
+    tasknumber =actionname.split('_')[-1]
     if samefoldercheck == False:
         output = {
         "actionId":actionId ,
         "layout": layout,  # Make sure layout is a properly structured variable
         "taskType": tasktype,
+        "taskNumber": tasknumber,
         "actionName":actionname,
         "notes": [
             {
@@ -481,6 +482,8 @@ def action_update(dir_layout,dir_notevalue,actionId,tasktype,actionname,samefold
         "actionId":actionId ,
         "layout": layout,  # Make sure layout is a properly structured variable
         "taskType": tasktype,
+        "taskNumber": tasknumber,
+        "actionName":actionname,
         "notes": [
             {
                 "title": item["title"],  # Keep the title as is from value
