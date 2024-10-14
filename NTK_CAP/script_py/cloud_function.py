@@ -10,6 +10,7 @@ import json
 from natsort import natsorted
 from .convert_gltf import run_gltf_converter
 import inspect
+
 """
 能夠在條件 選擇 calculated ，包含upload.conf 檔案的目錄下
 掃描屬於 action 的資料夾，並個別上傳這些檔案
@@ -260,8 +261,7 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
         } for item in value  # Iterate through the value list to generate notes
     ]
     }
-    output['layout']['fields'][8]['title']
-    output["notes"][8]['title']
+
     # Print the JSON output for debugging
     print(json.dumps(output, indent=4))
     #import pdb;pdb.set_trace()
@@ -292,7 +292,8 @@ def meet_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring):
                 "description": output['description'],
                 "layout": output['layout'],
                 "notes": output['notes']
-            }           
+            }  
+            #import pdb;pdb.set_trace()         
             response = requests.put(url,json = output)
             print(response.status_code)
             response.text
@@ -358,6 +359,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         "location": location,  # Use the provided location
         "actionName": actionname,
         "taskType": tasktype,
+        "taskNumber" :"1",
         "layout": layout,  # Make sure layout is a properly structured variable
         "notes": [
             {
@@ -391,6 +393,7 @@ def action_postupdate(dir_layout,dir_notevalue,dir_location,patientId,timestring
         #import pdb;pdb.set_trace()
         if message == "action is created.":
             findmeetIdtemp = requests.get(f"{host}/api/meets/" +str(meetId) +'/actions')
+            
             #import pdb;pdb.set_trace()
             findmeetIdtemp= findmeetIdtemp.json()
             findmeetIdtemp['resources'][0]
@@ -448,6 +451,7 @@ def meet_update(dir_layout,dir_notevalue,meetId):
         message =  json.loads(response.text)
         message = message['message']
         print("fail to update meet note " +message)
+    #import pdb;pdb.set_trace
     return response.status_code,message
 def action_update(dir_layout,dir_notevalue,actionId,tasktype,actionname,samefoldercheck):
     
@@ -829,4 +833,4 @@ dir_date = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\666ace3f1ed38e11ef
 #token = recheck(dir_date)
 #import pdb;pdb.set_trace()\
 patientId = '666ace3f1ed38e11efa3b777'
-getname(patientId)
+#getname(patientId)

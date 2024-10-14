@@ -1,34 +1,8 @@
 [
     {
         "type": "input",
-        "title": "Task number",
-        "content": "",
-        "notetype": "meet"
-    },
-    {
-        "type": "spinner",
-        "title": "Task outin",
-        "content": "Choose an option",
-        "notetype": "meet",
-        "options": [
-            "Inside camera",
-            "walk from outside"
-        ]
-    },
-    {
-        "type": "spinner",
-        "title": "Facing",
-        "content": "Choose an option",
-        "notetype": "meet",
-        "options": [
-            "Door",
-            "Window"
-        ]
-    },
-    {
-        "type": "input",
         "title": "Symptoms",
-        "content": "",
+        "content": "A00.1: Cholera due to Vibrio cholerae 01, biovar eltor / 血清型01 eltor霍亂弧菌所致之霍亂",
         "notetype": "meet"
     },
     {
@@ -36,42 +10,5 @@
         "title": "Fall Risk Level",
         "content": "",
         "notetype": "meet"
-    },
-    {
-        "type": "input",
-        "title": "Temperature(C)",
-        "content": "",
-        "notetype": "meet"
-    },
-    {
-        "type": "input",
-        "title": "Level of Mood",
-        "content": "",
-        "notetype": "meet"
-    },
-    {
-        "type": "spinner",
-        "title": "Treatment Phase",
-        "content": "Choose an option",
-        "notetype": "meet",
-        "options": [
-            "Pre phase",
-            "Post-injection",
-            "Post-trainging"
-        ]
-    },
-    {
-        "type": "spinner",
-        "title": "Cloth Color",
-        "content": "Choose an option",
-        "notetype": "meet",
-        "options": [
-            "Red",
-            "Orange",
-            "Yellow",
-            "Green",
-            "Blue",
-            "Purple"
-        ]
     }
 ]

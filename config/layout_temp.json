@@ -1,98 +1,23 @@
 {
-    "meet_layoutId": "common_01",
-    "action_layoutId": "common_action_01",
+    "meet_layoutId": "Dr.Tsai Special meet",
+    "action_layoutId": "Dr. Tsai Special action",
     "fields": [
         {
             "type": "input",
-            "title": "Task number",
-            "content": "",
-            "notetype": "meet"
-        },
-        {
-            "type": "spinner",
-            "title": "Task outin",
-            "content": "Choose an option",
-            "notetype": "meet",
-            "options": [
-                "Inside camera",
-                "walk from outside"
-            ]
-        },
-        {
-            "type": "spinner",
-            "title": "Facing",
-            "content": "Choose an option",
-            "notetype": "meet",
-            "options": [
-                "Door",
-                "Window"
-            ]
-        },
-        {
-            "type": "input",
             "title": "Symptoms",
-            "content": "",
+            "content": "I63.0: Cerebral infarction due to thrombosis of precerebral arteries / 源於腦前動脈血栓之腦梗塞",
             "notetype": "meet"
         },
         {
             "type": "input",
             "title": "Fall Risk Level",
-            "content": "",
+            "content": "2",
             "notetype": "meet"
-        },
-        {
-            "type": "input",
-            "title": "Temperature(C)",
-            "content": "",
-            "notetype": "meet"
-        },
-        {
-            "type": "input",
-            "title": "Level of Mood",
-            "content": "",
-            "notetype": "meet"
-        },
-        {
-            "type": "spinner",
-            "title": "Treatment Phase",
-            "content": "Choose an option",
-            "notetype": "meet",
-            "options": [
-                "Pre phase",
-                "Post-injection",
-                "Post-trainging"
-            ]
-        },
-        {
-            "type": "spinner",
-            "title": "Cloth Color",
-            "content": "Choose an option",
-            "notetype": "meet",
-            "options": [
-                "Red",
-                "Orange",
-                "Yellow",
-                "Green",
-                "Blue",
-                "Purple"
-            ]
-        },
-        {
-            "type": "spinner",
-            "title": "Task Type",
-            "content": "Choose an option",
-            "notetype": "action",
-            "options": [
-                "Walk",
-                "Run",
-                "TUG",
-                "Stair"
-            ]
         },
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "Choose an option",
+            "content": "None",
             "notetype": "action",
             "options": [
                 "None",
@@ -109,24 +34,8 @@
             ]
         },
         {
-            "type": "spinner",
-            "title": "Direction",
-            "content": "Choose an option",
-            "notetype": "action",
-            "options": [
-                "AtoB",
-                "BtoA"
-            ]
-        },
-        {
             "type": "input",
             "title": "Note",
-            "content": "",
-            "notetype": "action"
-        },
-        {
-            "type": "input",
-            "title": "Task Number",
             "content": "",
             "notetype": "action"
         }

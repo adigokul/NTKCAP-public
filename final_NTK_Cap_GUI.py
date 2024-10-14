@@ -259,13 +259,18 @@ class TaskEDITInputScreen(Screen):
                 
                 # Handle different input types
                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
-                
-                if isinstance(input_widget, TextInput):
-                    data_to_save_meetnote[title] = input_widget.text
-                elif isinstance(input_widget, Spinner):
-                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
-                elif isinstance(input_widget, BoxLayout):
+                if title == 'Symptoms':
                     data_to_save_meetnote[title] = input_widget.children[1].text
+                    # data_to_save_meetnote[title] = input_text.split('\n')
+                    # import pdb;pdb.set_trace()
+                else:
+
+                    if isinstance(input_widget, TextInput):
+                        data_to_save_meetnote[title] = input_widget.text
+                    elif isinstance(input_widget, Spinner):
+                        data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
+                    elif isinstance(input_widget, BoxLayout):
+                        data_to_save_meetnote[title] = input_widget.children[1].text
                 print(data_to_save_meetnote)
         for index, box in enumerate(self.right_half.children):
             #import pdb;pdb.set_trace()
@@ -393,9 +398,10 @@ class TaskEDITInputScreen(Screen):
                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
                     title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
                     new_box.add_widget(title_label)
-
+                    #result_string = '\n'.join([item['content']])
+                    #import pdb;pdb.set_trace()
                     input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
-                    self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
+                    self.idc_result_input = TextInput(text=item['content'] , size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
                     input_and_button_box.add_widget(self.idc_result_input)
 
                     search_button = Button(text="ICD\n-\n10", size_hint_x=None, width=30)
@@ -498,7 +504,7 @@ class TaskEDITInputScreen(Screen):
         current_text = self.idc_result_input.text
         new_text = f"{code}: {en_description} / {cn_description}"
         if current_text:
-            self.idc_result_input.text = f"{current_text}, {new_text}"
+            self.idc_result_input.text = f"{current_text}\n{new_text}".strip()
         else:
             self.idc_result_input.text = new_text
         
@@ -764,14 +770,20 @@ class TaskInputScreen(Screen):
                 
                 # Handle different input types
                 input_widget = box.children[0]  # Assuming the input widget is always the first widget
-                
-                if isinstance(input_widget, TextInput):
-                    data_to_save_meetnote[title] = input_widget.text
-                elif isinstance(input_widget, Spinner):
-                    data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
-                elif isinstance(input_widget, BoxLayout):
+                if title == 'Symptoms':
                     data_to_save_meetnote[title] = input_widget.children[1].text
+                    # data_to_save_meetnote[title] = input_text.split('\n')
+                    # import pdb;pdb.set_trace()
+                else:
+
+                    if isinstance(input_widget, TextInput):
+                        data_to_save_meetnote[title] = input_widget.text
+                    elif isinstance(input_widget, Spinner):
+                        data_to_save_meetnote[title] = input_widget.text  # Spinner's current selection
+                    elif isinstance(input_widget, BoxLayout):
+                        data_to_save_meetnote[title] = input_widget.children[1].text
                 print(data_to_save_meetnote)
+                
         for index, box in enumerate(self.right_half.children):
             #import pdb;pdb.set_trace()
     # Skip the first three boxes
@@ -892,7 +904,7 @@ class TaskInputScreen(Screen):
                     new_box = BoxLayout(orientation='horizontal', size_hint_y=None, height=120)
                     title_label = Label(text=item['title'], size_hint=(0.5, None), height=120)  # 0.2 will make it take 20% of the available width
                     new_box.add_widget(title_label)
-
+                   # result_string = '\n'.join(item['content'])
                     input_and_button_box = BoxLayout(orientation='horizontal', size_hint=(1, None), height=120)
                     self.idc_result_input = TextInput(text=item['content'], size_hint_y=None, height=120, multiline=True, font_name=FONT_PATH)
                     input_and_button_box.add_widget(self.idc_result_input)
@@ -973,7 +985,7 @@ class TaskInputScreen(Screen):
         current_text = self.idc_result_input.text
         new_text = f"{code}: {en_description} / {cn_description}"
         if current_text:
-            self.idc_result_input.text = f"{current_text}, {new_text}"
+            self.idc_result_input.text = f"{current_text}\n{new_text}".strip()
         else:
             self.idc_result_input.text = new_text
         

@@ -1692,5 +1692,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-# dir_calculated = r'D:\Patient_data\Patient_ID\2024_05_07\2024_06_02_14_47_calculated'
-# gait1(dir_calculated)
+dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_10_09_16_21_calculated_2024_10_09_15_29_calculated__RANSACrealdistsquareliklihood_TR100-2cam_likelihooddynamic'
+gait1(dir_calculated)
