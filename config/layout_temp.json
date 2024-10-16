@@ -11,13 +11,13 @@
         {
             "type": "input",
             "title": "Fall Risk Level",
-            "content": "2",
+            "content": "",
             "notetype": "meet"
         },
         {
             "type": "spinner",
             "title": "Walking aid",
-            "content": "None",
+            "content": "Choose an option",
             "notetype": "action",
             "options": [
                 "None",

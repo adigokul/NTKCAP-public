@@ -394,18 +394,21 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     a = np.argmin([R_locs_possible_min_n[0], L_locs_possible_min_n[0]]) + 1
     count1 = 1
     count2 = 1
-
+    #import pdb;pdb.set_trace()
     while count1 < len(R_locs_possible_min_n)- 1 and count2 < len(L_locs_possible_min_n)-1:
         if a == 1:
             temp = np.where((L_locs_possible_min_n > R_locs_possible_min_n[count1]) & 
                             (L_locs_possible_min_n < R_locs_possible_min_n[count1 + 1]))[0]
             if len(temp) > 1:
-                L_locs_possible_min_n = np.delete(L_locs_possible_min_n, temp[1:])
-                L_locs_possible_min_p = np.delete(L_locs_possible_min_p, temp[:-1])
+                temp_peak_value =[vL[final_locs_L[i]] for i in temp]
+                L_locs_possible_min_n = np.delete(L_locs_possible_min_n, temp[temp_peak_value.index(min(temp_peak_value))])
+                L_locs_possible_min_p = np.delete(L_locs_possible_min_p, temp[temp_peak_value.index(min(temp_peak_value))])
+                final_locs_L =np.delete(final_locs_L ,temp[temp_peak_value.index(min(temp_peak_value))])
                 a = 2
             elif len(temp) == 0:
                 R_locs_possible_min_n = np.delete(R_locs_possible_min_n, count1 + 1)
                 R_locs_possible_min_p = np.delete(R_locs_possible_min_p, count1 + 1)
+                final_locs_R =np.delete(final_locs_R ,count1 + 1)
                 a = 1
                 count1 -= 1
             else:
@@ -415,12 +418,17 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             temp = np.where((R_locs_possible_min_n > L_locs_possible_min_n[count2]) & 
                             (R_locs_possible_min_n < L_locs_possible_min_n[count2 + 1]))[0]
             if len(temp) > 1:
-                R_locs_possible_min_n = np.delete(R_locs_possible_min_n, temp[1:])
-                R_locs_possible_min_p = np.delete(R_locs_possible_min_p, temp[:-1])
+                temp_peak_value =[vR[final_locs_R[i]] for i in temp]
+                
+                R_locs_possible_min_n = np.delete(R_locs_possible_min_n, temp[temp_peak_value.index(min(temp_peak_value))])
+                R_locs_possible_min_p = np.delete(R_locs_possible_min_p, temp[temp_peak_value.index(min(temp_peak_value))])
+                final_locs_R =np.delete(final_locs_R ,temp[temp_peak_value.index(min(temp_peak_value))])
                 a = 1
+                #import pdb;pdb.set_trace()
             elif len(temp) == 0:
                 L_locs_possible_min_n = np.delete(L_locs_possible_min_n, count2 + 1)
                 L_locs_possible_min_p = np.delete(L_locs_possible_min_p, count2 + 1)
+                final_locs_L =np.delete(final_locs_L ,count1 + 1)
                 count2 -= 1
                 a = 2
             else:
@@ -1559,7 +1567,9 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
             elif f.startswith('COM'):
                 file_categories['COM'].append(f)
 
-
+    # file_categories['COM lateral'] =['Find Heel Striketemp_2024_10_09_walk4.png']
+    # file_categories['COM vertical'] =['Find Heel Striketemp_2024_10_09_walk4.png']
+    # file_categories['COM'] = ['Find Heel Striketemp_2024_10_09_walk4.png']
     #import pdb;pdb.set_trace()
     excel_output_pd = pd.DataFrame(excel_output)
     excel_output_pd.to_excel(os.path.join(dir_task,'post_analysis','output.xlsx'), index=False) 
@@ -1576,7 +1586,7 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
     count =0
     # Print the categorized filenames
     for category, files in file_categories.items():
-        
+        #import pdb;pdb.set_trace()
         print(f"{category.capitalize()} files: {files}")
         img = Image(os.path.join(dir_task,'post_analysis',files[0]))
         img.width, img.height =700,420
@@ -1631,7 +1641,8 @@ def gait1(dir_calculated):
         IK_dir = os.path.join(dir_task, 'opensim', 'Balancing_for_IK_BODY.mot')
         trc_dir = os.path.join(dir_task, 'opensim', 'Empty_project_filt_0-30.trc')
         data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
-        #import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()    
+        #AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL = 0,0,0,0,0,0
         AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
         rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
         pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
@@ -1640,6 +1651,7 @@ def gait1(dir_calculated):
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
 def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):  
+
     dir_task = output_dir
     create_post_analysis_dir(dir_task)
     path_parts = dir_task.split(os.sep)
@@ -1692,5 +1704,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_10_09_16_21_calculated_2024_10_09_15_29_calculated__RANSACrealdistsquareliklihood_TR100-2cam_likelihooddynamic'
+dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\temp\2024_10_09\2024_10_09_14_51_calculated'
 gait1(dir_calculated)
