@@ -4,7 +4,7 @@ import time
 from multiprocessing import Process, Queue, shared_memory, Value, Lock
 import os
 from mmdeploy_runtime import PoseTracker
-
+import os
 # Define paths for the PoseTracker model
 dir_mmdeploy = r'C:\Users\mauricetemp\Desktop\NTKCAP\NTK_CAP\ThirdParty\mmdeploy'
 det_model_path = os.path.join(dir_mmdeploy, "rtmpose-trt", "rtmdet-m")
@@ -30,15 +30,68 @@ point_color = VISUALIZATION_CFG['halpe26']['point_color']
 
 
 # Function to capture frames and store in shared memory
-def capture_frames(cam_index, shm_name, frame_shape, frame_size, buffer_length, capture_index, frame_queue):
-    cap = cv2.VideoCapture(cam_index)
-    if not cap.isOpened():
-        print(f"Camera {cam_index} could not be opened.")
+# def capture_frames(cam_index, shm_name, frame_shape, frame_size, buffer_length, capture_index, frame_queue):
+#     cap = cv2.VideoCapture(cam_index)
+#     if not cap.isOpened():
+#         print(f"Camera {cam_index} could not be opened.")
+#         return
+
+#     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_shape[1])
+#     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_shape[0])
+#     cap.set(cv2.CAP_PROP_FPS, 30)
+
+#     existing_shm = shared_memory.SharedMemory(name=shm_name)
+#     frame_data = np.ndarray((buffer_length * frame_size,), dtype=np.uint8, buffer=existing_shm.buf)
+
+#     prev_time = time.time()  # Initialize the previous time
+
+#     while True:
+#         current_time = time.time()  # Get the current time at the start of the loop
+        
+#         ret, frame = cap.read()
+#         if not ret:
+#             print(f"Camera {cam_index}: Failed to capture frame")
+#             break
+
+#         frame_resized = cv2.resize(frame, (frame_shape[1], frame_shape[0]))
+
+#         buffer_index = capture_index.value % buffer_length
+#         start_index = buffer_index * frame_size
+
+#         frame_buffer = np.ndarray(frame_shape, dtype=np.uint8, buffer=frame_data[start_index:])
+#         frame_buffer[:] = frame_resized[:]
+
+#         with capture_index.get_lock():
+#             capture_index.value += 1
+
+#         # Put the frame index in the queue for processing
+#         frame_queue.put(buffer_index)
+
+#         # Calculate time difference and print it
+#         loop_duration = current_time - prev_time
+#         #print(f"Time for the last loop: {loop_duration:.4f} seconds")
+
+#         # Update the previous time for the next iteration
+#         prev_time = current_time
+
+#         time.sleep(0.01)
+
+#     cap.release()
+#     existing_shm.close()
+
+
+
+
+def capture_frames(image_path, shm_name, frame_shape, frame_size, buffer_length, capture_index, frame_queue):
+    # Load the image once
+    image_path = r'C:\Users\mauricetemp\Downloads\Elderly-Day-Care-Facility.jpg'
+    frame = cv2.imread(image_path)
+    if frame is None:
+        print(f"Failed to load image {image_path}")
         return
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_shape[1])
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_shape[0])
-    cap.set(cv2.CAP_PROP_FPS, 30)
+    # Resize the frame to the desired shape
+    frame_resized = cv2.resize(frame, (frame_shape[1], frame_shape[0]))
 
     existing_shm = shared_memory.SharedMemory(name=shm_name)
     frame_data = np.ndarray((buffer_length * frame_size,), dtype=np.uint8, buffer=existing_shm.buf)
@@ -47,17 +100,11 @@ def capture_frames(cam_index, shm_name, frame_shape, frame_size, buffer_length, 
 
     while True:
         current_time = time.time()  # Get the current time at the start of the loop
-        
-        ret, frame = cap.read()
-        if not ret:
-            print(f"Camera {cam_index}: Failed to capture frame")
-            break
-
-        frame_resized = cv2.resize(frame, (frame_shape[1], frame_shape[0]))
 
         buffer_index = capture_index.value % buffer_length
         start_index = buffer_index * frame_size
 
+        # Put the resized frame into the shared memory buffer
         frame_buffer = np.ndarray(frame_shape, dtype=np.uint8, buffer=frame_data[start_index:])
         frame_buffer[:] = frame_resized[:]
 
@@ -69,16 +116,15 @@ def capture_frames(cam_index, shm_name, frame_shape, frame_size, buffer_length, 
 
         # Calculate time difference and print it
         loop_duration = current_time - prev_time
-        #print(f"Time for the last loop: {loop_duration:.4f} seconds")
+        # print(f"Time for the last loop: {loop_duration:.4f} seconds")
 
         # Update the previous time for the next iteration
         prev_time = current_time
 
+        # Optional delay to simulate real-time behavior
         time.sleep(0.01)
 
-    cap.release()
     existing_shm.close()
-
 
 # Function to process frames and mark them as ready for display
 def process_frames(shm_name, shm_name_pose, frame_shape, frame_size, buffer_length, max_people, buffer_pose, frame_queue, display_queue, lock):
@@ -107,22 +153,28 @@ def process_frames(shm_name, shm_name_pose, frame_shape, frame_size, buffer_leng
         keypoints_buffer = np.ndarray((max_people * 26 * 3 + 1), dtype=np.float16, buffer=rtm_data[start_index_pose:])
         current_time = time.time()
         results = tracker(state, frame_buffer, detect=-1)
-        loop_duration = current_time - prev_time
-        prev_time = current_time
+        prev_time =time.time()
+        loop_duration = prev_time-current_time 
+        
         keypoints, bboxes, _ = results
         keypoints_flattened = keypoints.flatten()
         people_count = len(results[0])
 
         arr = np.full((max_people * 26 * 3 + 1), -1.000)
         arr[0] = people_count
+        if people_count>1:
+            print(people_count)
         arr[1:len(keypoints_flattened) + 1] = keypoints_flattened
         keypoints_buffer[:] = arr[:]
+        #print(arr[0])
+        #print(len(keypoints_flattened))
+        #print(arr[26*3+2:26*3+10])
 
         # Put the processed frame index into the display queue
         display_queue.put(buffer_index)
         
 
-        print(f"Time for the last loop: {loop_duration:.4f} seconds")
+        #print(f"Time for the last loop: {loop_duration:.4f} seconds")
         time.sleep(0.01)
 
     existing_shm.close()
@@ -144,6 +196,7 @@ def display_frames(shm_name, shm_name_pose, frame_shape, frame_size, buffer_leng
             buffer_index = display_queue.get(timeout=5)  # Get the next frame index (with a timeout)
 
             start_index = buffer_index * frame_size
+            
             start_index_pose = buffer_index % buffer_pose * (max_people * 26 * 3 + 1)
 
             frame_buffer = np.ndarray(frame_shape, dtype=np.uint8, buffer=frame_data[start_index:])
@@ -157,11 +210,19 @@ def display_frames(shm_name, shm_name_pose, frame_shape, frame_size, buffer_leng
 
             fps_text = f"FPS: {fps:.2f}"
             cv2.putText(frame_buffer, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
+            print('draw: '+ str(people_count))
             for i in range(people_count):
-                arr_temp = arr[i * 79 + 1:i * 79 + 79]
+                
+                arr_temp = arr[i * 79+1 :i * 79 + 79]
                 kpts = arr_temp.reshape(-1, 3)[:, :2]
                 score = arr_temp.reshape(-1, 3)[:, 2]
+                if people_count>1 and i>0:
+                    print(arr[26*3+2:26*3+10])
+                    print('\noriginal:')
+                    print(arr[0:10])
+                    print(kpts)
+                    #import pdb;pdb.set_trace()
+                
 
                 for (u, v), color in zip(skeleton, link_color):
                     if score[u] > 0.5 and score[v] > 0.5:
@@ -189,10 +250,11 @@ if __name__ == "__main__":
 
     num_cams = 1
     frame_shape = (720, 1280, 3)  # Set the frame size to 720p
+    #frame_shape = (1920, 1080, 3)
     frame_size = np.prod(frame_shape)
-    buffer_length = 400  # Buffer length
+    buffer_length = 4  # Buffer length
     max_people = 10
-    buffer_pose = 400
+    buffer_pose = 4
 
     shm_name = "frame"
     shm_size = int(buffer_length * frame_size)
@@ -211,7 +273,7 @@ if __name__ == "__main__":
     p_capture.start()
 
     # Multiple processing processes
-    num_processes = 2  # Number of processing processes
+    num_processes = 1  # Number of processing processes
     processing_processes = []
     for _ in range(num_processes):
         p_process = Process(target=process_frames, args=(shm_name, shm_name_pose, frame_shape, frame_size, buffer_length, max_people, buffer_pose, frame_queue, display_queue, Lock()))
