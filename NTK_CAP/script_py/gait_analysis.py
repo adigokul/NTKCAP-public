@@ -1707,5 +1707,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\TSIA_FAKE\2024_09_19\2024_10_28_11_23_calculated'
-gait1(dir_calculated)
+# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\TSIA_FAKE\2024_09_19\2024_10_28_11_23_calculated'
+# gait1(dir_calculated)
