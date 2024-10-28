@@ -1062,16 +1062,19 @@ def Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,tit
 
     while speed_midpoint[-1] + mean_gap < len(B):
         speed_midpoint = np.append(speed_midpoint, speed_midpoint[-1] + mean_gap)
-
-    speed_midpoint = np.concatenate(([0], speed_midpoint, [len(B)-1]))
+    if speed_midpoint[0]!=0:
+        speed_midpoint = np.concatenate(([0], speed_midpoint))
+    if speed_midpoint[-1]!=len(B)-1:
+        speed_midpoint = np.concatenate((speed_midpoint, [len(B)-1]))
     interp_speed = []
 
     for i in range(len(speed_midpoint) - 2):
         temp_interp = np.sort(B[speed_midpoint[i]:speed_midpoint[i+2]])
         if B[speed_midpoint[i]] > B[speed_midpoint[i+2]]:
             temp_interp = np.flipud(temp_interp)
-
+        
         interp_speed.append([speed_midpoint[i+1], temp_interp[speed_midpoint[i+1] - speed_midpoint[i]]])
+        
 
     interp_speed = np.vstack(([[speed_midpoint[0], B[speed_midpoint[0]]]], interp_speed, [[speed_midpoint[-1], B[speed_midpoint[-1]]]]))
     interp_speed = np.array(interp_speed)  # Ensure it is a numpy array
@@ -1704,5 +1707,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\temp\2024_10_09\2024_10_09_14_51_calculated'
-# gait1(dir_calculated)
+dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\TSIA_FAKE\2024_09_19\2024_10_28_11_23_calculated'
+gait1(dir_calculated)
