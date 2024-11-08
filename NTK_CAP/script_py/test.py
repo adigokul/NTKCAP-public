@@ -1,11 +1,17 @@
-from mmpose.apis import MMPoseInferencer
+import numpy as np
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_08_13_34_calculated\1\opensim\sync_time_marker.npz'
+# Load the .npz file
+data = np.load(dir)
 
-img_path = r'C:\Users\user\Desktop\NTKCAP\Patient_data\snowboard\2024_05_23\raw_data\Apose\videos\3.mov'   # replace this with your own image path
+# Display all variables and their content
+for variable_name in data:
+    print(f"{variable_name}:")
+    print(data[variable_name])
+    print()  # Adds a newline for better readability
 
-# instantiate the inferencer using the model alias
-inferencer = MMPoseInferencer('body26')
+# Close the .npz file after reading (optional but good practice)
+time = data["sync_timeline"]
+data.close()
 
-# The MMPoseInferencer API employs a lazy inference approach,
-# creating a prediction generator when given input
-result_generator = inferencer(img_path, show=True)
-results = [result for result in result_generator]
+print(np.shape(time))
+import pdb;pdb.set_trace()

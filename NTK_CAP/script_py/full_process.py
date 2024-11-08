@@ -47,11 +47,16 @@ def timesync_video(video_folder,cam_num,opensim_folder):
     check =0
     calibrate = np.zeros((1,cam_num),int)
     mean_time  =[]
-    calibrate_array =calibrate
+    #calibrate_array =calibrate
+    #import pdb;pdb.set_trace()
     if token ==1:
-        while max(calibrate[0])<min(end_record):
+        while max(calibrate[0])<=min(end_record):
             aim = np.array([cap_array[0][calibrate[0][0]],cap_array[1][calibrate[0][1]],cap_array[2][calibrate[0][2]],cap_array[3][calibrate[0][3]]])
             mean_time.append(np.mean(aim)-diff_realworld_to_capread)
+            try:
+                calibrate_array = np.concatenate((calibrate_array, calibrate), axis=0)
+            except NameError:
+                calibrate_array = calibrate  # Initialize on the first loop
             for i in range(cam_num):
                 print(max(aim)-aim[i])
                 if max(aim)-aim[i]>TR:
@@ -59,9 +64,10 @@ def timesync_video(video_folder,cam_num,opensim_folder):
                     check = check+1
             if check ==0:
                 calibrate = calibrate+1
-            calibrate_array =np.concatenate((calibrate_array,calibrate), axis=0)
+            
+            
             check =0
-    
+        #import pdb;pdb.set_trace()
         for i in range(cam_num):
         # Open the video
             # Get video properties
@@ -108,6 +114,7 @@ def timesync_video(video_folder,cam_num,opensim_folder):
             os.rename(os.path.join(video_folder,str(i+1)+'sync.mp4'),video_path[i])
 
         marker = np.array([-1])
+        #import pdb;pdb.set_trace()
         if os.path.isfile(os.path.join(video_folder,'marker_stamp.npy')):
             marker = np.load(os.path.join(video_folder,'marker_stamp.npy'))*1000
             marker = (marker-min(mean_time))/1000+0.03333
