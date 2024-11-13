@@ -1,17 +1,28 @@
+# get camera number andwrite config
+
+import os
+import sys
+import cv2
+import json
+import sys
 import numpy as np
-dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_08_13_34_calculated\1\opensim\sync_time_marker.npz'
-# Load the .npz file
-data = np.load(dir)
+import multiprocessing
+import multiprocessing, threading, logging, sys, traceback
+import time
+import keyboard
+import shutil
+from datetime import datetime
+import subprocess
+import easymocap
+import import_ipynb
+from xml_update import *
+os.chdir(r'C:\Users\mauricetemp\Desktop\NTKCAP')
+from Pose2Sim import Pose2Sim1
+import inspect;
+import  serial
 
-# Display all variables and their content
-for variable_name in data:
-    print(f"{variable_name}:")
-    print(data[variable_name])
-    print()  # Adds a newline for better readability
 
-# Close the .npz file after reading (optional but good practice)
-time = data["sync_timeline"]
-data.close()
-
-print(np.shape(time))
-import pdb;pdb.set_trace()
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_12_17_05_calculated\Apose'
+os.chdir(dir)
+Pose2Sim.filtering()
+print(inspect.getfile(Pose2Sim))

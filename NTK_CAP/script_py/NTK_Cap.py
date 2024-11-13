@@ -1202,3 +1202,257 @@ def marker_caculate(PWD,cal_data_path):
                 
 
 
+def marker_caculate_fast(PWD,cal_data_path):
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm
+    ori_path = PWD
+    openpose_path = os.path.join(PWD, "NTK_CAP")
+    openpose_path = os.path.join(openpose_path, "ThirdParty")
+    openpose_path = os.path.join(openpose_path, "openpose")
+    openpose_path = os.path.join(openpose_path, "openpose")
+    openpose_exe = os.path.join(openpose_path, "bin")
+    openpose_exe = os.path.join(openpose_exe, "OpenPoseDemo.exe")
+
+    posesim_path = os.path.join(PWD, "NTK_CAP")
+    posesim_path = os.path.join(posesim_path, "ThirdParty")
+    posesim_path = os.path.join(posesim_path, "OpenSim")
+    posesim_path = os.path.join(posesim_path, "bin")
+    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+
+
+    data_path = cal_data_path
+
+    # time_file_path = os.path.join(data_path, "cac_time.txt")
+    # if os.path.exists(time_file_path):
+    #     with open(time_file_path, "r") as file:
+    #         formatted_datetime = file.read().strip()
+    # else:
+    #     print("the cac_time.txt did not exist, creatred new one")
+    #     now = datetime.now()
+    #     formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
+    #     with open(time_file_path, "w") as file:
+    #         file.write(formatted_datetime)
+
+    calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
+
+    empty_project_path = os.path.join(PWD, "NTK_CAP")
+    empty_project_path = os.path.join(empty_project_path, "template")
+    empty_project_path = os.path.join(empty_project_path, "Empty_project")
+    
+    now = datetime.now()
+    formatted_datetime = now.strftime("%Y_%m_%d_%H_%M")
+    calculated_ending = "_calculated"
+    folder_name = formatted_datetime + calculated_ending
+    caculate_finshed_path = os.path.join(data_path, folder_name)
+    os.makedirs(caculate_finshed_path)
+    print("資料夾成功創建:", caculate_finshed_path)
+    
+    old_apose_path = caculate_finshed_path
+    old_apose_path = os.path.join(old_apose_path,"Apose")
+    print("old_apose_path", old_apose_path)
+    now_date = data_path
+    apose_stage = 0
+    apose_using = False
+    apose_file = os.path.join(now_date,'raw_data', "Apose")
+    print("apose_file",apose_file)
+            
+    if os.path.exists(apose_file):
+        print("使用最新Apose校正")
+        apose_stage = 1
+        apose_using = True
+        scaling_model = os.path.join(old_apose_path, "opensim")
+        scaling_model = os.path.join(scaling_model, "Model_Pose2Sim_Halpe26_scaled.osim")
+    elif os.path.exists(old_apose_path):
+        print("使用前次拍攝之Apose")
+        apose_using = True
+        scaling_model = os.path.join(old_apose_path, "opensim")
+        scaling_model = os.path.join(scaling_model, "Model_Pose2Sim_Halpe26_scaled.osim")
+    else:
+        print("不使用Apose")
+
+    if apose_stage == 1:
+        try:
+            print("嘗試創建資料夾")
+            print("apose_file: " + old_apose_path)
+            cal_apose_path = old_apose_path
+            os.makedirs(cal_apose_path)
+            print("資料夾成功創建")
+        except:
+            print("將覆蓋Apose")
+            subprocess.run(["rmdir", "/s", "/q", cal_apose_path], check=True, shell=True)
+            print("重新創建資料夾")
+            cal_apose_path = old_apose_path
+            os.makedirs(cal_apose_path)
+        try:
+            now_project = old_apose_path
+            
+            print(empty_project_path)
+            print(now_project)
+
+            contents = os.listdir(empty_project_path)
+            print(contents)
+            for item in contents:
+                source = os.path.join(empty_project_path, item)
+                target = os.path.join(now_project, item)
+                if os.path.isdir(source):
+                    shutil.copytree(source, target)
+                else:
+                    shutil.copy2(source, target)
+            # shutil.copytree(empty_project_path, now_project)
+            print("複製專案成功")
+        except:
+            print("複製專案失敗")
+        apose_file_videos = os.path.join(apose_file, "videos")
+        now_project_videos = os.path.join(now_project, "videos")
+        now_pose_videos = os.path.join(now_project, "videos_pose_estimation")
+        os.mkdir(now_pose_videos)
+        print(now_pose_videos)
+        now_project_calib = os.path.join(now_project, "calib-2d")
+        now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+        shutil.copytree(apose_file_videos, now_project_videos)
+        # subprocess.run(["rmdir", "/s", "/q", apose_file], check=True, shell=True)
+        shutil.copy(calib_ori_path, now_project_calib)
+        os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+
+        
+        print("切換至" + os.getcwd())
+        for l in range(1,5):
+            now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
+            now_pose =  os.path.join(now_pose_videos, str(l) + ".mp4")
+            now_json = os.path.join(now_project, "pose-2d")
+            now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
+
+            # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
+            rtm2json(now_videos, now_json+'.json',now_pose)
+            print(now_pose)
+        os.chdir(ori_path)
+        print("切換至" + os.getcwd())
+        os.chdir(now_project)
+        print("切換至" + os.getcwd())
+        
+        Pose2Sim.personAssociation_multi()
+        
+        Pose2Sim.triangulation()
+        
+        Pose2Sim.filtering()
+        import inspect
+        print(inspect.getfile(Pose2Sim))
+        
+        
+        
+        rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
+        if os.path.isfile(rpj_all_dir):
+            if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
+                os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                #import pdb;pdb.set_trace()
+            for video_rpj_count in range(1,5):
+                    
+                out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                    #import pdb;pdb.set_trace()
+                rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+        cv2.destroyAllWindows()
+        os.chdir(ori_path)
+        print("切換至" + os.getcwd())
+        # import ipdb;ipdb.set_trace()
+        now_project_3d = os.path.join(now_project, "pose-3d")
+        trc_files = os.listdir(now_project_3d)
+        for m in trc_files:
+            if "filt" in m:
+                copy_3d = m
+
+        now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+        copy_3d_2 = os.path.join(now_project, "opensim")
+        copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
+        shutil.copy(now_project_trc_ori, copy_3d_2)
+
+        os.chdir(posesim_path)
+        print("切換至" + os.getcwd())
+        now_project_opensim = os.path.join(now_project, "opensim")
+        now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml")
+        os.chdir(now_project_opensim)
+        print("切換至" + os.getcwd())
+        #import pdb; pdb.set_trace()
+        halpe26_xml_update(now_project)
+        #import pdb;pdb.set_trace()
+        subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
+          
+
+        os.chdir(ori_path)
+        print("切換至" + os.getcwd())
+
+    tasks = os.listdir(os.path.join(cal_data_path,'raw_data'))
+    for k in tasks:
+
+        if k.endswith(("Apose","calibration",".json")):
+            continue
+        #import pdb;pdb.set_trace()
+        
+        now_task = os.path.join(caculate_finshed_path, k)
+        now_project = now_task
+        
+        shutil.copytree(empty_project_path, now_project)
+        #import pdb;pdb.set_trace()
+
+        now_task_videos = os.path.join(cal_data_path,'raw_data', k, "videos")
+        now_project_videos = os.path.join(now_project, "videos")
+        pose_videos = os.path.join(now_project, "videos_pose_estimation")
+        #os.mkdir(pose_videos)
+
+        now_project_calib = os.path.join(now_project, "calib-2d")
+        now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+        #shutil.copytree(now_task_videos, now_project_videos)
+        shutil.copy(calib_ori_path, now_project_calib)
+        os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+        print("切換至" + os.getcwd())
+        timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
+        os.chdir(ori_path)
+        print("切換至" + os.getcwd())
+        os.chdir(now_project)
+        print("切換至" + os.getcwd())
+        s = time.time()
+        Pose2Sim.personAssociation_multi() 
+        e = time.time()
+        Pose2Sim.triangulation()
+        f = time.time()
+        Pose2Sim.filtering()
+        g = time.time()
+        cv2.destroyAllWindows()
+        print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
+        import pdb;pdb.set_trace()
+
+        os.chdir(ori_path)
+        # import ipdb;ipdb.set_trace()
+        now_project_3d = os.path.join(now_project, "pose-3d")
+        trc_files = os.listdir(now_project_3d)
+        for m in trc_files:
+            if "filt" in m:
+                copy_3d = m
+
+        now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+        copy_3d_2 = os.path.join(now_project, "opensim")
+        copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
+        shutil.copy(now_project_trc_ori, copy_3d_2)
+
+        os.chdir(posesim_path)
+        print("切換至" + os.getcwd())
+        now_project_opensim = os.path.join(now_project, "opensim")
+        if apose_using:
+            now_project_opensim_scaling = os.path.join(now_project_opensim, "Model_Pose2Sim_Halpe26_scaled.osim")
+            shutil.copy(scaling_model, now_project_opensim_scaling)
+            now_project_opensim_scaling = os.path.join(now_project_opensim, "IK_Setup_Pose2Sim_Halpe26.xml")
+        else:
+            now_project_opensim_scaling = os.path.join(now_project_opensim, "IK_Setup_Pose2Sim_Body26_without_scaling.xml")
+        os.chdir(now_project_opensim)
+        ###################################### very weird but seems only / works
+        now_project_opensim_scaling = now_project_opensim_scaling.replace('\\', '/')
+        print("切換至" + os.getcwd())
+        #######################################
+        #halpe26_xml_update(now_project)
+        #import pdb;pdb.set_trace()
+        subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
+        os.chdir(ori_path)
+    return caculate_finshed_path
+
+# subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
+                

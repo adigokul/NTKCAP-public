@@ -25,6 +25,73 @@ except:
 
 import traceback
 ####parameter
+def timesync2rtm(video_folder,cam_num,opensim_folder,out_json):
+    raw_video_path = video_folder
+    calibrate_array = timesync_arrayoutput(video_folder,cam_num,opensim_folder)
+    for i in range(cam_num):
+        Video_path = os.path.join(raw_video_path,str(i+1)+'.mp4')
+        out_dir = os.path.join(out_json,"pose_cam" + str(i+1) + "_json.json")
+        rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array)
+def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
+    cap = []
+    cap_array =[]
+    end_record = []
+    video_path=[]
+    token =1
+    for i in range(cam_num):
+        cap.append(os.path.join(video_folder,str(i+1)+'_dates.npy'))
+        video_path.append(os.path.join(video_folder,str(i+1)+'.mp4'))
+        if os.path.isfile(os.path.join(video_folder,str(i+1)+'_dates.npy'))!=1:
+            token =0
+            break
+        temp =np.load(os.path.join(video_folder,str(i+1)+'_dates.npy'))
+        temp =(temp[:,0]+temp[:,1])/2
+        indices = np.where(temp == 0)[0]
+        cap_array.append(temp*1000)
+        end_record.append(min(indices)-1)
+    TR = 50 ##ms
+    diff_realworld_to_capread = 160 ##ms
+    check =0
+    calibrate = np.zeros((1,cam_num),int)
+    mean_time  =[]
+    if token ==1:
+        while max(calibrate[0])<=min(end_record):
+            aim = np.array([cap_array[0][calibrate[0][0]],cap_array[1][calibrate[0][1]],cap_array[2][calibrate[0][2]],cap_array[3][calibrate[0][3]]])
+            mean_time.append(np.mean(aim)-diff_realworld_to_capread)
+            try:
+                calibrate_array = np.concatenate((calibrate_array, calibrate), axis=0)
+            except NameError:
+                calibrate_array = calibrate  # Initialize on the first loop
+            for i in range(cam_num):
+                print(max(aim)-aim[i])
+                if max(aim)-aim[i]>TR:
+                    calibrate[0][i] = calibrate[0][i]+1
+                    check = check+1
+            if check ==0:
+                calibrate = calibrate+1
+            
+            
+            check =0
+        marker = np.array([-1])
+        #import pdb;pdb.set_trace()
+        if os.path.isfile(os.path.join(video_folder,'marker_stamp.npy')):
+            marker = np.load(os.path.join(video_folder,'marker_stamp.npy'))*1000
+            marker = (marker-min(mean_time))/1000+0.03333
+            marker_path = Path(os.path.join(video_folder,'marker_stamp.npy'))
+            marker_path.unlink()
+
+        mean_time = (mean_time-min(mean_time))/1000+0.03333
+
+        # Saving multiple arrays into a single file
+        np.savez(os.path.join(opensim_folder ,'sync_time_marker.npz'), sync_timeline=np.array(mean_time), marker=marker)
+
+
+
+
+    else:
+        print('No Time Sync File')
+    return calibrate_array
+
 def timesync_video(video_folder,cam_num,opensim_folder):
     cap = []
     cap_array =[]
@@ -130,6 +197,97 @@ def timesync_video(video_folder,cam_num,opensim_folder):
         np.savez(os.path.join(opensim_folder ,'sync_time_marker.npz'), sync_timeline=np.array(mean_time), marker=marker)
     else:
         print('No Time Sync File')
+def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
+    AlphaPose_to_OpenPose = "./NTK_CAP/script_py"
+    temp_dir = os.getcwd()
+    VISUALIZATION_CFG = dict(
+    halpe26=dict(
+        skeleton=[(15, 13), (13, 11), (11,19),(16, 14), (14, 12), (12,19),
+                  (17,18), (18,19), (18,5), (5,7), (7,9), (18,6), (6,8),
+                  (8,10), (1,2), (0,1), (0,2), (1,3), (2,4), (3,5), (4,6),
+                  (15,20), (15,22), (15,24),(16,21),(16,23), (16,25)],
+        palette=[(51, 153, 255), (0, 255, 0), (255, 128, 0)],
+        link_color=[
+            1, 1, 1, 2, 2, 2, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2
+        ],
+        point_color=[
+            0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+        ],
+        sigmas=[
+            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
+            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
+            0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
+        ]))
+    det_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")#連到轉換過的det_model的資料夾
+    pose_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")#連到轉換過的pose_model的資料夾
+    device_name = "cuda"
+    thr=0.5
+    frame_id = 0
+    skeleton_type='halpe26'
+    np.set_printoptions(precision=13, suppress=True)
+    
+    video = cv2.VideoCapture(Video_path)
+    cam_num =int(os.path.splitext(os.path.basename(Video_path))[0])-1
+    tracker = PoseTracker(det_model, pose_model, device_name)    
+    sigmas = VISUALIZATION_CFG[skeleton_type]['sigmas']
+    state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
+    ###skeleton style
+    data1 = []
+    while True:
+        success, frame = video.read()
+        if not success:
+            break
+        results = tracker(state, frame, detect=-1)
+        keypoints, bboxes, _ = results
+        
+        scores = keypoints[..., 2]
+        keypoints = keypoints[..., :2]
+        num_people = len(keypoints)
+        
+        if scores.size==0:
+            temp = {"image_id" : frame_id, "people" : []}
+            temp_keypoints = []
+            for i in range(26):
+                x = float(0)
+                y = float(0)
+                each_score = float(0)
+                temp_keypoints.append(x)
+                temp_keypoints.append(y)
+                temp_keypoints.append(each_score)
+            temp['people'].append({'person_id' : -1, "pose_keypoints_2d" : temp_keypoints})
+            data1.append(temp)#存成相同格式
+            
+        else:
+            temp = {"image_id" : frame_id, "people" : []}
+            for person_id in range(num_people):
+                temp_keypoints = []
+                for i in range(26):
+                    x = float(keypoints[person_id][i][0])
+                    y = float(keypoints[person_id][i][1])
+                    each_score = float(scores[person_id][i])
+                    temp_keypoints.append(x)
+                    temp_keypoints.append(y)
+                    temp_keypoints.append(each_score)
+                temp['people'].append({'person_id' : person_id, "pose_keypoints_2d" : temp_keypoints})
+            data1.append(temp) #存成相同格式
+        frame_id += 1
+    
+
+    rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
+    #import pdb;pdb.set_trace()
+    with open(out_dir, "w") as save_file:
+        json.dump(rearranged_list, save_file, indent = 6)  
+    
+    video.release()
+    ### video output
+
+    temp = rearranged_list
+    os.chdir(AlphaPose_to_OpenPose )
+    subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
+    os.chdir(temp_dir)
+
+    os.remove(out_dir)
+    
         
 def rtm2json_gpu(Video_path, out_dir, out_video):
     AlphaPose_to_OpenPose = "./NTK_CAP/script_py"
