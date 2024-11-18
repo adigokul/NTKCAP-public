@@ -87,9 +87,10 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
         ch = c
         P_cam = P_all[c]
         A = np.vstack((A, (P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
+        #print(np.shape((P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
         A = np.vstack((A, (P_cam[1] - y_all[c]*P_cam[2]) * likelihood_all[c] ))
         #import pdb;pdb.set_trace()
-        
+    
     if np.shape(A)[0] >= 4:
         S, U, Vt = cv2.SVDecomp(A)
         V = Vt.T
@@ -166,7 +167,7 @@ def reprojection(P_all, Q):
     OUTPUTS:
     - x_calc, y_calc: list of coordinates of point reprojected on all cameras
     '''
-    
+    #import pdb;pdb.set_trace()
     x_calc, y_calc = [], []
     for c in range(len(P_all)):  
         P_cam = P_all[c]
@@ -199,6 +200,7 @@ def euclidean_distance(q1, q2):
 
 ####### Add by maurice
 def euclidean_dist_with_multiplication(q1,q2,Q,calib_file):
+    
     '''
     Euclidean distance between 2 points (N-dim) with focal point and dist calibration
     
@@ -210,8 +212,6 @@ def euclidean_dist_with_multiplication(q1,q2,Q,calib_file):
     - euc_dist: float. Euclidian distance between q1 and q2
     
     '''
-
-    
     q1 = np.array(q1)
     q2 = np.array(q2)
     dist = q2 - q1
@@ -222,7 +222,6 @@ def euclidean_dist_with_multiplication(q1,q2,Q,calib_file):
     index = D
     euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
     euc_dist = euc_dist*index
-
     return euc_dist
 def camera2point_dist(Q,calib_file):
 
