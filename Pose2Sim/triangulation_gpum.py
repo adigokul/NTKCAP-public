@@ -1555,6 +1555,7 @@ def triangulate_all(config):
     Q_selected = cp.asnumpy(Q_selected)
     Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
     #import pdb;pdb.set_trace()
+    
 
 
     Q_tot_gpu = pd.DataFrame(Q_tot_gpu)
@@ -1583,9 +1584,30 @@ def triangulate_all(config):
     time_indices = cp.arange(real_dist.shape[1])[None, :]  # Shape: (1, 22)
     real_dist_final = real_dist_dynamic[batch_indices, time_indices, min_locations_nan]
     strongness_exclusion_tot = (real_dist_1st-real_dist_final).tolist()
+    result_list = [cp.asnumpy(min_locations[i, :]) for i in range(min_locations.shape[0])]
+    value_map = {
+    0: [],
+    1: [0],
+    2: [1],
+    3: [2],
+    4: [3],
+    5: [0, 1],
+    6: [0, 2],
+    7: [0, 3],
+    8: [1, 2],
+    9: [1, 3],
+    10: [2, 3],
+}
+
+    # Transform the result_list
+    transformed_result_list = [
+        [value_map[val] for val in array]  # Map each value in the 22-element array
+        for array in result_list           # Process each 22-element array in the list
+    ]
+    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+    import pdb;pdb.set_trace()
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
-    #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
-    
+        
 
     P = cp.asnumpy(P)
     mappingx=cp.asnumpy(mappingx)
@@ -1683,7 +1705,7 @@ def triangulate_all(config):
     
     # Recap message
     recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)
-dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\test_accuracy\2024_05_07\2024_11_19_15_56_calculated\Walk1_2cam'
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_12_16_32_calculated\1'
 os.chdir(dir)
 config_dict = toml.load(os.path.join(dir,'User','Config.toml'))
 
