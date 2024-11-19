@@ -805,9 +805,12 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
         #import pdb
         #pdb.set_trace()
         # Triangulate 2D points
-
-        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
         
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+# array([[ 0.2907211 , -2.36826029,  0.34837825,  1.        ],
+#        [ 0.25013796, -2.32866148,  0.36263034,  1.        ],
+#        [ 0.26127984, -2.33906138,  0.35302644,  1.        ],
+#        [ 0.20082143, -2.37559078,  0.36310962,  1.        ]])
         #import pdb;pdb.set_trace()
         # Reprojection
         coords_2D_kpt_calc_filt = [reprojection(projection_matrices_filt[i], Q_filt[i])  for i in range(len(id_cams_off))]
@@ -819,7 +822,7 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
         # Reprojection error
         error = []
         error1 = []
-        cam_temp = 0
+        
         for config_id in range(len(x_calc_filt)):
             q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
             q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
@@ -838,8 +841,8 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
             
             #import pdb;pdb.set_trace()
             if len(q_file)>0:
-                error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[cam_temp][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
-                error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[cam_temp][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ))
+                error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+                error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ))
                 #import pdb;pdb.set_trace()
             ######max without dist.
                 error1.append( np.max( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
@@ -847,7 +850,7 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
                 error.append(float('inf'))
                 error1.append(float('inf'))
 
-            cam_temp = cam_temp+1
+            
             #import pdb;pdb.set_trace()
         # Choosing best triangulation (with min reprojection error)
         #import pdb
@@ -1144,7 +1147,36 @@ def find_Q(A4,A3,A2):
 
 
     return Q4,Q3,Q2
-def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2):
+def create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2):
+    loc = cp.where(prep_3like < likelihood_threshold)
+    prep_3like[loc] = cp.inf
+    # Find the index of the first non-inf element along axis 2
+    non_inf_mask3 = ~cp.isinf(prep_3like)
+    min_locations_nan3 = cp.argmax(non_inf_mask3, axis=2)
+    batch_indices = cp.arange(Q3.shape[0])[:, None]  # Shape: (184, 1)
+    time_indices = cp.arange(Q3.shape[1])[None, :]   # Shape: (1, 22)
+
+# Use advanced indexing to extract the desired values
+    selected_slices = Q3[batch_indices, time_indices, min_locations_nan3, :]
+    
+# Add an additional dimension to match the shape (184, 22, 1, 4)
+    Q3_bug = selected_slices[:, :, cp.newaxis, :]
+
+    loc = cp.where(prep_2like < likelihood_threshold)
+    prep_2like[loc] = cp.inf
+    # Find the index of the first non-inf element along axis 2
+    non_inf_mask2 = ~cp.isinf(prep_2like)
+    min_locations_nan2 = cp.argmax(non_inf_mask2, axis=2)
+    batch_indices = cp.arange(Q2.shape[0])[:, None]  # Shape: (184, 1)
+    time_indices = cp.arange(Q2.shape[1])[None, :]   # Shape: (1, 22)
+
+# Use advanced indexing to extract the desired values
+    selected_slices = Q2[batch_indices, time_indices, min_locations_nan3, :]
+    
+# Add an additional dimension to match the shape (184, 22, 1, 4)
+    Q2_bug = selected_slices[:, :, cp.newaxis, :]
+    return Q3_bug,Q2_bug
+def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug):
     elements = [0, 1, 2, 3]
 
     # Total elements
@@ -1207,6 +1239,7 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2):
     final_resultsx =[]
     final_resultsy =[]
     final_dist = []
+    #Q3_bug = 
     for i in range(4):
         x = []
         y = []
@@ -1223,7 +1256,7 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2):
             P2_dot_Q = cp.einsum('ik,btk->bt', P_cam_2, Q3[:,:,i,:])  # Shape: (250, 22, 4)
             x.append(P0_dot_Q / P2_dot_Q)
             y.append(P1_dot_Q / P2_dot_Q)
-            dist.append(cp.sqrt(cp.sum((Q3[:, :, i, 0:3] - cam_coord[d]) ** 2, axis=-1)))
+            dist.append(cp.sqrt(cp.sum((Q3_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
             
             
 
@@ -1275,7 +1308,7 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2):
             P2_dot_Q = cp.einsum('ik,btk->bt', P_cam_2, Q2[:,:,i,:])  # Shape: (250, 22, 4)
             x.append(P0_dot_Q / P2_dot_Q)
             y.append(P1_dot_Q / P2_dot_Q)
-            dist.append(cp.sqrt(cp.sum((Q2[:, :, i, 0:3] - cam_coord[d]) ** 2, axis=-1)))
+            dist.append(cp.sqrt(cp.sum((Q2_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
             
             
 
@@ -1398,10 +1431,13 @@ def triangulate_all(config):
     prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
     #undistort
     ## 
+    #array([[ 0.2907211 , -2.36826029,  0.34837825,  1.        ]])
     A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
     Q4,Q3,Q2 =find_Q(A4,A3,A2)
     Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
-    real_dist4,real_dist3,real_dist2=find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2)
+    Q3_bug,Q2_bug=create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
+    real_dist4,real_dist3,real_dist2=find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug)
+    
     ## delete the liklelihoood vlue which is too low
     real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
     loc = cp.where(prep_like < likelihood_threshold)
@@ -1411,8 +1447,10 @@ def triangulate_all(config):
     min_locations_nan = cp.argmax(non_inf_mask, axis=2)
     real_dist_dynamic = cp.copy(real_dist)
 
-    
 
+
+
+    
     
     ## setting the list dynamic
     for i in range(22):    
@@ -1430,6 +1468,8 @@ def triangulate_all(config):
     Q_selected = cp.asnumpy(Q_selected)
     Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
     #import pdb;pdb.set_trace()
+
+
     Q_tot_gpu = pd.DataFrame(Q_tot_gpu)
     if show_interp_indices:
         zero_nan_frames = np.where( Q_tot_gpu.iloc[:,::3].T.eq(0) | ~np.isfinite(Q_tot_gpu.iloc[:,::3].T) )
@@ -1457,11 +1497,11 @@ def triangulate_all(config):
     real_dist_final = real_dist_dynamic[batch_indices, time_indices, min_locations_nan]
     strongness_exclusion_tot = (real_dist_1st-real_dist_final).tolist()
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
-    import pdb;pdb.set_trace()
+    
     #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
 
 
-
+    import pdb;pdb.set_trace()
 
     P = cp.asnumpy(P)
     for f in tqdm(range(*f_range)):
