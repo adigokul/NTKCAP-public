@@ -943,7 +943,6 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
     x_files = np.array(x_files)
     y_files = np.array(y_files)
     likelihood_files = np.array(likelihood_files)
-
     return x_files, y_files, likelihood_files
 
 def create_prep(f_range,n_cams,keypoints_ids,json_tracked_files):
@@ -975,6 +974,7 @@ def create_prep(f_range,n_cams,keypoints_ids,json_tracked_files):
     for f in tqdm(range(*f_range)):
         json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)]
         x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
+        #@import pdb;pdb.set_trace()
         arrays = [x_files, y_files, likelihood_files]
         # Stack and transpose
         stacked = np.stack(arrays, axis=0)  # Shape: (3, 4, 22)
@@ -1009,6 +1009,88 @@ def create_prep(f_range,n_cams,keypoints_ids,json_tracked_files):
     # Stack the combinations into a new dimension
     prep_2 = cp.stack(result_list, axis=2)  # Shape: (184, 22, 6, 4, 3)
     return prep_4,prep_3,prep_2
+def bilinear_interpolate_cupy(map, x, y):
+    """
+    Perform bilinear interpolation for CuPy arrays.
+    map: The 2D CuPy array on which interpolation is performed.
+    x: x-coordinates (float) for interpolation.
+    y: y-coordinates (float) for interpolation.
+    """
+    # Get integer coordinates surrounding the point
+    x0 = cp.floor(x).astype(cp.int32)
+    x1 = x0 + 1
+    y0 = cp.floor(y).astype(cp.int32)
+    y1 = y0 + 1
+
+    # Ensure coordinates are within bounds
+    x0 = cp.clip(x0, 0, map.shape[1] - 1)
+    x1 = cp.clip(x1, 0, map.shape[1] - 1)
+    y0 = cp.clip(y0, 0, map.shape[0] - 1)
+    y1 = cp.clip(y1, 0, map.shape[0] - 1)
+
+    # Use cp.take_along_axis for advanced indexing
+    Ia = map[y0, x0]
+    Ib = map[y0, x1]
+    Ic = map[y1, x0]
+    Id = map[y1, x1]
+
+    # Interpolation weights
+    wa = (x1 - x) * (y1 - y)
+    wb = (x - x0) * (y1 - y)
+    wc = (x1 - x) * (y - y0)
+    wd = (x - x0) * (y - y0)
+
+    # Calculate the interpolated value
+    return wa * Ia + wb * Ib + wc * Ic + wd * Id
+
+
+def undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2):
+    """
+    Undistort points using CuPy, optimized for batched operations.
+    mappingx: The x-mapping 2D CuPy array.
+    mappingy: The y-mapping 2D CuPy array.
+    prep_3: Input array of shape (155, 22, 4, 3, 3) where:
+        - prep_3[..., 0] contains x-coordinates.
+        - prep_3[..., 1] contains y-coordinates.
+        - prep_3[..., 2] contains likelihood.
+    """
+    x = prep_4[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
+    y = prep_4[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
+    likelihood = prep_4[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
+
+    # Perform bilinear interpolation on x and y
+    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+    # Combine results into a single array
+    prep_4 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+
+
+    # Extract x, y, and likelihood values
+    x = prep_3[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
+    y = prep_3[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
+    likelihood = prep_3[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
+
+    # Perform bilinear interpolation on x and y
+    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+    # Combine results into a single array
+    prep_3 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+
+
+    x = prep_2[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
+    y = prep_2[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
+    likelihood = prep_2[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
+
+    # Perform bilinear interpolation on x and y
+    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+    # Combine results into a single array
+    prep_2 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+    return prep_4,prep_3,prep_2
+    
 def create_A(prep_4,prep_3,prep_2,P):
     # Elements
     sh = np.shape(prep_4)
@@ -1423,14 +1505,19 @@ def triangulate_all(config):
     calib = toml.load(calib_file)
     cam_coord=cp.array([find_camera_coordinate(calib[list(calib.keys())[i]]) for i in range(4)])
     P = cp.array(P)
+    mappingx,mappingy =computemap(calib_file)
+    mappingx = cp.array(mappingx)
+    mappingy = cp.array(mappingy)
+    #coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
     prep_4,prep_3,prep_2 = create_prep(f_range,n_cams,keypoints_ids,json_tracked_files)
+    prep_4,prep_3,prep_2 =undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2)
     prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
     prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
     prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
     
     prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
     #undistort
-    ## 
+    
     #array([[ 0.2907211 , -2.36826029,  0.34837825,  1.        ]])
     A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
     Q4,Q3,Q2 =find_Q(A4,A3,A2)
@@ -1499,11 +1586,11 @@ def triangulate_all(config):
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
     
     #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
-
-
     import pdb;pdb.set_trace()
 
     P = cp.asnumpy(P)
+    mappingx=cp.asnumpy(mappingx)
+    mappingy=cp.asnumpy(mappingy)
     for f in tqdm(range(*f_range)):
         # Get x,y,likelihood values from files
         json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)]
@@ -1519,7 +1606,8 @@ def triangulate_all(config):
             #import pdb;pdb.set_trace()
         # Triangulate cameras with min reprojection error
             coords_2D_kpt = ( x_files[:, keypoint_idx], y_files[:, keypoint_idx], likelihood_files[:, keypoint_idx] )
-            #coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
+            coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
+            import pdb;pdb.set_trace()
             id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = -1,-1,-1,-1
             #import pdb;pdb.set_trace()
             #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = triangulation_from_best_cameras(config, coords_2D_kpt, P)
