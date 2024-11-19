@@ -1584,9 +1584,16 @@ def triangulate_all(config):
     real_dist_final = real_dist_dynamic[batch_indices, time_indices, min_locations_nan]
     strongness_exclusion_tot = (real_dist_1st-real_dist_final).tolist()
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
+    import cv2
+
     
-    #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+    S, U, Vt = cv2.SVDecomp(cp.asnumpy(A3[152,18,3]))
+    
+    V = Vt.T
+    Q = np.array([V[0][3]/V[3][3], V[1][3]/V[3][3], V[2][3]/V[3][3], 1])
     import pdb;pdb.set_trace()
+    #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+    
 
     P = cp.asnumpy(P)
     mappingx=cp.asnumpy(mappingx)
@@ -1681,7 +1688,7 @@ def triangulate_all(config):
     
     # Recap message
     recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)
-dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\test_accuracy\2024_05_07\2024_11_19_15_00_calculated\Walk1_2cam'
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\test_accuracy\2024_05_07\2024_11_19_15_56_calculated\Walk1_3cam'
 os.chdir(dir)
 config_dict = toml.load(os.path.join(dir,'User','Config.toml'))
 

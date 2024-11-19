@@ -90,7 +90,7 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
         #print(np.shape((P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
         A = np.vstack((A, (P_cam[1] - y_all[c]*P_cam[2]) * likelihood_all[c] ))
         #import pdb;pdb.set_trace()
-    
+    import pdb;pdb.set_trace()
     if np.shape(A)[0] >= 4:
         S, U, Vt = cv2.SVDecomp(A)
         V = Vt.T
