@@ -1171,7 +1171,7 @@ def create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2):
     time_indices = cp.arange(Q2.shape[1])[None, :]   # Shape: (1, 22)
 
 # Use advanced indexing to extract the desired values
-    selected_slices = Q2[batch_indices, time_indices, min_locations_nan3, :]
+    selected_slices = Q2[batch_indices, time_indices, min_locations_nan2, :]
     
 # Add an additional dimension to match the shape (184, 22, 1, 4)
     Q2_bug = selected_slices[:, :, cp.newaxis, :]
@@ -1550,7 +1550,7 @@ def triangulate_all(config):
         cam_dist_tot.append(cam_dist)
         strongness_exclusion_tot.append(strongness_exclusion)
  
-    import pdb;pdb.set_trace()  
+    #import pdb;pdb.set_trace()  
     Q_tot = pd.DataFrame(Q_tot)
     error_tot = pd.DataFrame(error_tot)
     nb_cams_excluded_tot = pd.DataFrame(nb_cams_excluded_tot)
@@ -1593,7 +1593,7 @@ def triangulate_all(config):
     
     # Recap message
     recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)
-dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_12_16_32_calculated\1'
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\test_accuracy\2024_05_07\2024_11_19_15_00_calculated\Walk1_2cam'
 os.chdir(dir)
 config_dict = toml.load(os.path.join(dir,'User','Config.toml'))
 
