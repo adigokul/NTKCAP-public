@@ -607,7 +607,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
     show_tr = 0.2
     camera_num = Video_path[-5:-4]
     cam_exclude = rpj_all['cam_choose']
-    error = rpj_all['error']
+    
     strongness = rpj_all['strongness_of_exclusion']
 
     temp_dir = os.getcwd()

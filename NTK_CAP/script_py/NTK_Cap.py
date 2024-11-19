@@ -1419,7 +1419,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         g = time.time()
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
 
         os.chdir(ori_path)
         # import ipdb;ipdb.set_trace()
