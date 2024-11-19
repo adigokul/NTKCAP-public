@@ -715,7 +715,7 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
 
     list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     
-    list_dynamic_mincam=  {'Hip':3,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     
     list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
@@ -819,11 +819,11 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
         # Reprojection error
         error = []
         error1 = []
-
+        cam_temp = 0
         for config_id in range(len(x_calc_filt)):
             q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
             q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
-        
+            
             #import pdb
             #pdb.set_trace()
             
@@ -838,8 +838,8 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
             
             #import pdb;pdb.set_trace()
             if len(q_file)>0:
-                error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
-                error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ))
+                error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[cam_temp][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+                error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[cam_temp][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ))
                 #import pdb;pdb.set_trace()
             ######max without dist.
                 error1.append( np.max( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
@@ -847,7 +847,7 @@ def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projectio
                 error.append(float('inf'))
                 error1.append(float('inf'))
 
-
+            cam_temp = cam_temp+1
             #import pdb;pdb.set_trace()
         # Choosing best triangulation (with min reprojection error)
         #import pdb
@@ -1305,7 +1305,13 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2):
 
     return real_dist4,real_dist3,real_dist2
 
-
+def map_to_listdynamic(value):
+    if value == 4:
+        return [1,2,3,4,5,6,7,8,9,10]  # Map 4 to [0]
+    elif value == 3:
+        return [5,6,7,8,9,10]  # Map 3 to [1, 2, 3, 4]
+    elif value == 2:
+        return []  # Map 2 to [5, 6, 7, 8, 9, 10]
 
 def triangulate_all(config):
     '''
@@ -1379,19 +1385,82 @@ def triangulate_all(config):
     #x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
 
 ###########################################
+    list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    list_dynamic_mincam_prep = [map_to_listdynamic(value) for value in list_dynamic_mincam.values()]
     calib = toml.load(calib_file)
-    
     cam_coord=cp.array([find_camera_coordinate(calib[list(calib.keys())[i]]) for i in range(4)])
-    
     P = cp.array(P)
     prep_4,prep_3,prep_2 = create_prep(f_range,n_cams,keypoints_ids,json_tracked_files)
+    prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
+    prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
+    prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
+    
+    prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
     #undistort
+    ## 
     A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
     Q4,Q3,Q2 =find_Q(A4,A3,A2)
+    Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
     real_dist4,real_dist3,real_dist2=find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2)
+    ## delete the liklelihoood vlue which is too low
+    real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
+    loc = cp.where(prep_like < likelihood_threshold)
+    real_dist[loc] = cp.inf
+    # Find the index of the first non-inf element along axis 2
+    non_inf_mask = ~cp.isinf(real_dist)
+    min_locations_nan = cp.argmax(non_inf_mask, axis=2)
+    real_dist_dynamic = cp.copy(real_dist)
+
     
+
     
+    ## setting the list dynamic
+    for i in range(22):    
+        real_dist_dynamic[:,i,list_dynamic_mincam_prep[i]] = cp.inf
     
+    ## find the minimum combination
+    temp_shape = cp.shape(Q)
+    checkinf = cp.min(real_dist_dynamic,axis =2)
+    min_locations = cp.argmin(real_dist_dynamic, axis=2)
+    loc =cp.where(checkinf==cp.inf)
+    min_locations[loc] = min_locations_nan[loc]
+    batch_indices, time_indices = cp.meshgrid(cp.arange(temp_shape[0]), cp.arange(temp_shape[1]), indexing='ij')
+    Q_selected = Q[batch_indices, time_indices, min_locations]
+    Q_selected = Q_selected[:,:,0:3]
+    Q_selected = cp.asnumpy(Q_selected)
+    Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
+    #import pdb;pdb.set_trace()
+    Q_tot_gpu = pd.DataFrame(Q_tot_gpu)
+    if show_interp_indices:
+        zero_nan_frames = np.where( Q_tot_gpu.iloc[:,::3].T.eq(0) | ~np.isfinite(Q_tot_gpu.iloc[:,::3].T) )
+        zero_nan_frames_per_kpt = [zero_nan_frames[1][np.where(zero_nan_frames[0]==k)[0]] for k in range(keypoints_nb)]
+        gaps = [np.where(np.diff(zero_nan_frames_per_kpt[k]) > 1)[0] + 1 for k in range(keypoints_nb)]
+        sequences = [np.split(zero_nan_frames_per_kpt[k], gaps[k]) for k in range(keypoints_nb)]
+        interp_frames = [[f'{seq[0]}:{seq[-1]+1}' for seq in seq_kpt if len(seq)<=interp_gap_smaller_than and len(seq)>0] for seq_kpt in sequences]
+        non_interp_frames = [[f'{seq[0]}:{seq[-1]+1}' for seq in seq_kpt if len(seq)>interp_gap_smaller_than] for seq_kpt in sequences]
+    else:
+        interp_frames = None
+        non_interp_frames = []
+    if interpolation_kind != 'none':
+        #import ipdb; ipdb.set_trace()
+        Q_tot_gpu = Q_tot_gpu.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
+    Q_tot_gpu.replace(np.nan, 0, inplace=True)
+
+
+    batch_indices = cp.arange(real_dist.shape[0])[:, None]  # Shape: (184, 1)
+    time_indices = cp.arange(real_dist.shape[1])[None, :]  # Shape: (1, 22)
+
+    # Use advanced indexing to extract the values
+    real_dist_1st = real_dist[batch_indices, time_indices, min_locations_nan]
+    batch_indices = cp.arange(real_dist.shape[0])[:, None]  # Shape: (184, 1)
+    time_indices = cp.arange(real_dist.shape[1])[None, :]  # Shape: (1, 22)
+    real_dist_final = real_dist_dynamic[batch_indices, time_indices, min_locations_nan]
+    strongness_exclusion_tot = (real_dist_1st-real_dist_final).tolist()
+    trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
+    import pdb;pdb.set_trace()
+    #np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+
+
 
 
     P = cp.asnumpy(P)
@@ -1427,7 +1496,8 @@ def triangulate_all(config):
             error_record.append(error_record_kpt)
             cam_dist.append(cam_dist_kpt)
             strongness_exclusion.append(strongness_of_exclusion_kpt)
-        # Add triangulated points, errors and excluded cameras to pandas dataframes
+        # Add triangulated points, errors and excluded cameras to pandas dataframes\
+        
         Q_tot.append(np.concatenate(Q))
         error_tot.append(error)
         nb_cams_excluded_tot.append(nb_cams_excluded)
@@ -1440,7 +1510,7 @@ def triangulate_all(config):
         cam_dist_tot.append(cam_dist)
         strongness_exclusion_tot.append(strongness_exclusion)
  
-            
+    import pdb;pdb.set_trace()  
     Q_tot = pd.DataFrame(Q_tot)
     error_tot = pd.DataFrame(error_tot)
     nb_cams_excluded_tot = pd.DataFrame(nb_cams_excluded_tot)
@@ -1465,6 +1535,7 @@ def triangulate_all(config):
         non_interp_frames = []
 
     # Interpolate missing values
+    
     if interpolation_kind != 'none':
         #import ipdb; ipdb.set_trace()
         Q_tot = Q_tot.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
@@ -1482,7 +1553,7 @@ def triangulate_all(config):
     
     # Recap message
     recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)
-dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\TSIA_FAKE\2024_09_19\2024_10_30_16_32_calculated\SACRO5'
+dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_12_16_32_calculated\1'
 os.chdir(dir)
 config_dict = toml.load(os.path.join(dir,'User','Config.toml'))
 
