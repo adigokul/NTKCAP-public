@@ -20,6 +20,9 @@ from kivy.uix.gridlayout import GridLayout
 import time
 from datetime import datetime
 import os
+relative_temp_dir = "./temp"
+os.makedirs(relative_temp_dir, exist_ok=True)
+os.environ["TEMP"] = relative_temp_dir
 import cv2
 from NTK_CAP.script_py.NTK_Cap import *
 
