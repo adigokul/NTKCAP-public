@@ -89,6 +89,7 @@ def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
 
 
     else:
+        calibrate_array = np.nan
         print('No Time Sync File')
     return calibrate_array
 
@@ -272,8 +273,10 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
             data1.append(temp) #存成相同格式
         frame_id += 1
     
-
-    rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
+    if  not np.isnan(calibrate_array):
+        rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
+    else:
+        rearranged_list = data1
     #import pdb;pdb.set_trace()
     with open(out_dir, "w") as save_file:
         json.dump(rearranged_list, save_file, indent = 6)  

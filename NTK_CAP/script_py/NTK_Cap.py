@@ -1417,6 +1417,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         f = time.time()
         Pose2Sim.filtering()
         g = time.time()
+        import pdb;pdb.set_trace()
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
         #import pdb;pdb.set_trace()

@@ -22,10 +22,14 @@ from scipy import interpolate
 from collections import Counter
 import logging
 import cupy as cp
-
-from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
+try:
+    from Pose2sim.common import computeP, weighted_triangulation, reprojection, \
     euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
-from Pose2Sim.skeletons import *
+    from Pose2sim.skeletons import *
+except:
+    from common import computeP, weighted_triangulation, reprojection, \
+    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
+    from skeletons import *
 from scipy.io import savemat
 
 ## AUTHORSHIP INFORMATION
@@ -922,4 +926,10 @@ def triangulate_all(config):
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
 
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
-        
+# import time
+# s = time.time()
+# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_11_21_15_56_calculated\Walk1'        
+# os.chdir(dir_task)
+# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
+# triangulate_all(config_dict)
+# print(time.time()-s)
