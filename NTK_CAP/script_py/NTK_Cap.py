@@ -13,9 +13,15 @@ from datetime import datetime
 import subprocess
 import easymocap
 import import_ipynb
-from .xml_update import *
+try:
+    from .xml_update import *
+except:
+    from xml_update import *
+import sys
+sys.path.insert(0, r'd:\NTKCAP')
 from Pose2Sim import Pose2Sim
-import inspect;inspect.getfile(Pose2Sim)
+import inspect;
+
 import  serial
 ######################################################
 ######################################################
@@ -1413,10 +1419,14 @@ def marker_caculate_fast(PWD,cal_data_path):
         s = time.time()
         Pose2Sim.personAssociation_multi() 
         e = time.time()
+        #import pdb;pdb.set_trace()
+        import cupy as cp
+        dummy = cp.zeros((1,)) 
         Pose2Sim.triangulation()
         f = time.time()
         Pose2Sim.filtering()
         g = time.time()
+        #import pdb;pdb.set_trace()
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
         #import pdb;pdb.set_trace()
@@ -1455,4 +1465,12 @@ def marker_caculate_fast(PWD,cal_data_path):
     return caculate_finshed_path
 
 # subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
-                
+
+# import time
+# s = time.time()
+# dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_21_16_13_calculated\path1_04'        
+# os.chdir(dir_task)
+# import inspect
+# print(inspect.getfile(Pose2Sim))
+# Pose2Sim.triangulation()
+# print(time.time()-s)       
