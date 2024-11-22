@@ -11,7 +11,7 @@
 ## INIT
 import os
 relative_temp_dir = "./temp"
-
+import orjson
 os.makedirs(relative_temp_dir, exist_ok=True)
 os.environ["TEMP"] = relative_temp_dir
 import glob
@@ -249,7 +249,7 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
     for cam_nb in range(n_cams):
         x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
         with open(json_tracked_files_f[cam_nb], 'r') as json_f:
-            js = json.load(json_f)
+            js = orjson.loads(json_f.read())
             for keypoint_id in keypoints_ids:
                 try:
                     x_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3] )
@@ -932,10 +932,10 @@ def triangulate_all(config):
 
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
     print('hi')
-# import time
-# s = time.time()
-# dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_21_16_13_calculated\path1_04'        
-# os.chdir(dir_task)
-# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
-# triangulate_all(config_dict)
-# print(time.time()-s)
+import time
+s = time.time()
+dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_20_13_08_calculated\path1_04'        
+os.chdir(dir_task)
+config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
+triangulate_all(config_dict)
+print(time.time()-s)
