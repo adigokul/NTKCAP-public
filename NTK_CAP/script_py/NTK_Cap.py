@@ -550,13 +550,13 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
     while True:
         if keyboard.is_pressed('s'):
-            ser.write(b"\x00000")
+            ser.write(b"\x000")
             dt_str1 =time.time() - start_time
             print('Start Signal send')
             break
     while True:
         if keyboard.is_pressed('q'):
-            ser.write(b"\x00000")
+            ser.write(b"\x0000")
             dt_str2 = time.time() - start_time
             print('End Signal send')
             break
@@ -564,10 +564,10 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
         
 def CP2102_output_signal(input_COM):
-    ser = serial.Serial(port='COM' +str(input_COM), baudrate=115200, timeout=1)
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
     #ser.write(b"\x00000")
     
-    ser.write(b'\x8d\x00')
+    ser.write(b'x0000')
 def print_timer_matplt(start_time):### Much Higher fps
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation

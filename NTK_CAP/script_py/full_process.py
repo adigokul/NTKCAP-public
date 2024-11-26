@@ -402,7 +402,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
         ret, frame = cap.read()
         if not ret:
                  break
-        black = np.zeros((height, width, 3), dtype=np.uint8)
+        
         #第一個0代表第幾幀，第二個0代表畫面中的第幾+1位辨識體，第三個0代表第幾個節點
         
         num_people = len(temp[count_frame]['people'])
@@ -429,7 +429,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
                 p = keypoint_scores[count]*255 #隨score顏色進行變換
                 #若keypoint score太低，則標示出來
                 if keypoint_scores[count]>=0.3 and keypoint_scores[count]<0.5:
-                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
+                    cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
                     
                     font = cv2.FONT_HERSHEY_SIMPLEX # font
                     org = (int(keypoints[count][0])+3, int(keypoints[count][1])) # 偏移
@@ -437,19 +437,19 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
                     color = (255, 255, 255) # Blue color in BGR
                     thickness = 1 # Line thickness of 2 px 
                     # Using cv2.putText() method 
-                    image = cv2.putText(black, str(int(keypoint_scores[count]*100)), org, font,  
+                    image = cv2.putText(frame, str(int(keypoint_scores[count]*100)), org, font,  
                                         fontScale, color, thickness, cv2.LINE_AA) 
-                    cv2.putText(black, str(count_frame), (10, 10), font, fontScale, color, thickness, cv2.LINE_AA)
+                    cv2.putText(frame, str(count_frame), (10, 10), font, fontScale, color, thickness, cv2.LINE_AA)
                 elif keypoint_scores[count]>=0.5:
-                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
+                    cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
                 
                 count = count+1
 
             for i in range(25):
                 if keypoint_scores[line[i][0]]>0.3 and keypoint_scores[line[i][1]]>0.3: 
 
-                    cv2.line(black, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
-        out.write(black)
+                    cv2.line(frame, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
+        out.write(frame)
         count_frame = count_frame+1
     
     cap.release()
@@ -906,3 +906,5 @@ def add_frame_from_video(video_full_path,output_video):
                            
     out.release()
     cap.release
+
+
