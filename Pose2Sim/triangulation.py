@@ -23,9 +23,9 @@ from collections import Counter
 import logging
 import cupy as cp
 try:
-    from Pose2sim.common import computeP, weighted_triangulation, reprojection, \
+    from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
     euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
-    from Pose2sim.skeletons import *
+    from Pose2Sim.skeletons import *
 except:
     from common import computeP, weighted_triangulation, reprojection, \
     euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate

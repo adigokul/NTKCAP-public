@@ -28,10 +28,13 @@ import traceback
 def timesync2rtm(video_folder,cam_num,opensim_folder,out_json):
     raw_video_path = video_folder
     calibrate_array = timesync_arrayoutput(video_folder,cam_num,opensim_folder)
+    rtm_coord = []
     for i in range(cam_num):
         Video_path = os.path.join(raw_video_path,str(i+1)+'.mp4')
         out_dir = os.path.join(out_json,"pose_cam" + str(i+1) + "_json.json")
-        rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array)
+        rtm_coord.append(rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array))
+    #import pdb;pdb.set_trace()
+    return rtm_coord
 def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
     cap = []
     cap_array =[]
@@ -273,7 +276,7 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
             data1.append(temp) #存成相同格式
         frame_id += 1
     
-    if  not np.isnan(calibrate_array):
+    if  not np.isnan(calibrate_array).any():
         rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
     else:
         rearranged_list = data1
@@ -290,6 +293,7 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     os.chdir(temp_dir)
 
     os.remove(out_dir)
+    return rearranged_list
     
         
 def rtm2json_gpu(Video_path, out_dir, out_video):
@@ -907,4 +911,10 @@ def add_frame_from_video(video_full_path,output_video):
     out.release()
     cap.release
 
-
+# video_folder=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\raw_data\1\videos'
+# cam_num = 4
+# opensim_folder = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_19_18_09_calculated\1\opensim'
+# out_json =r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_19_18_09_calculated\1\opensim'
+# rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
+# with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_19_18_09_calculated\1\my_list.json", "w") as f:
+#     json.dump(rtm_coord, f)
