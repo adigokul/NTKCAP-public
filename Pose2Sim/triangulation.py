@@ -840,6 +840,7 @@ def triangulate_all(config):
     
     #array([[ 0.2907211 , -2.36826029,  0.34837825,  1.        ]])
     A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
+    import pdb;pdb.set_trace()
     Q4,Q3,Q2 =find_Q(A4,A3,A2)
     Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
     Q3_bug,Q2_bug=create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
@@ -926,10 +927,10 @@ def triangulate_all(config):
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
 
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
-# import time
-# s = time.time()
-# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_11_21_15_56_calculated\Walk1'        
-# os.chdir(dir_task)
-# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
-# triangulate_all(config_dict)
-# print(time.time()-s)
+import time
+s = time.time()
+dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_19_18_09_calculated\1'        
+os.chdir(dir_task)
+config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
+triangulate_all(config_dict)
+print(time.time()-s)

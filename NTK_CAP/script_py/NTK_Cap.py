@@ -1411,7 +1411,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         os.chdir(now_project)
         print("切換至" + os.getcwd())
         s = time.time()
-        Pose2Sim.personAssociation_multi(rtm_coord) 
+        Pose2Sim.personAssociation_multi() 
         e = time.time()
         Pose2Sim.triangulation()
         f = time.time()
