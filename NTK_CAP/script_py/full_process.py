@@ -277,16 +277,16 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
         frame_id += 1
     
     if  not np.isnan(calibrate_array).any():
-        rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
-        
+        rearranged_list = [data1[i].copy() for i in calibrate_array[:,cam_num]]
         for i in range(len(rearranged_list)):
             rearranged_list[i]['image_id'] = i  # Update 'image_id' to match the index (starting from 1)
-        import pdb;pdb.set_trace()
+            #import pdb;pdb.set_trace()
+        
     else:
         rearranged_list = data1
     #import pdb;pdb.set_trace()
     with open(out_dir, "w") as save_file:
-        json.dump(data1, save_file, indent = 6)  
+        json.dump(rearranged_list, save_file, indent = 6)  
     
     video.release()
     ### video output
@@ -295,7 +295,7 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     os.chdir(AlphaPose_to_OpenPose )
     subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
     os.chdir(temp_dir)
-    import pdb;pdb.set_trace()
+    
     os.remove(out_dir)
     
     return rearranged_list
