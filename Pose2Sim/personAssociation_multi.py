@@ -267,7 +267,19 @@ def read_json(js_file):
             # else:
             json_data.append(js['people'][people]['pose_keypoints_2d'])
     return json_data
-
+def read_json_all(f,coord,cam_id,js_file):
+    json_data1 = []
+    json_data1 = [person['pose_keypoints_2d'] for person in coord[cam_id][f]['people']]
+    with open(js_file, 'r') as json_f:
+        js = json.load(json_f)
+        json_data2 = []
+        for people in range(len(js['people'])):
+            # if len(js['people'][people]['pose_keypoints_2d']) < 3: continue
+            # else:
+            json_data2.append(js['people'][people]['pose_keypoints_2d'])
+    if f==90:
+        import pdb;pdb.set_trace()
+    return json_data1, json_data2
 
 def compute_rays(json_coord, calib_params, cam_id):
     '''
@@ -947,6 +959,7 @@ def track_2d_all(config):
     
     # person's tracking
     f_range = [[min([len(j) for j in json_files])] if frame_range==[] else frame_range][0] # 155
+    import pdb;pdb.set_trace()
     n_cams = len(json_dirs_names) # 4
     error_min_tot, cameras_off_tot = [], []
 
@@ -984,12 +997,14 @@ def track_2d_all(config):
                             js['people'] = []
                     json_tracked_f.write(json.dumps(js))
         else:
+            all_json_data_f1 = []
             all_json_data_f = []
-            
-            all_json_data_f = [read_json_fast(f,coord,cam_id) for cam_id in range(4)]    
+            for js_file in json_files_f:
+                all_json_data_f1.append(read_json(js_file)) # len=4,
+            all_json_data_f = [read_json_fast(f,coord,cam_id) for cam_id in range(4)] 
+            if f==90:
 
-
-            
+                import pdb;pdb.set_trace()
             persons_per_view = [0] + [len(j) for j in all_json_data_f] # [0, num_peo_cam1.... ]
             cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
             s1 = time.time()

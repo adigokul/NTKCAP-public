@@ -278,11 +278,15 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     
     if  not np.isnan(calibrate_array).any():
         rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
+        
+        for i in range(len(rearranged_list)):
+            rearranged_list[i]['image_id'] = i  # Update 'image_id' to match the index (starting from 1)
+        import pdb;pdb.set_trace()
     else:
         rearranged_list = data1
     #import pdb;pdb.set_trace()
     with open(out_dir, "w") as save_file:
-        json.dump(rearranged_list, save_file, indent = 6)  
+        json.dump(data1, save_file, indent = 6)  
     
     video.release()
     ### video output
@@ -291,8 +295,9 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     os.chdir(AlphaPose_to_OpenPose )
     subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
     os.chdir(temp_dir)
-
+    import pdb;pdb.set_trace()
     os.remove(out_dir)
+    
     return rearranged_list
     
         
@@ -911,10 +916,10 @@ def add_frame_from_video(video_full_path,output_video):
     out.release()
     cap.release
 
-# video_folder=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\raw_data\inside2\videos'
-# cam_num = 4
-# opensim_folder = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\opensim'
-# out_json =r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\opensim'
-# rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
-# with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\my_list.json", "w") as f:
-#     json.dump(rtm_coord, f)
+video_folder=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\raw_data\inside2\videos'
+cam_num = 4
+opensim_folder = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\opensim'
+out_json =r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\pose-2d'
+rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
+with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_27_15_52_calculated\inside2\my_list.json", "w") as f:
+    json.dump(rtm_coord, f)

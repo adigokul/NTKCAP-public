@@ -21,7 +21,9 @@ end_numpy = time.time()
 print(f"NumPy SVD time for {batch_shape[0]} arrays: {end_numpy - start_numpy:.6f} seconds")
 while True:
     # Measure CuPy SVD time (batch computation)
+
     start_cupy = time.time()
+    cupy_arrays = cp.random.rand(*batch_shape) 
     u_batch, s_batch, vh_batch = cp.linalg.svd(cupy_arrays, full_matrices=False)
     cp.cuda.Stream.null.synchronize()  # Ensure all GPU operations are complete
     end_cupy = time.time()
