@@ -1419,6 +1419,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         s = time.time()
         coord = Pose2Sim.personAssociation_multi_fast(rtm_coord) 
         e = time.time()
+        #Pose2Sim.triangulation()
         Pose2Sim.triangulation_fast(coord)
         f = time.time()
         Pose2Sim.filtering()
