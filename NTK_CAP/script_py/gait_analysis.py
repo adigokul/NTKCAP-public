@@ -392,8 +392,8 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     L_locs_possible_min_p = locs_possible_min_L[p_L]  # replace with actual data
 
     a = np.argmin([R_locs_possible_min_n[0], L_locs_possible_min_n[0]]) + 1
-    count1 = 1
-    count2 = 1
+    count1 = 0
+    count2 = 0
     #import pdb;pdb.set_trace()
     while count1 < len(R_locs_possible_min_n)- 1 and count2 < len(L_locs_possible_min_n)-1:
         if a == 1:

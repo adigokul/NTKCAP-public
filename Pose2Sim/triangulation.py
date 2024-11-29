@@ -3,7 +3,28 @@
 ###version2
 
 '''
-   GPU version of triangulation base on ver_dynamic
+    ###########################################################################
+    ## ROBUST TRIANGULATION  OF 2D COORDINATES                               ##
+    ###########################################################################
+    
+    This module triangulates 2D json coordinates and builds a .trc file readable 
+    by OpenSim.
+    
+    The triangulation is weighted by the likelihood of each detected 2D keypoint,
+    strives to meet the reprojection error threshold and the likelihood threshold.
+    Missing values are then interpolated.
+
+    In case of multiple subjects detection, make sure you first run the track_2d 
+    module.
+
+    INPUTS: 
+    - a calibration file (.toml extension)
+    - json files for each camera with only one person of interest
+    - a Config.toml file
+    - a skeleton model
+    
+    OUTPUTS: 
+    - a .trc file with 3D coordinates in Y-up system coordinates
     
 '''
 
@@ -25,16 +46,11 @@ from tqdm import tqdm
 from scipy import interpolate
 from collections import Counter
 import logging
-import cupy as cp
-try:
-    from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
-    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
-    from Pose2Sim.skeletons import *
-except:
-    from common import computeP, weighted_triangulation, reprojection, \
-    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
-    from skeletons import *
-from scipy.io import savemat
+
+from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
+    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1
+from Pose2Sim.skeletons import *
+
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
@@ -45,6 +61,9 @@ __version__ = '0.4'
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
+
+
+## FUNCTIONS
 def zup2yup(Q):
     '''
     Turns Z-up system coordinates into Y-up coordinates
@@ -64,6 +83,54 @@ def zup2yup(Q):
     Q = Q[cols]
 
     return Q
+
+
+def interpolate_zeros_nans(col, *args):
+    '''
+    Interpolate missing points (of value zero),
+    unless more than N contiguous values are missing.
+
+    INPUTS:
+    - col: pandas column of coordinates
+    - args[0] = N: max number of contiguous bad values, above which they won't be interpolated
+    - args[1] = kind: 'linear', 'slinear', 'quadratic', 'cubic'. Default: 'cubic'
+
+    OUTPUT:
+    - col_interp: interpolated pandas column
+    '''
+    
+
+    if len(args)==2:
+        N, kind = args
+    if len(args)==1:
+        N = np.inf
+        kind = args[0]
+    if not args:
+        N = np.inf
+    
+    # Interpolate nans
+    mask = ~(np.isnan(col) | col.eq(0)) # true where nans or zeros
+    idx_good = np.where(mask)[0]
+    # import ipdb; ipdb.set_trace()
+    if 'kind' not in locals(): # 'linear', 'slinear', 'quadratic', 'cubic'
+        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind="linear", bounds_error=False)
+    else:
+        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind=kind, fill_value='extrapolate', bounds_error=False)
+    col_interp = np.where(mask, col, f_interp(col.index)) #replace at false index with interpolated values
+    
+    # Reintroduce nans if lenght of sequence > N
+    idx_notgood = np.where(~mask)[0]
+    gaps = np.where(np.diff(idx_notgood) > 1)[0] + 1 # where the indices of true are not contiguous
+    sequences = np.split(idx_notgood, gaps)
+    if sequences[0].size>0:
+        for seq in sequences:
+            if len(seq) > N: # values to exclude from interpolation are set to false when they are too long 
+                col_interp[seq] = np.nan
+    
+    
+    return col_interp
+
+
 def make_trc(config, Q, keypoints_names, f_range):
     '''
     Make Opensim compatible trc file from a dataframe with 3D coordinates
@@ -113,50 +180,62 @@ def make_trc(config, Q, keypoints_names, f_range):
         Q.to_csv(trc_o, sep='\t', index=True, header=None, line_terminator='\n')
 
     return trc_path
-def interpolate_zeros_nans(col, *args):
-    '''
-    Interpolate missing points (of value zero),
-    unless more than N contiguous values are missing.
 
-    INPUTS:
-    - col: pandas column of coordinates
-    - args[0] = N: max number of contiguous bad values, above which they won't be interpolated
-    - args[1] = kind: 'linear', 'slinear', 'quadratic', 'cubic'. Default: 'cubic'
+def make_trc_toe_mean(config, Q, keypoints_names, f_range):
+    '''
+    Make Opensim compatible trc file from a dataframe with 3D coordinates
+
+    INPUT:
+    - config: dictionary of configuration parameters
+    - Q: pandas dataframe with 3D coordinates as columns, frame number as rows
+    - keypoints_names: list of strings
+    - f_range: list of two numbers. Range of frames
 
     OUTPUT:
-    - col_interp: interpolated pandas column
+    - trc file
     '''
-    
 
-    if len(args)==2:
-        N, kind = args
-    if len(args)==1:
-        N = np.inf
-        kind = args[0]
-    if not args:
-        N = np.inf
+    # Read config
+    project_dir = config.get('project').get('project_dir')
+    if project_dir == '': project_dir = os.getcwd()
+    frame_rate = config.get('project').get('frame_rate')
+    seq_name = os.path.basename(project_dir)
+    pose3d_folder_name = config.get('project').get('pose3d_folder_name')
+    pose3d_dir = os.path.join(project_dir, pose3d_folder_name)
+
+    trc_f = f'{seq_name}_{f_range[0]}-{f_range[1]}.trc'
+
+    #Header
+    DataRate = CameraRate = OrigDataRate = frame_rate
+    NumFrames = len(Q)
+    NumMarkers = len(keypoints_names)
+    header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + trc_f, 
+            'DataRate\tCameraRate\tNumFrames\tNumMarkers\tUnits\tOrigDataRate\tOrigDataStartFrame\tOrigNumFrames', 
+            '\t'.join(map(str,[DataRate, CameraRate, NumFrames, NumMarkers, 'm', OrigDataRate, f_range[0], f_range[1]])),
+            'Frame#\tTime\t' + '\t\t\t'.join(keypoints_names) + '\t\t',
+            '\t\t'+'\t'.join([f'X{i+1}\tY{i+1}\tZ{i+1}' for i in range(len(keypoints_names))])]
     
-    # Interpolate nans
-    mask = ~(np.isnan(col) | col.eq(0)) # true where nans or zeros
-    idx_good = np.where(mask)[0]
-    # import ipdb; ipdb.set_trace()
-    if 'kind' not in locals(): # 'linear', 'slinear', 'quadratic', 'cubic'
-        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind="linear", bounds_error=False)
-    else:
-        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind=kind, fill_value='extrapolate', bounds_error=False)
-    col_interp = np.where(mask, col, f_interp(col.index)) #replace at false index with interpolated values
+    # Zup to Yup coordinate system
+    Q = zup2yup(Q)
     
-    # Reintroduce nans if lenght of sequence > N
-    idx_notgood = np.where(~mask)[0]
-    gaps = np.where(np.diff(idx_notgood) > 1)[0] + 1 # where the indices of true are not contiguous
-    sequences = np.split(idx_notgood, gaps)
-    if sequences[0].size>0:
-        for seq in sequences:
-            if len(seq) > N: # values to exclude from interpolation are set to false when they are too long 
-                col_interp[seq] = np.nan
+    #Add Frame# and Time columns
+    Q.index = np.array(range(0, f_range[1]-f_range[0])) + 1
+    Q.insert(0, 't', Q.index / frame_rate)
+
+    #Write file
+    if not os.path.exists(pose3d_dir): os.mkdir(pose3d_dir)
+    trc_path = os.path.join(pose3d_dir, trc_f)
+
+    Q[14] =(Q[14]+Q[17])/2
+    Q[17] =(Q[14]+Q[17])/2
+    Q[32] = (Q[32]+Q[35])/2
+    Q[35]= (Q[32]+Q[35])/2
+    import pdb;pdb.set_trace()
+    with open(trc_path, 'w') as trc_o:
+        [trc_o.write(line+'\n') for line in header_trc]
+        Q.to_csv(trc_o, sep='\t', index=True, header=None, line_terminator='\n')
     
-    
-    return col_interp
+    return trc_path
 def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path):
     '''
     Print a message giving statistics on reprojection errors (in pixel and in m)
@@ -229,6 +308,601 @@ def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excl
 
     logging.info(f'\n3D coordinates are stored at {trc_path}.')
 
+def triangulation_from_best_cameras_ver1(config, coords_2D_kpt, projection_matrices):
+    '''
+    Triangulates 2D keypoint coordinates, only choosing the cameras for which 
+    reprojection error is under threshold.
+
+    1. Creates subset with N cameras excluded 
+    2. Tries all possible triangulations
+    3. Chooses the one with smallest reprojection error
+    If error too big, take off one more camera.
+        If then below threshold, retain result.
+        If better but still too big, take off one more camera.
+    
+    INPUTS:
+    - a Config.toml file
+    - coords_2D_kpt: 
+    - projection_matrices: list of arrays
+
+    OUTPUTS:
+    - Q: array of triangulated point (x,y,z,1.)
+    - error_min: float
+    - nb_cams_excluded: int
+    '''
+    
+    # Read config
+    error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
+    min_cameras_for_triangulation = config.get('triangulation').get('min_cameras_for_triangulation')
+
+    # Initialize
+    x_files, y_files, likelihood_files = coords_2D_kpt
+    n_cams = len(x_files)
+    error_min = np.inf 
+    nb_cams_off = 0 # cameras will be taken-off until the reprojection error is under threshold
+    
+    while error_min > error_threshold_triangulation and n_cams - nb_cams_off >= min_cameras_for_triangulation:
+        # Create subsets with "nb_cams_off" cameras excluded
+        id_cams_off = np.array(list(it.combinations(range(n_cams), nb_cams_off)))##All comnination of exclude cam num
+        projection_matrices_filt = [projection_matrices]*len(id_cams_off)
+        
+        x_files_filt = np.vstack([list(x_files).copy()]*len(id_cams_off))
+        y_files_filt = np.vstack([y_files.copy()]*len(id_cams_off))
+        likelihood_files_filt = np.vstack([likelihood_files.copy()]*len(id_cams_off))
+        
+        if nb_cams_off > 0:
+            for i in range(len(id_cams_off)):
+                x_files_filt[i][id_cams_off[i]] = np.nan
+                y_files_filt[i][id_cams_off[i]] = np.nan
+                likelihood_files_filt[i][id_cams_off[i]] = np.nan
+        nb_cams_excluded_filt = [np.count_nonzero(np.nan_to_num(x)==0) for x in likelihood_files_filt] # count nans and zeros
+        
+        projection_matrices_filt = [ [ p[i] for i in range(n_cams) if not np.isnan(x_files_filt[j][i]) ] for j, p in enumerate(projection_matrices_filt) ]
+        x_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in x_files_filt ]
+        y_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in y_files_filt ]
+        likelihood_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in likelihood_files_filt ]            
+        
+        # Triangulate 2D points
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+        
+        # Reprojection
+        coords_2D_kpt_calc_filt = [reprojection(projection_matrices_filt[i], Q_filt[i])  for i in range(len(id_cams_off))]
+        coords_2D_kpt_calc_filt = np.array(coords_2D_kpt_calc_filt, dtype=object)
+        x_calc_filt = coords_2D_kpt_calc_filt[:,0]
+        y_calc_filt = coords_2D_kpt_calc_filt[:,1]
+        
+        # Reprojection error
+        error = []
+        
+        for config_id in range(len(x_calc_filt)):
+            q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
+            q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
+            #import pdb
+            #pdb.set_trace()
+            error.append( np.mean( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            
+        # Choosing best triangulation (with min reprojection error)
+        #import ipdb; ipdb.set_trace()
+        error_min = min(error)
+        best_cams = np.argmin(error)
+        nb_cams_excluded = nb_cams_excluded_filt[best_cams]
+        Q = Q_filt[best_cams][:-1]
+
+        # idxs = np.argsort(error)
+        # Q = Q_filt[idxs[:3]].mean(axis=0)
+        
+        nb_cams_off += 1
+    
+    # Index of excluded cams for this keypoint
+    id_excluded_cams = id_cams_off[best_cams]
+    
+    # If triangulation not successful, error = 0,  and 3D coordinates as missing values
+    # if error_min > error_threshold_triangulation:
+    #     error_min = np.nan
+    #     # Q = np.array([0.,0.,0.])
+    #     Q = np.array([np.nan, np.nan, np.nan])
+        
+    return Q, error_min, nb_cams_excluded, id_excluded_cams
+
+
+def triangulation_from_best_cameras_verNTK1(config, coords_2D_kpt, projection_matrices):
+    '''
+    Triangulates 2D keypoint coordinates, only choosing the cameras for which 
+    reprojection error is under threshold.
+
+    1. Creates subset with N cameras excluded 
+    2. Tries all possible triangulations
+    3. Chooses the one with smallest reprojection error
+    If error too big, take off one more camera.
+        If then below threshold, retain result.
+        If better but still too big, take off one more camera.
+    
+    INPUTS:
+    - a Config.toml file
+    - coords_2D_kpt: 
+    - projection_matrices: list of arrays
+
+    OUTPUTS:
+    - Q: array of triangulated point (x,y,z,1.)
+    - error_min: float
+    - nb_cams_excluded: int
+    '''
+    
+    # Read config
+    error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
+    min_cameras_for_triangulation = config.get('triangulation').get('min_cameras_for_triangulation')
+
+    # Initialize
+    x_files, y_files, likelihood_files = coords_2D_kpt
+    n_cams = len(x_files)
+    error_min = np.inf 
+    nb_cams_off = 0 # cameras will be taken-off until the reprojection error is under threshold
+    
+    while error_min > error_threshold_triangulation and n_cams - nb_cams_off >= min_cameras_for_triangulation:
+        # Create subsets with "nb_cams_off" cameras excluded
+        id_cams_off = np.array(list(it.combinations(range(n_cams), nb_cams_off)))##All comnination of exclude cam num
+        projection_matrices_filt = [projection_matrices]*len(id_cams_off)
+        
+        x_files_filt = np.vstack([list(x_files).copy()]*len(id_cams_off))
+        y_files_filt = np.vstack([y_files.copy()]*len(id_cams_off))
+        likelihood_files_filt = np.vstack([likelihood_files.copy()]*len(id_cams_off))
+        
+        if nb_cams_off > 0:
+            for i in range(len(id_cams_off)):
+                x_files_filt[i][id_cams_off[i]] = np.nan
+                y_files_filt[i][id_cams_off[i]] = np.nan
+                likelihood_files_filt[i][id_cams_off[i]] = np.nan
+        nb_cams_excluded_filt = [np.count_nonzero(np.nan_to_num(x)==0) for x in likelihood_files_filt] # count nans and zeros
+        
+        projection_matrices_filt = [ [ p[i] for i in range(n_cams) if not np.isnan(x_files_filt[j][i]) ] for j, p in enumerate(projection_matrices_filt) ]
+        x_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in x_files_filt ]
+        y_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in y_files_filt ]
+        likelihood_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in likelihood_files_filt ]            
+        
+        # Triangulate 2D points
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+        
+        # Reprojection
+        coords_2D_kpt_calc_filt = [reprojection(projection_matrices_filt[i], Q_filt[i])  for i in range(len(id_cams_off))]
+        coords_2D_kpt_calc_filt = np.array(coords_2D_kpt_calc_filt, dtype=object)
+        x_calc_filt = coords_2D_kpt_calc_filt[:,0]
+        y_calc_filt = coords_2D_kpt_calc_filt[:,1]
+        
+        # Reprojection error
+        error = []
+        
+        for config_id in range(len(x_calc_filt)):
+            q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
+            q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
+            #import pdb
+            #pdb.set_trace()
+            error.append( np.mean( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            
+        # Choosing best triangulation (with min reprojection error)
+        #import ipdb; ipdb.set_trace()
+        error_min = min(error)
+        best_cams = np.argmin(error)
+        nb_cams_excluded = nb_cams_excluded_filt[best_cams]
+        Q = Q_filt[best_cams][:-1]
+
+        # idxs = np.argsort(error)
+        # Q = Q_filt[idxs[:3]].mean(axis=0)
+         
+        # Choosing best triangulation (with min reprojection error)
+        error_min = min(error)
+        best_cams = np.argmin(error)
+        nb_cams_excluded = nb_cams_excluded_filt[best_cams]
+        
+        # Q = Q_filt[best_cams][:-1]
+        top_k_cam = np.argsort(error)[:2]
+        Q = np.stack(Q_filt)[top_k_cam, :-1].mean(axis=0)
+        
+        nb_cams_off += 1
+        #import pdb;pdb.set_trace()
+    
+    # Index of excluded cams for this keypoint
+    id_excluded_cams = id_cams_off[best_cams]
+    
+    # If triangulation not successful, error = 0,  and 3D coordinates as missing values
+    # if error_min > error_threshold_triangulation:
+    #     error_min = np.nan
+    #     # Q = np.array([0.,0.,0.])
+    #     Q = np.array([np.nan, np.nan, np.nan])
+        
+    return Q, error_min, nb_cams_excluded, id_excluded_cams
+def triangulation_from_best_cameras(config, coords_2D_kpt, projection_matrices):
+    '''
+    Triangulates 2D keypoint coordinates, only choosing the cameras for which 
+    reprojection error is under threshold.
+
+    1. Creates subset with N cameras excluded 
+    2. Tries all possible triangulations
+    3. Chooses the one with smallest reprojection error
+    If error too big, take off one more camera.
+        If then below threshold, retain result.
+        If better but still too big, take off one more camera.
+    
+    INPUTS:
+    - a Config.toml file
+    - coords_2D_kpt: 
+    - projection_matrices: list of arrays
+
+    OUTPUTS:
+    - Q: array of triangulated point (x,y,z,1.)
+    - error_min: float
+    - nb_cams_excluded: int
+    '''
+    
+    # Read config
+    error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
+    min_cameras_for_triangulation = config.get('triangulation').get('min_cameras_for_triangulation')
+
+    # Initialize
+    x_files, y_files, likelihood_files = coords_2D_kpt
+    
+    n_cams = len(x_files)
+    error_min = np.inf 
+    
+    ###### Get intrisic paramter
+    project_dir = config.get('project').get('project_dir')
+    if project_dir == '': project_dir = os.getcwd()
+    calib_folder_name = config.get('project').get('calib_folder_name')
+    calib_dir = os.path.join(project_dir, calib_folder_name)
+    calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0]
+    calib = toml.load(calib_file)
+    calib_cam1 = calib[list(calib.keys())[0]]
+    #import pdb
+    #pdb.set_trace()
+    #######End
+    nb_cams_off = 0
+    
+
+    error = []
+    id_excluded_cams_temp = []
+    error_min_temp = []
+    nb_cams_excluded_temp = []
+    Q_temp =[]
+    exclude_record =[]
+    error_record=[]
+    error_record1 =[]
+    count_all_com = 0
+    
+    #################error_min > error_threshold_triangulation and 
+    while n_cams - nb_cams_off >= min_cameras_for_triangulation:
+        # Create subsets with "nb_cams_off" cameras excluded
+        id_cams_off = np.array(list(it.combinations(range(n_cams), nb_cams_off)))##All comnination of exclude cam num
+        #import pdb;pdb.set_trace()
+        
+        
+        projection_matrices_filt = [projection_matrices]*len(id_cams_off)
+        
+        x_files_filt = np.vstack([list(x_files).copy()]*len(id_cams_off))
+        y_files_filt = np.vstack([y_files.copy()]*len(id_cams_off))
+        likelihood_files_filt = np.vstack([likelihood_files.copy()]*len(id_cams_off))
+        
+        #import pdb
+        #pdb.set_trace()
+        if nb_cams_off > 0:
+            for i in range(len(id_cams_off)):
+                x_files_filt[i][id_cams_off[i]] = np.nan
+                y_files_filt[i][id_cams_off[i]] = np.nan
+                likelihood_files_filt[i][id_cams_off[i]] = np.nan
+        nb_cams_excluded_filt = [np.count_nonzero(np.nan_to_num(x)==0) for x in likelihood_files_filt] # count nans and zeros
+        
+        
+        #import pdb
+        #pdb.set_trace()
+        projection_matrices_filt = [ [ p[i] for i in range(n_cams) if not np.isnan(x_files_filt[j][i]) ] for j, p in enumerate(projection_matrices_filt) ]
+        #import pdb;pdb.set_trace()
+        x_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in x_files_filt ]
+        y_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in y_files_filt ]
+        likelihood_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in likelihood_files_filt ]            
+        #import pdb
+        #pdb.set_trace()
+        # Triangulate 2D points
+
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+        
+        #import pdb;pdb.set_trace()
+        # Reprojection
+        coords_2D_kpt_calc_filt = [reprojection(projection_matrices_filt[i], Q_filt[i])  for i in range(len(id_cams_off))]
+        coords_2D_kpt_calc_filt = np.array(coords_2D_kpt_calc_filt, dtype=object)
+        x_calc_filt = coords_2D_kpt_calc_filt[:,0]
+        y_calc_filt = coords_2D_kpt_calc_filt[:,1]
+        #import pdb
+        #pdb.set_trace()
+        # Reprojection error
+        error = []
+        error1 = []
+
+        for config_id in range(len(x_calc_filt)):
+            q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
+            q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
+        
+            #import pdb
+            #pdb.set_trace()
+            
+
+            cam_used = np.array(range(n_cams))
+
+            if nb_cams_off>0:
+                cam_used = np.delete(cam_used,id_cams_off[config_id])
+           
+            exclude_record.append(id_cams_off[config_id])
+            ######mean with dist.
+            #error.append( np.mean( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+            #error_record.append( np.mean( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+            ######mean without dist.
+            #error.append( np.mean( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            #error_record.append( np.mean( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            ######max with dist.
+            error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+            error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+            #print([euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] )
+            ######max without dist.
+            error1.append( np.max( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            error_record1.append( np.max( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            #print([euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))])
+            #import pdb;pdb.set_trace()
+        # Choosing best triangulation (with min reprojection error)
+        #import pdb
+        #pdb.set_trace()
+        error_min = min(error)
+        best_cams = np.argmin(error)
+        
+        nb_cams_excluded = nb_cams_excluded_filt[best_cams]
+        #import pdb;pdb.set_trace()
+        Q = Q_filt[best_cams][:-1]
+
+        # idxs = np.argsort(error)
+        # Q = Q_filt[idxs[:3]].mean(axis=0)
+        
+        nb_cams_off += 1
+        
+        id_excluded_cams_temp.append(id_cams_off[best_cams])
+        error_min_temp.append(error_min)
+        nb_cams_excluded_temp.append(nb_cams_excluded)   
+        count_all_com =count_all_com+1
+        Q_temp.append(Q)
+        
+
+    
+    # Index of excluded cams for this keypoint
+    error_min_final = min(error_min_temp)
+    best_cams_final = np.argmin(error_min_temp)
+    nb_cams_excluded_final = nb_cams_excluded_temp[best_cams_final]
+    id_excluded_cams_final = id_excluded_cams_temp[best_cams_final]
+    Q_final = Q_temp[best_cams_final]
+    
+    dist_camera2point =np.array([camera2point_dist(Q_final,calib[list(calib.keys())[camera]]) for camera in range(4)])
+    
+   
+
+
+
+    # If triangulation not successful, error = 0,  and 3D coordinates as missing values
+    if error_min > error_threshold_triangulation:
+        error_min = np.nan
+        Q = np.array([0.,0.,0.])
+        Q = np.array([np.nan, np.nan, np.nan])
+    
+    #import pdb;pdb.set_trace()    
+    return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point
+def triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, projection_matrices,body_name):
+    '''
+    Triangulates 2D keypoint coordinates, only choosing the cameras for which 
+    reprojection error is under threshold.
+
+    1. Creates subset with N cameras excluded 
+    2. Tries all possible triangulations
+    3. Chooses the one with smallest reprojection error
+    If error too big, take off one more camera.
+        If then below threshold, retain result.
+        If better but still too big, take off one more camera.
+    4. Add the strongness of exclusion
+    5. counting the camera off due to tracking or likelihood too low
+    6. dynamic of min cam num
+    7. good luck
+    
+    INPUTS:
+    - a Config.toml file
+    - coords_2D_kpt: 
+    - projection_matrices: list of arrays
+
+    OUTPUTS:
+    - Q: array of triangulated point (x,y,z,1.)
+    - error_min: float
+    - nb_cams_excluded: int
+    '''
+    list_dynamic_mincam_ver6=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':4,'RSmallToe':4,'RHeel':4,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':4,'LSmallToe':4,'LHeel':4,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+
+    list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    
+    list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    
+    list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+    list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
+    list_dynamic_mincam_ver1 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':4,'LKnee':3,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':2,'RWrist':2,'LShoulder':3,'LElbow':2,'LWrist':2}
+    
+    # Read config
+    error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
+    min_cameras_for_triangulation = config.get('triangulation').get('min_cameras_for_triangulation')
+    min_cameras_for_triangulation = list_dynamic_mincam[body_name]
+    # Initialize
+    x_files, y_files, likelihood_files = coords_2D_kpt
+    
+    n_cams = len(x_files)
+    error_min = np.inf 
+    
+    ###### Get intrisic paramter
+    project_dir = config.get('project').get('project_dir')
+    if project_dir == '': project_dir = os.getcwd()
+    calib_folder_name = config.get('project').get('calib_folder_name')
+    calib_dir = os.path.join(project_dir, calib_folder_name)
+    calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0]
+    calib = toml.load(calib_file)
+
+    #import pdb
+    #pdb.set_trace()
+    #######End
+    nb_cams_off = 0
+    cam_initially_off = np.where( (np.isnan(likelihood_files))| (likelihood_files ==0))
+    nb_cam_initially_off =np.shape((cam_initially_off))[1]
+    if len(cam_initially_off)>0:
+         # cameras will be taken-off until the reprojection error is under threshold
+
+        left_combination  = np.array([range(n_cams)])
+        left_combination = np.delete(left_combination,cam_initially_off,None)     
+        ini_del =True
+    else:
+        left_combination = np.array(range(n_cams))
+        ini_del =False
+
+    error = []
+    id_excluded_cams_temp = []
+    error_min_temp = []
+    nb_cams_excluded_temp = []
+    Q_temp =[]
+    exclude_record =[]
+    error_record=[]
+    error_record1 =[]
+    count_all_com = 0
+    first_tri = 1
+    
+    #################error_min > error_threshold_triangulation and 
+    while n_cams - nb_cams_off-nb_cam_initially_off >= min_cameras_for_triangulation or first_tri == 1:
+        # Create subsets with "nb_cams_off" cameras excluded
+        id_cams_off = np.array(list(it.combinations(left_combination, nb_cams_off)))##All comnination of exclude cam num
+        id_cam_off_exclusion = id_cams_off 
+        #import pdb;pdb.set_trace()
+
+        ## combine initial and exclude 
+        if id_cams_off.size == 0 and ini_del ==True:
+            id_cams_off = cam_initially_off
+        else:
+            id_cams_off = np.append(id_cams_off,np.repeat(np.array(cam_initially_off),np.shape(id_cams_off)[0] ,axis = 0),axis=1)
+        
+        projection_matrices_filt = [projection_matrices]*len(id_cams_off)
+        x_files_filt = np.vstack([list(x_files).copy()]*len(id_cams_off))
+        y_files_filt = np.vstack([y_files.copy()]*len(id_cams_off))
+        likelihood_files_filt = np.vstack([likelihood_files.copy()]*len(id_cams_off))
+        
+        #import pdb
+        #pdb.set_trace()
+        if nb_cams_off+nb_cam_initially_off > 0:
+            for i in range(len(id_cams_off)):
+                x_files_filt[i][id_cams_off[i]] = np.nan
+                y_files_filt[i][id_cams_off[i]] = np.nan
+                likelihood_files_filt[i][id_cams_off[i]] = np.nan
+        nb_cams_excluded_filt = [np.count_nonzero(np.nan_to_num(x)==0) for x in likelihood_files_filt] # count nans and zeros
+        
+        
+        #import pdb
+        #pdb.set_trace()
+        projection_matrices_filt = [ [ p[i] for i in range(n_cams) if not np.isnan(x_files_filt[j][i]) ] for j, p in enumerate(projection_matrices_filt) ]
+        #import pdb;pdb.set_trace()
+        x_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in x_files_filt ]
+        y_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in y_files_filt ]
+        likelihood_files_filt = [ [ xx for ii, xx in enumerate(x) if not np.isnan(xx) ] for x in likelihood_files_filt ]            
+        #import pdb
+        #pdb.set_trace()
+        # Triangulate 2D points
+
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+        
+        #import pdb;pdb.set_trace()
+        # Reprojection
+        coords_2D_kpt_calc_filt = [reprojection(projection_matrices_filt[i], Q_filt[i])  for i in range(len(id_cams_off))]
+        coords_2D_kpt_calc_filt = np.array(coords_2D_kpt_calc_filt, dtype=object)
+        x_calc_filt = coords_2D_kpt_calc_filt[:,0]
+        y_calc_filt = coords_2D_kpt_calc_filt[:,1]
+        #import pdb
+        #pdb.set_trace()
+        # Reprojection error
+        error = []
+        error1 = []
+
+        for config_id in range(len(x_calc_filt)):
+            q_file = [(x_files_filt[config_id][i], y_files_filt[config_id][i]) for i in range(len(x_files_filt[config_id]))]
+            q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
+        
+            #import pdb
+            #pdb.set_trace()
+            
+
+            cam_used = np.array(range(n_cams))
+
+            if nb_cams_off>0:
+                cam_used = np.delete(cam_used,id_cams_off[config_id])
+            # record the exclusion ones not the whole
+            exclude_record.append(id_cam_off_exclusion[config_id])
+            ##max without dist.
+            
+            #import pdb;pdb.set_trace()
+            if len(q_file)>0:
+                error.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ) )
+                error_record.append( np.max( [euclidean_dist_with_multiplication(q_file[i], q_calc[i],Q_filt[0][0:3],calib[list(calib.keys())[cam_used[i]]]) for i in range(len(q_file))] ))
+            ######max without dist.
+                error1.append( np.max( [euclidean_distance(q_file[i], q_calc[i]) for i in range(len(q_file))] ) )
+            else:
+                error.append(float('inf'))
+                error1.append(float('inf'))
+
+
+            #import pdb;pdb.set_trace()
+        # Choosing best triangulation (with min reprojection error)
+        #import pdb
+        #pdb.set_trace()
+        error_min = min(error)
+        best_cams = np.argmin(error)
+        
+        nb_cams_excluded = nb_cams_excluded_filt[best_cams]
+        #import pdb;pdb.set_trace()
+        Q = Q_filt[best_cams][:-1]
+
+        # idxs = np.argsort(error)
+        # Q = Q_filt[idxs[:3]].mean(axis=0)
+        
+        nb_cams_off += 1
+        
+        id_excluded_cams_temp.append(id_cam_off_exclusion[best_cams])
+        error_min_temp.append(error_min)
+        nb_cams_excluded_temp.append(nb_cams_excluded)   
+        count_all_com =count_all_com+1
+        Q_temp.append(Q)
+        first_tri = 0   
+
+    
+    # Index of excluded cams for this keypoint
+    error_min_final = min(error_min_temp)
+    best_cams_final = np.argmin(error_min_temp)
+    nb_cams_excluded_final = nb_cams_excluded_temp[best_cams_final]
+    id_excluded_cams_final = id_excluded_cams_temp[best_cams_final]
+    Q_final = Q_temp[best_cams_final]
+
+    if len(id_excluded_cams_final)>0:
+        strongness_of_exclusion = error_min_temp[0]-error_min_final
+    else:
+        strongness_of_exclusion = 0
+
+    
+    dist_camera2point =np.array([camera2point_dist(Q_final,calib[list(calib.keys())[camera]]) for camera in range(4)])
+    
+   
+
+
+
+    # If triangulation not successful, error = 0,  and 3D coordinates as missing values
+    if error_min > error_threshold_triangulation:
+        error_min = np.nan
+        Q = np.array([0.,0.,0.])
+        Q = np.array([np.nan, np.nan, np.nan])
+    
+    #import pdb;pdb.set_trace() 
+
+    return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point,strongness_of_exclusion
+                               
+
 def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
     '''
     Extract data from json files for frame f, 
@@ -249,7 +923,7 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
     for cam_nb in range(n_cams):
         x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
         with open(json_tracked_files_f[cam_nb], 'r') as json_f:
-            js = orjson.loads(json_f.read())
+            js = json.load(json_f)
             for keypoint_id in keypoints_ids:
                 try:
                     x_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3] )
@@ -267,490 +941,9 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
     x_files = np.array(x_files)
     y_files = np.array(y_files)
     likelihood_files = np.array(likelihood_files)
+
     return x_files, y_files, likelihood_files
 
-def create_prep(f_range,n_cams,keypoints_ids,json_tracked_files):
-
-    # Elements
-    elements = [0, 1, 2, 3]
-
-    # Total elements
-    n = len(elements)
-
-    # Generate combinations based on remaining elements
-    combinations_4 = [elements]  # No deletions
-    combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
-    combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements
-
-
-    # Print results
-    print("4-Combinations (No deletions):", combinations_4)
-    print("3-Combinations (Keep 3 elements):", combinations_3)
-    print("2-Combinations (Keep 2 elements):", combinations_2)
-
-
-    # Combine all combinations
-    all_combinations = combinations_4 + combinations_3 + combinations_2
-    prep = []
-    prep4 =[]
-    prep3 = []
-    prep2 = []
-    for f in tqdm(range(*f_range)):
-        json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)]
-        x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
-        #@import pdb;pdb.set_trace()
-        arrays = [x_files, y_files, likelihood_files]
-        # Stack and transpose
-        stacked = np.stack(arrays, axis=0)  # Shape: (3, 4, 22)
-        result = np.transpose(stacked, (2, 1, 0))  # Shape: (22, 4, 3)
-        prep.append(result)
-    prep = cp.array(prep)
-    result_list = []
-    # Iterate over combinations
-    for comb in combinations_4:
-        # Extract the slices corresponding to the combination
-        combined = prep[:, :, comb, :]
-        result_list.append(combined)
-
-    # Stack the combinations into a new dimension
-    prep_4 = cp.stack(result_list, axis=2)  # Shape: (184, 22, 6, 4, 3)
-    result_list = []
-    # Iterate over combinations
-    for comb in combinations_3:
-        # Extract the slices corresponding to the combination
-        combined = prep[:, :, comb, :]
-        result_list.append(combined)
-
-    # Stack the combinations into a new dimension
-    prep_3 = cp.stack(result_list, axis=2)  # Shape: (184, 22, 6, 4, 3)
-    result_list = []
-    # Iterate over combinations
-    for comb in combinations_2:
-        # Extract the slices corresponding to the combination
-        combined = prep[:, :, comb, :]
-        result_list.append(combined)
-
-    # Stack the combinations into a new dimension
-    prep_2 = cp.stack(result_list, axis=2)  # Shape: (184, 22, 6, 4, 3)
-    return prep_4,prep_3,prep_2
-def bilinear_interpolate_cupy(map, x, y):
-    """
-    Perform bilinear interpolation for CuPy arrays.
-    map: The 2D CuPy array on which interpolation is performed.
-    x: x-coordinates (float) for interpolation.
-    y: y-coordinates (float) for interpolation.
-    """
-    # Get integer coordinates surrounding the point
-    x0 = cp.floor(x).astype(cp.int32)
-    x1 = x0 + 1
-    y0 = cp.floor(y).astype(cp.int32)
-    y1 = y0 + 1
-
-    # Ensure coordinates are within bounds
-    x0 = cp.clip(x0, -map.shape[1] - 1, map.shape[1] - 1)
-    x1 = cp.clip(x1, -map.shape[1] - 1, map.shape[1] - 1)
-    y0 = cp.clip(y0, -map.shape[0] - 1, map.shape[0] - 1)
-    y1 = cp.clip(y1, -map.shape[0] - 1, map.shape[0] - 1)
-
-    # Use cp.take_along_axis for advanced indexing
-    Ia = map[y0, x0]
-    Ib = map[y0, x1]
-    Ic = map[y1, x0]
-    Id = map[y1, x1]
-
-    # Interpolation weights
-    wa = (x1 - x) * (y1 - y)
-    wb = (x - x0) * (y1 - y)
-    wc = (x1 - x) * (y - y0)
-    wd = (x - x0) * (y - y0)
-
-    # Calculate the interpolated value
-    return wa * Ia + wb * Ib + wc * Ic + wd * Id
-
-
-def undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2):
-    """
-    Undistort points using CuPy, optimized for batched operations.
-    mappingx: The x-mapping 2D CuPy array.
-    mappingy: The y-mapping 2D CuPy array.
-    prep_3: Input array of shape (155, 22, 4, 3, 3) where:
-        - prep_3[..., 0] contains x-coordinates.
-        - prep_3[..., 1] contains y-coordinates.
-        - prep_3[..., 2] contains likelihood.
-    """
-    x = prep_4[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
-    y = prep_4[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
-    likelihood = prep_4[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
-
-    # Perform bilinear interpolation on x and y
-    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
-    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
-
-    # Combine results into a single array
-    prep_4 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
-
-
-    # Extract x, y, and likelihood values
-    x = prep_3[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
-    y = prep_3[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
-    likelihood = prep_3[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
-
-    # Perform bilinear interpolation on x and y
-    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
-    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
-
-    # Combine results into a single array
-    prep_3 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
-
-
-    x = prep_2[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
-    y = prep_2[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
-    likelihood = prep_2[:, :, :, :, 2]  # Shape: (155, 22, 4, 3)
-
-    # Perform bilinear interpolation on x and y
-    x_undistorted = bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
-    y_undistorted = bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
-
-    # Combine results into a single array
-    prep_2 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
-    return prep_4,prep_3,prep_2
-    
-def create_A(prep_4,prep_3,prep_2,P):
-    # Elements
-    sh = np.shape(prep_4)
-    elements = [0, 1, 2, 3]
-
-    # Total elements
-    n = len(elements)
-    combinations_4 = [elements]  # No deletions
-    combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
-    combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements
-    results = []
-
-    # Iterate over the range 4 for c
-    for c in range(4):
-        # Compute the first part
-        part1 = (P[c][0] - prep_4[:, :, :, c, 0:1] * P[c][2]) * prep_4[:, :, :, c, 2:3]
-        # Compute the second part
-        part2 = (P[c][1] - prep_4[:, :, :, c, 1:2] * P[c][2]) * prep_4[:, :, :, c, 2:3]
-        
-        # Append the results along the last axis
-        results.append(part1)
-        temp = cp.array(part1)
-        results.append(part2)
-    # Concatenate all results along the new axis
-    A4 = cp.stack(results, axis=3)  # Concatenate along the 4th dimension
-
-    results1 = []
-    final_results =[]
-    # Iterate over the range 3 for c
-    for i in range(4):
-        results1 = []
-        for c in range(3):
-            camera_index = combinations_3[i]
-            d = camera_index[c]
-            
-            # Compute the first part
-            part1 = (P[d][0] - prep_3[:, :, i, c, 0:1] * P[d][2]) * prep_3[:, :, i, c, 2:3]
-            # Compute the second part
-            part2 = (P[d][1] - prep_3[:, :, i, c, 1:2] * P[d][2]) * prep_3[:, :, i, c, 2:3]
-            #import pdb;pdb.set_trace()
-            # Append the results along the last axis
-            results1.append(part1)           
-            results1.append(part2)
-        inner_results_stacked = cp.stack(results1, axis=2) 
-        final_results.append(inner_results_stacked)
-        
-    A3 = cp.stack(final_results, axis=2) 
-    
-    results1 = []
-    final_results =[]
-    # Iterate over the range 3 for c
-    for i in range(6):
-        results1 = []
-        for c in range(2):
-            camera_index = combinations_2[i]
-            d = camera_index[c]
-            
-            # Compute the first part
-            part1 = (P[d][0] - prep_2[:, :, i, c, 0:1] * P[d][2]) * prep_2[:, :, i, c, 2:3]
-            # Compute the second part
-            part2 = (P[d][1] - prep_2[:, :, i, c, 1:2] * P[d][2]) * prep_2[:, :, i, c, 2:3]
-            # Append the results along the last axis
-            results1.append(part1)           
-            results1.append(part2)
-        inner_results_stacked = cp.stack(results1, axis=2) 
-        final_results.append(inner_results_stacked)
-        
-    A2 = cp.stack(final_results, axis=2) 
-    return A4,A3,A2
-def find_Q(A4,A3,A2):
-    f = cp.shape(A4)
-    A_flat = A4.reshape(-1, 8, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-    # Step 2: Perform SVD in batch using CuPy
-    U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-
-    # Step 3: Compute Q
-    # Transpose Vt to get V
-    V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-    # Extract and compute Q
-    Q = cp.array([
-        V[:, 0, 3] / V[:, 3, 3],
-        V[:, 1, 3] / V[:, 3, 3],
-        V[:, 2, 3] / V[:, 3, 3],
-        cp.ones(V.shape[0])  # Add 1 as the last element of Q
-    ]).T  # Shape: (batch_size, 4)
-
-    # Step 4: Reshape Q back to (250, 22, 1, 4)
-    Q4 = Q.reshape(f[0], f[1], f[2], 4)
-
-    
-
-    f = cp.shape(A3)
-    A_flat = A3.reshape(-1, 6, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-    # Step 2: Perform SVD in batch using CuPy
-    U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-
-    # Step 3: Compute Q
-    # Transpose Vt to get V
-    V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-    # Extract and compute Q
-    Q = cp.array([
-        V[:, 0, 3] / V[:, 3, 3],
-        V[:, 1, 3] / V[:, 3, 3],
-        V[:, 2, 3] / V[:, 3, 3],
-        cp.ones(V.shape[0])  # Add 1 as the last element of Q
-    ]).T  # Shape: (batch_size, 4)
-
-    # Step 4: Reshape Q back to (250, 22, 1, 4)
-    Q3 = Q.reshape(f[0], f[1], f[2], 4)
-    
-
-    f = cp.shape(A2)
-    A_flat = A2.reshape(-1, 4, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-    # Step 2: Perform SVD in batch using CuPy
-    U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-
-    # Step 3: Compute Q
-    # Transpose Vt to get V
-    V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-    # Extract and compute Q
-    Q = cp.array([
-        V[:, 0, 3] / V[:, 3, 3],
-        V[:, 1, 3] / V[:, 3, 3],
-        V[:, 2, 3] / V[:, 3, 3],
-        cp.ones(V.shape[0])  # Add 1 as the last element of Q
-    ]).T  # Shape: (batch_size, 4)
-
-    # Step 4: Reshape Q back to (250, 22, 1, 4)
-    Q2 = Q.reshape(f[0], f[1], f[2], 4)
-
-
-    return Q4,Q3,Q2
-def create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2):
-    loc = cp.where(prep_3like < likelihood_threshold)
-    prep_3like[loc] = cp.inf
-    # Find the index of the first non-inf element along axis 2
-    non_inf_mask3 = ~cp.isinf(prep_3like)
-    min_locations_nan3 = cp.argmax(non_inf_mask3, axis=2)
-    batch_indices = cp.arange(Q3.shape[0])[:, None]  # Shape: (184, 1)
-    time_indices = cp.arange(Q3.shape[1])[None, :]   # Shape: (1, 22)
-
-# Use advanced indexing to extract the desired values
-    selected_slices = Q3[batch_indices, time_indices, min_locations_nan3, :]
-    
-# Add an additional dimension to match the shape (184, 22, 1, 4)
-    Q3_bug = selected_slices[:, :, cp.newaxis, :]
-
-    loc = cp.where(prep_2like < likelihood_threshold)
-    prep_2like[loc] = cp.inf
-    # Find the index of the first non-inf element along axis 2
-    non_inf_mask2 = ~cp.isinf(prep_2like)
-    min_locations_nan2 = cp.argmax(non_inf_mask2, axis=2)
-    batch_indices = cp.arange(Q2.shape[0])[:, None]  # Shape: (184, 1)
-    time_indices = cp.arange(Q2.shape[1])[None, :]   # Shape: (1, 22)
-
-# Use advanced indexing to extract the desired values
-    selected_slices = Q2[batch_indices, time_indices, min_locations_nan2, :]
-    
-# Add an additional dimension to match the shape (184, 22, 1, 4)
-    Q2_bug = selected_slices[:, :, cp.newaxis, :]
-    return Q3_bug,Q2_bug
-def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug):
-    elements = [0, 1, 2, 3]
-
-    # Total elements
-    n = len(elements)
-    combinations_4 = [elements]  # No deletions
-    combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
-    combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements       
-            # Compute the first part
-    
-    final_resultsx =[]
-    final_resultsy =[]
-    final_dist = []
-    for i in range(1):
-        x = []
-        y = []
-        dist = []
-        for c in range(4):
-            camera_index = combinations_4[i]
-            d = camera_index[c]
-            P_cam_0 = P[d][0].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_1 = P[d][1].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_2 = P[d][2].reshape(1, -1)  # Shape: (1, 4)
-            
-            P0_dot_Q = cp.einsum('ik,btk->bt', P_cam_0, Q4[:,:,i,:])  # Shape: (250, 22, 4)
-            P1_dot_Q = cp.einsum('ik,btk->bt', P_cam_1, Q4[:,:,i,:])  # Shape: (250, 22, 4)
-            P2_dot_Q = cp.einsum('ik,btk->bt', P_cam_2, Q4[:,:,i,:])  # Shape: (250, 22, 4)
-            x.append(P0_dot_Q / P2_dot_Q)
-            y.append(P1_dot_Q / P2_dot_Q)
-            dist.append(cp.sqrt(cp.sum((Q4[:, :, i, 0:3] - cam_coord[d]) ** 2, axis=-1)))
-            
-            
-
-        
-            
-        inner_results_stackedx = cp.stack(x, axis=2) 
-        final_resultsx.append(inner_results_stackedx)
-        inner_results_stackedy = cp.stack(y, axis=2) 
-        final_resultsy.append(inner_results_stackedy)
-        final_dist.append(cp.stack(dist,axis=2))
-
-
-    
-    
-    X = cp.stack(final_resultsx, axis=2)
-    Y = cp.stack(final_resultsy, axis=2) 
-    final_dist = cp.stack(final_dist,axis = 2)
-    #[754.2223150392452, 1165.0827450392762]
-    rpj_coor_4 = cp.stack((X,Y),axis = -1)
-    
-    x1, y1 = prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]
-    x2, y2 = rpj_coor_4[:, :, :, :, 0], rpj_coor_4[:, :, :, :, 1]
-    # Compute the Euclidean distance
-    rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    real_dist  = final_dist*rpj
-    real_dist4 = cp.max(real_dist, axis=-1)
-
-
-
-    
-    final_resultsx =[]
-    final_resultsy =[]
-    final_dist = []
-    #Q3_bug = 
-    for i in range(4):
-        x = []
-        y = []
-        dist = []
-        for c in range(3):
-            camera_index = combinations_3[i]
-            d = camera_index[c]
-            P_cam_0 = P[d][0].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_1 = P[d][1].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_2 = P[d][2].reshape(1, -1)  # Shape: (1, 4)
-            
-            P0_dot_Q = cp.einsum('ik,btk->bt', P_cam_0, Q3[:,:,i,:])  # Shape: (250, 22, 4)
-            P1_dot_Q = cp.einsum('ik,btk->bt', P_cam_1, Q3[:,:,i,:])  # Shape: (250, 22, 4)
-            P2_dot_Q = cp.einsum('ik,btk->bt', P_cam_2, Q3[:,:,i,:])  # Shape: (250, 22, 4)
-            x.append(P0_dot_Q / P2_dot_Q)
-            y.append(P1_dot_Q / P2_dot_Q)
-            dist.append(cp.sqrt(cp.sum((Q3_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
-            
-            
-
-        
-            
-        inner_results_stackedx = cp.stack(x, axis=2) 
-        final_resultsx.append(inner_results_stackedx)
-        inner_results_stackedy = cp.stack(y, axis=2) 
-        final_resultsy.append(inner_results_stackedy)
-        final_dist.append(cp.stack(dist,axis=2))
-
-
-    
-    
-    X = cp.stack(final_resultsx, axis=2)
-    Y = cp.stack(final_resultsy, axis=2) 
-    final_dist = cp.stack(final_dist,axis = 2)
-    #[754.2223150392452, 1165.0827450392762]
-    rpj_coor_3 = cp.stack((X,Y),axis = -1)
-    
-    x1, y1 = prep_3[:, :, :, :, 0], prep_3[:, :, :, :, 1]
-    x2, y2 = rpj_coor_3[:, :, :, :, 0], rpj_coor_3[:, :, :, :, 1]
-    # Compute the Euclidean distance
-    rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    real_dist  = final_dist*rpj
-    real_dist3 = cp.max(real_dist, axis=-1)
-
-
-
-
-    
-    
-    final_resultsx =[]
-    final_resultsy =[]
-    final_dist = []
-    for i in range(6):
-        x = []
-        y = []
-        dist = []
-        for c in range(2):
-            camera_index = combinations_2[i]
-            d = camera_index[c]
-            P_cam_0 = P[d][0].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_1 = P[d][1].reshape(1, -1)  # Shape: (1, 4)
-            P_cam_2 = P[d][2].reshape(1, -1)  # Shape: (1, 4)
-            
-            P0_dot_Q = cp.einsum('ik,btk->bt', P_cam_0, Q2[:,:,i,:])  # Shape: (250, 22, 4)
-            P1_dot_Q = cp.einsum('ik,btk->bt', P_cam_1, Q2[:,:,i,:])  # Shape: (250, 22, 4)
-            P2_dot_Q = cp.einsum('ik,btk->bt', P_cam_2, Q2[:,:,i,:])  # Shape: (250, 22, 4)
-            x.append(P0_dot_Q / P2_dot_Q)
-            y.append(P1_dot_Q / P2_dot_Q)
-            dist.append(cp.sqrt(cp.sum((Q2_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
-            
-            
-
-        
-            
-        inner_results_stackedx = cp.stack(x, axis=2) 
-        final_resultsx.append(inner_results_stackedx)
-        inner_results_stackedy = cp.stack(y, axis=2) 
-        final_resultsy.append(inner_results_stackedy)
-        final_dist.append(cp.stack(dist,axis=2))
-
-
-    
-    
-    X = cp.stack(final_resultsx, axis=2)
-    Y = cp.stack(final_resultsy, axis=2) 
-    final_dist = cp.stack(final_dist,axis = 2)
-    #[754.2223150392452, 1165.0827450392762]
-    rpj_coor_2 = cp.stack((X,Y),axis = -1)
-    
-    x1, y1 = prep_2[:, :, :, :, 0], prep_2[:, :, :, :, 1]
-    x2, y2 = rpj_coor_2[:, :, :, :, 0], rpj_coor_2[:, :, :, :, 1]
-    # Compute the Euclidean distance
-    rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    real_dist  = final_dist*rpj
-    real_dist2 = cp.max(real_dist, axis=-1)
-
-    return real_dist4,real_dist3,real_dist2
-
-def map_to_listdynamic(value):
-    if value == 4:
-        return [1,2,3,4,5,6,7,8,9,10]  # Map 4 to [0]
-    elif value == 3:
-        return [5,6,7,8,9,10]  # Map 3 to [1, 2, 3, 4]
-    elif value == 2:
-        return []  # Map 2 to [5, 6, 7, 8, 9, 10]
 
 def triangulate_all(config):
     '''
@@ -819,72 +1012,65 @@ def triangulate_all(config):
     frames_nb = f_range[1]-f_range[0]
     
     n_cams = len(json_dirs_names)
-    
     Q_tot, error_tot, nb_cams_excluded_tot,id_excluded_cams_tot,exclude_record_tot,error_record_tot,cam_dist_tot,id_excluded_cams_record_tot,strongness_exclusion_tot  = [], [], [], [],[],[],[],[],[]
-    #x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
+    for f in tqdm(range(*f_range)):
+        # Get x,y,likelihood values from files
+        json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)]
+        x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
+        
+        # Replace likelihood by 0 if under likelihood_threshold
+        with np.errstate(invalid='ignore'):
+            likelihood_files[likelihood_files<likelihood_threshold] = 0.
+        
+        Q, error, nb_cams_excluded, id_excluded_cams,exclude_record,error_record,cam_dist,strongness_exclusion = [], [], [], [],[],[],[],[]
+        for keypoint_idx in keypoints_idx:
+            #import pdb;pdb.set_trace()
+        # Triangulate cameras with min reprojection error
+            coords_2D_kpt = ( x_files[:, keypoint_idx], y_files[:, keypoint_idx], likelihood_files[:, keypoint_idx] )
+            coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
+            id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = -1,-1,-1,-1
+            #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = triangulation_from_best_cameras(config, coords_2D_kpt, P)
+            Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt,strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, P,keypoints_names[keypoint_idx])
+            #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt = triangulation_from_best_cameras_ver1(config, coords_2D_kpt, P)
+            #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt = triangulation_from_best_cameras_verNTK1(config, coords_2D_kpt, P)
+            #if f==90:
+                #import pdb;pdb.set_trace()
+            Q.append(Q_kpt)
+            error.append(error_kpt)
+            nb_cams_excluded.append(nb_cams_excluded_kpt)
+            id_excluded_cams.append(id_excluded_cams_kpt)
+            exclude_record.append(exclude_record_kpt)
+            error_record.append(error_record_kpt)
+            cam_dist.append(cam_dist_kpt)
+            strongness_exclusion.append(strongness_of_exclusion_kpt)
+        # Add triangulated points, errors and excluded cameras to pandas dataframes
+        Q_tot.append(np.concatenate(Q))
+        error_tot.append(error)
+        nb_cams_excluded_tot.append(nb_cams_excluded)
+        id_excluded_cams_record_tot.append(id_excluded_cams)
+        id_excluded_cams = [item for sublist in id_excluded_cams for item in sublist]
+        
+        id_excluded_cams_tot.append(id_excluded_cams)
+        exclude_record_tot.append(exclude_record)
+        error_record_tot.append(error_record)
+        cam_dist_tot.append(cam_dist)
+        strongness_exclusion_tot.append(strongness_exclusion)
+ 
+            
+    Q_tot = pd.DataFrame(Q_tot)
+    error_tot = pd.DataFrame(error_tot)
+    nb_cams_excluded_tot = pd.DataFrame(nb_cams_excluded_tot)
+    
+    id_excluded_cams_tot = [item for sublist in id_excluded_cams_tot for item in sublist]
+    cam_excluded_count = dict(Counter(id_excluded_cams_tot))
+    cam_excluded_count.update((x, y/keypoints_nb/frames_nb) for x, y in cam_excluded_count.items())
+    
+    error_tot['mean'] = error_tot.mean(axis = 1)
+    nb_cams_excluded_tot['mean'] = nb_cams_excluded_tot.mean(axis = 1)
 
-###########################################
-    #import pdb;pdb.set_trace()
-    list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    list_dynamic_mincam_prep = [map_to_listdynamic(value) for value in list_dynamic_mincam.values()]
-    calib = toml.load(calib_file)
-    cam_coord=cp.array([find_camera_coordinate(calib[list(calib.keys())[i]]) for i in range(4)])
-    P = cp.array(P)
-    mappingx,mappingy =computemap(calib_file)
-    mappingx = cp.array(mappingx)
-    mappingy = cp.array(mappingy)
-    #coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
-    prep_4,prep_3,prep_2 = create_prep(f_range,n_cams,keypoints_ids,json_tracked_files)
-    prep_4,prep_3,prep_2 =undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2)
-    prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
-    prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
-    prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
-    
-    prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
-    #undistort
-    
-    #array([[ 0.2907211 , -2.36826029,  0.34837825,  1.        ]])
-    A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
-    Q4,Q3,Q2 =find_Q(A4,A3,A2)
-    Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
-    Q3_bug,Q2_bug=create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
-    real_dist4,real_dist3,real_dist2=find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug)
-    
-    ## delete the liklelihoood vlue which is too low
-    real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
-    loc = cp.where(prep_like < likelihood_threshold)
-    real_dist[loc] = cp.inf
-    # Find the index of the first non-inf element along axis 2
-    non_inf_mask = ~cp.isinf(real_dist)
-    min_locations_nan = cp.argmax(non_inf_mask, axis=2)
-    real_dist_dynamic = cp.copy(real_dist)
-
-
-
-
-    
-    
-    ## setting the list dynamic
-    for i in range(22):    
-        real_dist_dynamic[:,i,list_dynamic_mincam_prep[i]] = cp.inf
-    
-    ## find the minimum combination
-    temp_shape = cp.shape(Q)
-    checkinf = cp.min(real_dist_dynamic,axis =2)
-    min_locations = cp.argmin(real_dist_dynamic, axis=2)
-    loc =cp.where(checkinf==cp.inf)
-    min_locations[loc] = min_locations_nan[loc]
-    batch_indices, time_indices = cp.meshgrid(cp.arange(temp_shape[0]), cp.arange(temp_shape[1]), indexing='ij')
-    Q_selected = Q[batch_indices, time_indices, min_locations]
-    Q_selected = Q_selected[:,:,0:3]
-    Q_selected = cp.asnumpy(Q_selected)
-    Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
-    
-
-    #### interpolatopm
-    Q_tot_gpu = pd.DataFrame(Q_tot_gpu)
+    # Optionally, for each keypoint, show indices of frames that should be interpolated
     if show_interp_indices:
-        zero_nan_frames = np.where( Q_tot_gpu.iloc[:,::3].T.eq(0) | ~np.isfinite(Q_tot_gpu.iloc[:,::3].T) )
+        zero_nan_frames = np.where( Q_tot.iloc[:,::3].T.eq(0) | ~np.isfinite(Q_tot.iloc[:,::3].T) )
         zero_nan_frames_per_kpt = [zero_nan_frames[1][np.where(zero_nan_frames[0]==k)[0]] for k in range(keypoints_nb)]
         gaps = [np.where(np.diff(zero_nan_frames_per_kpt[k]) > 1)[0] + 1 for k in range(keypoints_nb)]
         sequences = [np.split(zero_nan_frames_per_kpt[k], gaps[k]) for k in range(keypoints_nb)]
@@ -893,49 +1079,22 @@ def triangulate_all(config):
     else:
         interp_frames = None
         non_interp_frames = []
+
+    # Interpolate missing values
     if interpolation_kind != 'none':
         #import ipdb; ipdb.set_trace()
-        Q_tot_gpu = Q_tot_gpu.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
-    Q_tot_gpu.replace(np.nan, 0, inplace=True)
-
-### SAVE strongness of exclusion and cam_id_exclude
-    batch_indices = cp.arange(real_dist.shape[0])[:, None]  # Shape: (184, 1)
-    time_indices = cp.arange(real_dist.shape[1])[None, :]  # Shape: (1, 22)
-    real_dist_1st = real_dist[batch_indices, time_indices, min_locations_nan]
-    batch_indices = cp.arange(real_dist.shape[0])[:, None]  # Shape: (184, 1)
-    time_indices = cp.arange(real_dist.shape[1])[None, :]  # Shape: (1, 22)
-    real_dist_final = real_dist_dynamic[batch_indices, time_indices, min_locations]
-    strongness_exclusion_tot = (real_dist_1st-real_dist_final).tolist()
-    result_list = [cp.asnumpy(min_locations[i, :]) for i in range(min_locations.shape[0])]
-    value_map = {
-    0: [],
-    1: [0],
-    2: [1],
-    3: [2],
-    4: [3],
-    5: [0, 1],
-    6: [0, 2],
-    7: [0, 3],
-    8: [1, 2],
-    9: [1, 3],
-    10: [2, 3],
-}
-
-    # Transform the result_list
-    id_excluded_cams_record_tot = [
-        [value_map[val] for val in array]  # Map each value in the 22-element array
-        for array in result_list           # Process each 22-element array in the list
-    ]
-    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
-    mdic = {'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
+        Q_tot = Q_tot.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
+    Q_tot.replace(np.nan, 0, inplace=True)
+    from scipy.io import savemat
+    mdic = {'exclude':exclude_record_tot,'error':error_record_tot,'keypoints_name':keypoints_names,'cam_dist':cam_dist_tot,'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
-
-    trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
-    print('hi')
-# import time
-# s = time.time()
-# dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_20_13_08_calculated\path1_04'        
-# os.chdir(dir_task)
-# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
-# triangulate_all(config_dict)
-# print(time.time()-s)
+    
+    
+    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+    np.shape(error_record_tot)
+    #pdb.set_trace()
+    # Create TRC file
+    trc_path = make_trc(config, Q_tot, keypoints_names, f_range)
+    
+    # Recap message
+    recap_triangulate(config, error_tot, nb_cams_excluded_tot, keypoints_names, cam_excluded_count, interp_frames, non_interp_frames, trc_path)

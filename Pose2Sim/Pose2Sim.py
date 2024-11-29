@@ -173,7 +173,7 @@ def synchronization(config=os.path.join('User', 'Config.toml')):
     logging.info(f'Synchronization took {end-start:.2f} s.')    
     
     
-def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
+def personAssociation_multi_fast(coord,config=os.path.join('User', 'Config.toml')):
     '''
     Tracking of the person of interest in case of multiple persons detection.
     Needs a calibration file.
@@ -181,7 +181,7 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     config can either be a path or a dictionary (for batch processing)
     '''
     
-    from Pose2Sim.personAssociation_multi import track_2d_all
+    from Pose2Sim import personAssociation_multi_fastver1
     
     if type(config)==dict:
         config_dict = config
@@ -195,13 +195,38 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     logging.info(f"\nProject directory: {project_dir}")
     start = time.time()
     
-    track_2d_all(config_dict)
+    coord_comb = personAssociation_multi_fastver1.track_2d_all(coord,config_dict)
+    
+    end = time.time()
+    logging.info(f'Tracking took {end-start:.2f} s.')
+    return coord_comb
+def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
+    '''
+    Tracking of the person of interest in case of multiple persons detection.
+    Needs a calibration file.
+    
+    config can either be a path or a dictionary (for batch processing)
+    '''
+    
+    from Pose2Sim import personAssociation_multi
+    
+    if type(config)==dict:
+        config_dict = config
+    else:
+        config_dict = read_config_file(config)
+    project_dir, seq_name, frames = base_params(config_dict)
+    
+    logging.info("\n\n---------------------------------------------------------------------")
+    logging.info(f"Tracking of the person of interest for {seq_name}, for {frames}.")
+    logging.info("---------------------------------------------------------------------")
+    logging.info(f"\nProject directory: {project_dir}")
+    start = time.time()
+    
+    personAssociation_multi.track_2d_all(config_dict)
     
     end = time.time()
     logging.info(f'Tracking took {end-start:.2f} s.')
     
-    
-# def triangulation(k, cal_time):
 def triangulation(config=os.path.join('User', 'Config.toml')):
     
     '''
@@ -210,7 +235,7 @@ def triangulation(config=os.path.join('User', 'Config.toml')):
     config can either be a path or a dictionary (for batch processing)
     '''
 
-    from Pose2Sim.triangulation import triangulate_all
+    from Pose2Sim import triangulation
 
 
     if type(config)==dict:
@@ -225,12 +250,39 @@ def triangulation(config=os.path.join('User', 'Config.toml')):
     logging.info("---------------------------------------------------------------------")
     logging.info(f"\nProject directory: {project_dir}")
     start = time.time()
-    triangulate_all(config_dict)
+    triangulation.triangulate_all(config_dict)
     # triangulate_all(config_dict, k, cal_time)
     
     end = time.time()
     logging.info(f'Triangulation took {end-start:.2f} s.')
+def triangulation_fast(coord,config=os.path.join('User', 'Config.toml')):
     
+    '''
+    Robust triangulation of 2D points coordinates.
+    
+    config can either be a path or a dictionary (for batch processing)
+    '''
+
+    from Pose2Sim import triangulation_fastver1
+
+
+    if type(config)==dict:
+        config_dict = config
+    else:
+        #import pdb;pdb.set_trace()
+        config_dict = read_config_file(config)
+    project_dir, seq_name, frames = base_params(config_dict)
+    
+    logging.info("\n\n---------------------------------------------------------------------")
+    logging.info(f"Triangulation of 2D points for {seq_name}, for {frames}.")
+    logging.info("---------------------------------------------------------------------")
+    logging.info(f"\nProject directory: {project_dir}")
+    start = time.time()
+    triangulation_fastver1.triangulate_all(coord,config_dict)
+    # triangulate_all(config_dict, k, cal_time)
+    
+    end = time.time()
+    logging.info(f'Triangulation took {end-start:.2f} s.') 
 def filtering(config=os.path.join('User', 'Config.toml')):
     '''
     Filter trc 3D coordinates.

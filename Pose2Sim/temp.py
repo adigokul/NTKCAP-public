@@ -1,46 +1,30 @@
-import cv2
 import numpy as np
+import cupy as cp
+import time
 
-def extract_and_save_video(input_video_path, output_video_path, start_frame, end_frame):
-    # Open the input video
-    cap = cv2.VideoCapture(input_video_path)
-    
-    # Get video properties
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    # Validate the frame range
-    if start_frame < 0 or end_frame >= frame_count or start_frame >= end_frame:
-        raise ValueError("Invalid frame range.")
-    
-    # Set up the video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID' or 'MJPG' depending on your needs
-    out = cv2.VideoWriter(output_video_path, fourcc, fps, 
-                          (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
-    
-    # Skip to the start frame
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    
-    # Read and write frames between start_frame and end_frame
-    current_frame = start_frame
-    while current_frame <= end_frame:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        out.write(frame)
-        current_frame += 1
-    
-    # Release resources
-    cap.release()
-    out.release()
-    print(f"Video saved to {output_video_path}")
+# Shape and batch size
+batch_shape = (110, 8, 4)
 
-# Example usage
-input_video = "input.mp4"
-output_video = "output.mp4"
-start_frame = 100  # Choose the starting frame
-end_frame = 500    # Choose the ending frame
+# Generate random data
+numpy_arrays = np.random.rand(*batch_shape)  # Generate data for NumPy
+cupy_arrays = cp.random.rand(*batch_shape)   # Generate data directly on GPU for CuPy
 
-a = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\raw_data\1234\videos\4.mp4'
-b = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\raw_data\Apose\videos\4.mp4'
-extract_and_save_video(a, b, 2,5)
+# Warm up the GPU to initialize the CUDA context
+_ = cp.array([1, 2, 3]).sum()
+cp.cuda.Stream.null.synchronize()  # Ensure warm-up computation is complete
+
+# Measure NumPy SVD time (loop over individual arrays)
+start_numpy = time.time()
+for i in range(batch_shape[0]):
+    u, s, vh = np.linalg.svd(numpy_arrays[i], full_matrices=False)
+end_numpy = time.time()
+print(f"NumPy SVD time for {batch_shape[0]} arrays: {end_numpy - start_numpy:.6f} seconds")
+while True:
+    # Measure CuPy SVD time (batch computation)
+
+    start_cupy = time.time()
+    cupy_arrays = cp.random.rand(*batch_shape) 
+    u_batch, s_batch, vh_batch = cp.linalg.svd(cupy_arrays, full_matrices=False)
+    cp.cuda.Stream.null.synchronize()  # Ensure all GPU operations are complete
+    end_cupy = time.time()
+    print(f"CuPy SVD time for batch array: {end_cupy - start_cupy:.6f} seconds")

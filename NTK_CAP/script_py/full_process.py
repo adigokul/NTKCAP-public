@@ -28,10 +28,13 @@ import traceback
 def timesync2rtm(video_folder,cam_num,opensim_folder,out_json):
     raw_video_path = video_folder
     calibrate_array = timesync_arrayoutput(video_folder,cam_num,opensim_folder)
+    rtm_coord = []
     for i in range(cam_num):
         Video_path = os.path.join(raw_video_path,str(i+1)+'.mp4')
         out_dir = os.path.join(out_json,"pose_cam" + str(i+1) + "_json.json")
-        rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array)
+        rtm_coord.append(rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array))
+    #import pdb;pdb.set_trace()
+    return rtm_coord
 def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
     cap = []
     cap_array =[]
@@ -273,9 +276,12 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
             data1.append(temp) #存成相同格式
         frame_id += 1
     
-    if  not np.isnan(calibrate_array).all():
+    if  not np.isnan(calibrate_array).any():
+        rearranged_list = [data1[i].copy() for i in calibrate_array[:,cam_num]]
+        for i in range(len(rearranged_list)):
+            rearranged_list[i]['image_id'] = i  # Update 'image_id' to match the index (starting from 1)
+            #import pdb;pdb.set_trace()
         
-        rearranged_list = [data1[i] for i in calibrate_array[:,cam_num]]
     else:
         rearranged_list = data1
     #import pdb;pdb.set_trace()
@@ -289,8 +295,10 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     os.chdir(AlphaPose_to_OpenPose )
     subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
     os.chdir(temp_dir)
-
+    
     os.remove(out_dir)
+    
+    return rearranged_list
     
         
 def rtm2json_gpu(Video_path, out_dir, out_video):
@@ -403,7 +411,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
         ret, frame = cap.read()
         if not ret:
                  break
-        black = np.zeros((height, width, 3), dtype=np.uint8)
+        
         #第一個0代表第幾幀，第二個0代表畫面中的第幾+1位辨識體，第三個0代表第幾個節點
         
         num_people = len(temp[count_frame]['people'])
@@ -430,7 +438,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
                 p = keypoint_scores[count]*255 #隨score顏色進行變換
                 #若keypoint score太低，則標示出來
                 if keypoint_scores[count]>=0.3 and keypoint_scores[count]<0.5:
-                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
+                    cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
                     
                     font = cv2.FONT_HERSHEY_SIMPLEX # font
                     org = (int(keypoints[count][0])+3, int(keypoints[count][1])) # 偏移
@@ -438,19 +446,19 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
                     color = (255, 255, 255) # Blue color in BGR
                     thickness = 1 # Line thickness of 2 px 
                     # Using cv2.putText() method 
-                    image = cv2.putText(black, str(int(keypoint_scores[count]*100)), org, font,  
+                    image = cv2.putText(frame, str(int(keypoint_scores[count]*100)), org, font,  
                                         fontScale, color, thickness, cv2.LINE_AA) 
-                    cv2.putText(black, str(count_frame), (10, 10), font, fontScale, color, thickness, cv2.LINE_AA)
+                    cv2.putText(frame, str(count_frame), (10, 10), font, fontScale, color, thickness, cv2.LINE_AA)
                 elif keypoint_scores[count]>=0.5:
-                    cv2.circle(black,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
+                    cv2.circle(frame,(int(keypoints[count][0]), int(keypoints[count][1])), 2, (0, 255,p ), 3)
                 
                 count = count+1
 
             for i in range(25):
                 if keypoint_scores[line[i][0]]>0.3 and keypoint_scores[line[i][1]]>0.3: 
 
-                    cv2.line(black, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
-        out.write(black)
+                    cv2.line(frame, (int(keypoints[line[i][0]][0]), int(keypoints[line[i][0]][1])), (int(keypoints[line[i][1]][0]), int(keypoints[line[i][1]][1])), (0, 0, 255), 1)
+        out.write(frame)
         count_frame = count_frame+1
     
     cap.release()
@@ -907,3 +915,11 @@ def add_frame_from_video(video_full_path,output_video):
                            
     out.release()
     cap.release
+
+# video_folder=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\raw_data\outside4\videos'
+# cam_num = 4
+# opensim_folder = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\opensim'
+# out_json =r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\pose-2d'
+# rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
+# with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\my_list.json", "w") as f:
+#     json.dump(rtm_coord, f)

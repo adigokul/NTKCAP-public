@@ -556,13 +556,13 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
     while True:
         if keyboard.is_pressed('s'):
-            ser.write(b"\x00000")
+            ser.write(b"\x000")
             dt_str1 =time.time() - start_time
             print('Start Signal send')
             break
     while True:
         if keyboard.is_pressed('q'):
-            ser.write(b"\x00000")
+            ser.write(b"\x0000")
             dt_str2 = time.time() - start_time
             print('End Signal send')
             break
@@ -570,10 +570,10 @@ def CP2102_output_signal_vicon(input_COM,start_time,save_path):
     np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
         
 def CP2102_output_signal(input_COM):
-    ser = serial.Serial(port='COM' +str(input_COM), baudrate=115200, timeout=1)
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
     #ser.write(b"\x00000")
     
-    ser.write(b'\x8d\x00')
+    ser.write(b'x0000')
 def print_timer_matplt(start_time):### Much Higher fps
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
@@ -1411,18 +1411,15 @@ def marker_caculate_fast(PWD,cal_data_path):
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
         print("切換至" + os.getcwd())
-        timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
+        rtm_coord=timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
         os.chdir(now_project)
         print("切換至" + os.getcwd())
         s = time.time()
-        Pose2Sim.personAssociation_multi() 
+        coord = Pose2Sim.personAssociation_multi_fast(rtm_coord) 
         e = time.time()
-        #import pdb;pdb.set_trace()
-        import cupy as cp
-        dummy = cp.zeros((1,)) 
-        Pose2Sim.triangulation()
+        Pose2Sim.triangulation_fast(coord)
         f = time.time()
         Pose2Sim.filtering()
         g = time.time()
