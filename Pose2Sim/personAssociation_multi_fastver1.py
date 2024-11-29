@@ -1011,12 +1011,9 @@ def track_2d_all(coord,config):
     '''
     
     # Read config
-    
     project_dir = config.get('project').get('project_dir') 
     if project_dir == '': project_dir = os.getcwd() # walk1
-    
     multi_person = config.get('project').get('multi_person') # warning:not finish yet
-    
     calib_folder_name = config.get('project').get('calib_folder_name') # calib-2d
     poseTracked_folder_name = config.get('project').get('poseAssociated_folder_name') # pose-2d-tracked
     pose_folder_name = config.get('project').get('pose_folder_name') # pose-2d
@@ -1115,6 +1112,7 @@ def track_2d_all(coord,config):
         state_ROI_all.append(state_ROI)
         s5 = time.time()
         #print(s5-s1)
+    
     final_f =[]
     temp = 0
     for i in range(*f_range):
@@ -1124,7 +1122,7 @@ def track_2d_all(coord,config):
             temp = i
             final_f.append(i)
     temp = i
-    #import pdb;pdb.set_trace()
+    
     for k in range(*f_range):
         i = f_range[0]-k-1
         #print(i)
@@ -1132,7 +1130,8 @@ def track_2d_all(coord,config):
             final_f[i] = temp
         else:
             temp = i
-        
+    if state_ROI_all[0]==1:
+        final_f[0]=0
 
     
     # recap message

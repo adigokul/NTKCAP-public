@@ -335,6 +335,7 @@ def create_prep(coord,f_range,n_cams,keypoints_ids,json_tracked_files):
     for f in tqdm(range(*f_range)):
         json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)]
         x_files, y_files, likelihood_files = extract_files_frame_f_fast(f,coord, keypoints_ids)
+        #x_files, y_files, likelihood_files = extract_files_frame_f(json_tracked_files_f, keypoints_ids)
         #@import pdb;pdb.set_trace()
         arrays = [x_files, y_files, likelihood_files]
         # Stack and transpose
@@ -968,9 +969,10 @@ def triangulate_all(coord,config):
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
 
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
+
 # import time
 # s = time.time()
-# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4'        
+# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\33exhib_test1\2024_11_29\2024_11_29_15_24_calculated_acc12\1'        
 # os.chdir(dir_task)
 # config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
 # triangulate_all(config_dict)
