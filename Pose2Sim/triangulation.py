@@ -932,10 +932,10 @@ def triangulate_all(config):
 
     trc_path = make_trc(config, Q_tot_gpu, keypoints_names, f_range)
     print('hi')
-import time
-s = time.time()
-dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_20_13_08_calculated\path1_04'        
-os.chdir(dir_task)
-config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
-triangulate_all(config_dict)
-print(time.time()-s)
+# import time
+# s = time.time()
+# dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_20_13_08_calculated\path1_04'        
+# os.chdir(dir_task)
+# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
+# triangulate_all(config_dict)
+# print(time.time()-s)
