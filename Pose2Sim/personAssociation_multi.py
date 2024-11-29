@@ -591,7 +591,6 @@ def rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range):
     for cam in range(n_cams):
         with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
             json_tracked_f.write(json.dumps(js_allin_range[cam]))
-            pass
 
 from Pose2Sim.common import weighted_triangulation
 import re

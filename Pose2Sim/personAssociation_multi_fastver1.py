@@ -32,6 +32,9 @@
 
 ## INIT
 import os
+relative_temp_dir = "./temp"
+os.makedirs(relative_temp_dir, exist_ok=True)
+os.environ["TEMP"] = relative_temp_dir
 import glob
 import fnmatch
 import numpy as np
