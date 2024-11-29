@@ -44,12 +44,20 @@ from anytree import RenderTree
 from anytree.importer import DictImporter
 import logging
 from scipy.spatial import ConvexHull, Delaunay
-
-from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
-    reprojection, euclidean_distance, natural_sort
-from Pose2Sim.skeletons import *
-
-
+try:
+    from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+        reprojection, euclidean_distance, natural_sort
+    from Pose2Sim.skeletons import *
+    
+    from Pose2Sim.common import weighted_triangulation
+except:
+    from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+        reprojection, euclidean_distance, natural_sort
+    from skeletons import *
+    
+    from common import weighted_triangulation
+import cupy as cp
+import copy
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
 __copyright__ = "Copyright 2021, Pose2Sim"
@@ -59,7 +67,7 @@ __version__ = "0.8.2"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
-
+min_camera_detected  =2
 
 ## FUNCTIONS
 def persons_combinations(json_files_framef):
@@ -241,6 +249,13 @@ def triangulate_comb_multi(comb, coords, P_all, calib_params, config):
     return error_comb, comb, Q_comb
 
 
+def read_json_fast(f,coord,cam_id):
+    '''
+    Read OpenPose json file
+    '''
+    json_data = []
+    json_data = [person['pose_keypoints_2d'] for person in coord[cam_id][f]['people']]
+    return json_data
 def read_json(js_file):
     '''
     Read OpenPose json file
@@ -253,7 +268,19 @@ def read_json(js_file):
             # else:
             json_data.append(js['people'][people]['pose_keypoints_2d'])
     return json_data
-
+def read_json_all(f,coord,cam_id,js_file):
+    json_data1 = []
+    json_data1 = [person['pose_keypoints_2d'] for person in coord[cam_id][f]['people']]
+    with open(js_file, 'r') as json_f:
+        js = json.load(json_f)
+        json_data2 = []
+        for people in range(len(js['people'])):
+            # if len(js['people'][people]['pose_keypoints_2d']) < 3: continue
+            # else:
+            json_data2.append(js['people'][people]['pose_keypoints_2d'])
+    if f==90:
+        import pdb;pdb.set_trace()
+    return json_data1, json_data2
 
 def compute_rays(json_coord, calib_params, cam_id):
     '''
@@ -319,11 +346,12 @@ def broadcast_line_to_line_distance(p0, p1):
     '''
 
     product = np.sum(p0[..., :3] * p1[..., 3:6], axis=-1) + np.sum(p1[..., :3] * p0[..., 3:6], axis=-1)
+    
     dist = np.abs(product) # dist[i, j, k]表示p0中第i個人的第k個關節與p1中第j個人的第k個關節之間的距離。
 
     return dist
 
-
+import time
 def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=0.1):
     '''
     Compute the affinity between all the people in the different views.
@@ -350,6 +378,8 @@ def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, recons
     # Compute plucker coordinates for all keypoints for each person in each view
     # pluckers_f: dims=(camera, person, joint, 7 coordinates)
     pluckers_f = []
+    
+    
     for cam_id, json_cam  in enumerate(all_json_data_f): # 分相機處理
         pluckers = []
         for json_coord in json_cam:
@@ -359,20 +389,22 @@ def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, recons
         pluckers = np.array(pluckers) 
         pluckers_f.append(pluckers)# num_cam * num_detthiscam * num_kp * 7
 
-    # Compute affinity matrix
     distance = np.zeros((cum_persons_per_view[-1], cum_persons_per_view[-1])) + 2*reconstruction_error_threshold # 建立矩陣大小為最大可能偵測人數*最大可能偵測人數(每台相機偵測人數總和)
     for compared_cam0, compared_cam1 in it.combinations(range(len(all_json_data_f)), 2): # 每次選2台出來計算
         # skip when no detection for a camera
         if cum_persons_per_view[compared_cam0] == cum_persons_per_view[compared_cam0+1] \
             or cum_persons_per_view[compared_cam1] == cum_persons_per_view[compared_cam1 +1]:
             continue
-
+        
         # compute distance
         p0 = pluckers_f[compared_cam0][:,None] # add coordinate on second dimension num_kp * 1 * 7
         p1 = pluckers_f[compared_cam1][None,:] # add coordinate on first dimension  1 * num_kp * 7
+        #import pdb;pdb.set_trace()
         dist = broadcast_line_to_line_distance(p0, p1)  # dist[i, j, k]表示p0中第i個人的第k個關節與p1中第j個人的第k個關節之間的距離。
+        
         likelihood = np.sqrt(p0[..., -1] * p1[..., -1])
         mean_weighted_dist = np.sum(dist*likelihood, axis=-1)/(1e-5 + likelihood.sum(axis=-1)) # array(nb_persons_0 * nb_persons_1)
+        #import pdb;pdb.set_trace()
         # mean_weighted_dist[i, j]表示A集合中第i個人和B集合中第j個人之間的加權平均距離。
         # populate distance matrix
         distance[cum_persons_per_view[compared_cam0]:cum_persons_per_view[compared_cam0+1], \
@@ -382,13 +414,65 @@ def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, recons
                  cum_persons_per_view[compared_cam0]:cum_persons_per_view[compared_cam0+1]] \
                  = mean_weighted_dist.T
 
-    # compute affinity matrix and clamp it to zero when distance > reconstruction_error_threshold
+  
+
     distance[distance > reconstruction_error_threshold] = reconstruction_error_threshold
     affinity = 1 - distance / reconstruction_error_threshold
-
+    f = time.time()
     return affinity
 
+def compute_affinity_GPU(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=0.1):
+    '''
+    Compute the affinity between all the people in the different views.
 
+    The affinity is defined as 1 - distance/max_distance, with distance the
+    distance between epipolar lines in each view (reciprocal product of Plucker 
+    coordinates).
+
+    Another approach would be to project one epipolar line onto the other camera
+    plane and compute the line to point distance, but it is more computationally 
+    intensive (simple dot product vs. projection and distance calculation). 
+    
+    INPUTS:
+    - all_json_data_f: list of json data. For frame f, nb_views*nb_persons*(x,y,likelihood)*nb_joints
+    - calib_params: calibration parameters from retrieve_calib_params('calib.toml')
+    - cum_persons_per_view: cumulative number of persons per view
+    - reconstruction_error_threshold: maximum distance between epipolar lines to consider a match
+
+    OUTPUT:
+    - affinity: affinity matrix between all the people in the different views. 
+                (nb_views*nb_persons_per_view * nb_views*nb_persons_per_view)
+    '''
+
+    # Compute plucker coordinates for all keypoints for each person in each view
+    # pluckers_f: dims=(camera, person, joint, 7 coordinates)
+    pluckers_f = []
+    p_C = np.zeros((7,1,26,7))
+    temp = 0
+    for cam_id, json_cam  in enumerate(all_json_data_f): # 分相機處理
+        pluckers = []
+        for json_coord in json_cam:
+            # num_kp * 7
+            plucker = compute_rays(json_coord, calib_params, cam_id) # LIMIT TO 15 JOINTS? json_coord[:15*3]
+            pluckers.append(plucker) # num_detthiscam * num_kp * 7
+            p_C[temp] = np.array(plucker)
+            temp = temp+1
+        pluckers = np.array(pluckers) 
+        pluckers_f.append(pluckers)# num_cam * num_detthiscam * num_kp * 7
+
+    p0c = cp.array(p_C)
+    p0_broadcasted = p0c[:, None, ...]  # Shape: (5, 1, 1, 26, 7) -> (5, 1, 1, 26, 7)
+    p1_broadcasted = p0c[None, :, ...]  # Shape: (5, 1, 1, 26, 7) -> (1, 5, 1, 26, 7)
+    dist_cupy = cp.abs(cp.sum(p0_broadcasted[..., :3] * p1_broadcasted[..., 3:6], axis=-1) + \
+            cp.sum(p1_broadcasted[..., :3] * p0_broadcasted[..., 3:6], axis=-1))
+    # Compute affinity matrix
+    like_cupy = cp.sqrt(p0_broadcasted[..., -1] * p1_broadcasted[..., -1])
+    dist_cp = cp.sum(dist_cupy * like_cupy, axis=-1) / (1e-5 + cp.sum(like_cupy, axis=-1))
+    dist_cp[dist_cp > reconstruction_error_threshold] = reconstruction_error_threshold
+    affinity_cupy = cp.squeeze(1 - dist_cp / reconstruction_error_threshold)
+
+   
+    return affinity_cupy
 def circular_constraint(cum_persons_per_view):
     '''
     A person can be matched only with themselves in the same view, and with any 
@@ -510,9 +594,10 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
             id_persons_per_view = affinity[row, cum_persons_per_view[cam]:cum_persons_per_view[cam+1]]
             # argmax 最大值index
             proposal_row += [np.argmax(id_persons_per_view) if (len(id_persons_per_view)>0 and max(id_persons_per_view)>0) else -1]
+            # if [np.argmax(id_persons_per_view) if (len(id_persons_per_view)>0 and max(id_persons_per_view)>0) else -1][0]==-1:
+            #     import pdb;pdb.set_trace()
         proposals.append(proposal_row)
     proposals = np.array(proposals, dtype=float)
-
     # remove duplicates and order
     proposals, nb_detections = np.unique(proposals, axis=0, return_counts=True)
     proposals = proposals[np.argsort(nb_detections)[::-1]]
@@ -523,11 +608,11 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
     for i in range(1, len(proposals)):
         mask[i] = ~np.any(proposals[i] == proposals[:i], axis=0).any()
     proposals = proposals[mask]
-
+    
     # remove identifications if less than N cameras see them
     nb_cams_per_person = [np.count_nonzero(~np.isnan(p)) for p in proposals]
     proposals = np.array([p for (n,p) in zip(nb_cams_per_person, proposals) if n >= min_cameras_for_triangulation])
-
+    
     return proposals
 
 
@@ -592,11 +677,10 @@ def rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range):
         with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
             json_tracked_f.write(json.dumps(js_allin_range[cam]))
 
-from Pose2Sim.common import weighted_triangulation
 import re
-
-def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
+def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
     
+    s = time.time()
     kp_idx = 18 # Neck
     nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))]) # maximum num of people detected
     person_to_remove = [] # index for outsiders
@@ -604,10 +688,14 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
         
         count = 0 # count for how many cameras have not detected the person
         for i in js:
-            if i["people"][p] == {}:
-                count += 1
+            try:
+                if i["people"][p] == {}:
+                    count += 1
+            except:
+                import pdb;pdb.set_trace()
         if count >= len(js) - 2: # if there are more than 2 cameras didn't detect the person
             person_to_remove.append(p) # remove
+            #import pdb;pdb.set_trace()
             continue
         
         kp_2D = []
@@ -627,7 +715,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             x_all.append(kp_2D[idx][0]) # x
             y_all.append(kp_2D[idx][1]) # y
             lik_all.append(kp_2D[idx][2]) # z
-        
+        #import pdb;pdb.set_trace()
         Q = weighted_triangulation(P_all, x_all, y_all, lik_all) # triangulate 3D coordinate for Neck
 
         pos = []
@@ -638,8 +726,66 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
         
         if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
             person_to_remove.append(p)
-        
+
+    for person in sorted(person_to_remove, reverse=True):
+        for cam in range(len(js)):
+            del js[cam]['people'][person]       
+    person_count = nb_det_max_p - len(person_to_remove)
+    if person_count>0:
+        person_count = 1
+    else:
+        person_count = 0
+    return person_count
+def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
     
+    s = time.time()
+    kp_idx = 18 # Neck
+    nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))]) # maximum num of people detected
+    person_to_remove = [] # index for outsiders
+    for p in range(nb_det_max_p): # check if the person is outsid the area
+        
+        count = 0 # count for how many cameras have not detected the person
+        for i in js:
+            
+            if i["people"][p] == {}:
+                count += 1
+        if count >= len(js) - 2: # if there are more than 2 cameras didn't detect the person
+            person_to_remove.append(p) # remove
+            #import pdb;pdb.set_trace()
+            continue
+        
+        kp_2D = []
+        cam_indices = []
+        for cam in range(len(js)):
+            if js[cam]['people'][p] != {}:
+                # record 2D keypoints and the according camera indices
+                cam_indices.append(cam)
+                kp_2D.append(js[cam]['people'][p]['pose_keypoints_2d'][kp_idx*3:(kp_idx+1)*3] )
+        
+        P_all = []
+        x_all = []
+        y_all = []
+        lik_all = []
+        for idx in range(len(kp_2D)):
+            P_all.append(P[cam_indices[idx]]) # projection matrix
+            x_all.append(kp_2D[idx][0]) # x
+            y_all.append(kp_2D[idx][1]) # y
+            lik_all.append(kp_2D[idx][2]) # z
+        #import pdb;pdb.set_trace()
+        Q = weighted_triangulation(P_all, x_all, y_all, lik_all) # triangulate 3D coordinate for Neck
+
+        pos = []
+        pos = calculate_camera_position(calib_file) # compute camera position
+        
+        pos_2d = [d[:2] for d in pos]
+        delaunay = Delaunay(pos_2d) # create Convex hull
+        
+        if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+            person_to_remove.append(p)
+            
+        
+    e = time.time()
+    #print(e-s)
     if nb_det_max_p - len(person_to_remove) == 0: # there is no person in the area
         # state = None # whether the previous frame has person in the area : None means no, True means yes 
         if (state) and (frame != 0): # previous frame has person in the area. The situation happens in which the person walks out the area.
@@ -692,6 +838,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             rewrite_js_file(len(js), json_tracked_files_f, js_new)
             return state
     else:
+
         for index in sorted(person_to_remove, reverse=True):
             for cam in range(len(js)):
                 if index <= len(js[cam]['people']):
@@ -700,6 +847,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
 
             template_all = []
             pattern = re.compile(r'(\d+)\.json')
+        
             for tracked_cam in json_tracked_files_f:
                 tracked_cam_temp = tracked_cam
                 match = pattern.search(tracked_cam_temp)
@@ -724,7 +872,6 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             rewrite_js_file(len(js), json_tracked_files_f, js)
             state = True
             return state
-    
 
 
 def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, frame_range, state):
@@ -761,7 +908,41 @@ def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_
         return False
     return state
     
+def prepare_js_tempROI(coord_comb,coord,json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, frame_range, state):
+    
+    '''
+    Write new json files with correct association of people across cameras.
 
+    INPUTS:
+    - json_tracked_files_f: list of strings: json files to write
+    - json_files_f: list of strings: json files to read
+    - proposals: 2D array: n_persons * n_cams
+    - n_cams: int: number of cameras
+
+    OUTPUT:
+    - json files with correct association of people across cameras
+    '''
+    js_new_all = []
+    
+    for cam in range(n_cams):
+        js_new = coord_comb[cam][f]
+        js_new['people'] = []
+        for new_comb in proposals:
+            if not np.isnan(new_comb[cam]):    
+                js_new['people'] += [coord[cam][f]['people'][int(new_comb[cam])]]           
+            else:
+                js_new['people'] += [{}]
+                
+        js_new_all.append(js_new)
+    
+    #import pdb;pdb.set_trace()
+    state_ROI =inside_ROI(js_new_all, calib_file, f, P, frame_range, json_tracked_files_f, state)
+    #import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
+
+    
+    return state_ROI
+    
 def recap_tracking(config, error, nb_cams_excluded):
     '''
     Print a message giving statistics on reprojection errors (in pixel and in m)
@@ -806,7 +987,7 @@ def recap_tracking(config, error, nb_cams_excluded):
     logging.info(f'\nTracked json files are stored in {poseTracked_dir}.')
     
 from datetime import datetime
-def track_2d_all(config):
+def track_2d_all(coord,config):
     '''
     For each frame,
     - Find all possible combinations of detected persons
@@ -877,56 +1058,104 @@ def track_2d_all(config):
     n_cams = len(json_dirs_names) # 4
     error_min_tot, cameras_off_tot = [], []
 
-
-
+    # with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\my_list.json", "r") as f:
+    #     coord = json.load(f)
+    coord_comb = copy.deepcopy(coord)
+    
     Q_kpt = [np.array([0., 0., 0., 1.])]
     state = True
+    import time
+    s = time.time()
+    proposals_all = []
+    js_all = []
+    state_ROI_all = []
+    
     for f in tqdm(range(*f_range)): # 所有幀數
-        
+        s1 = time.time()
+        #import pdb;pdb.set_trace()
         json_files_f = [json_files[c][f] for c in range(n_cams)] # 不同相機的同一幀，是檔案路徑
         json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)] # 不同相機的同一幀，儲存personassopciation後的keypoints
         
         Q_kpt_old = Q_kpt
-        if not multi_person:
-            # all possible combinations of persons
-            personsIDs_comb = persons_combinations(json_files_f) 
-            
-            # choose person of interest and exclude cameras with bad pose estimation
-            error_min, persons_and_cameras_combination = best_persons_and_cameras_combination(config, json_files_f, personsIDs_comb, P, tracked_keypoint_id)
-            error_min_tot.append(error_min)
-            cameras_off_count = np.count_nonzero(np.isnan(persons_and_cameras_combination))
-            cameras_off_tot.append(cameras_off_count)
-            
-            # rewrite json files with only one person of interest
-            for cam_nb, person_id in enumerate(persons_and_cameras_combination):
-                with open(json_tracked_files_f[cam_nb], 'w') as json_tracked_f:
-                    with open(json_files_f[cam_nb], 'r') as json_f:
-                        js = json.load(json_f)
-                        if not np.isnan(person_id):
-                            js['people'] = [js['people'][int(person_id)]]
-                        else: 
-                            js['people'] = []
-                    json_tracked_f.write(json.dumps(js))
+        
+ 
+        # all_json_data_f1 = []
+        all_json_data_f = []
+        # for js_file in json_files_f:
+        #     all_json_data_f1.append(read_json(js_file)) # len=4,
+        all_json_data_f = [read_json_fast(f,coord,cam_id) for cam_id in range(4)] 
+        
+        persons_per_view = [0] + [len(j) for j in all_json_data_f] # [0, num_peo_cam1.... ]
+        cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
+        
+        affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold) 
+        s11=time.time()
+        
+        s12=time.time()
+        circ_constraint = circular_constraint(cum_persons_per_view)
+        s2 = time.time()
+        affinity = affinity * circ_constraint
+        #affinity_cupy = compute_affinity_GPU(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)   
+        #affinity = cp.asnumpy(affinity_cupy) * circ_constraint
+        
+        affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
+        
+        s3 = time.time()
+        affinity[affinity<min_affinity] = 0
+        proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
+        proposals_all.append(proposals)
+        
+        s4 = time.time()
+        #state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
+        state_ROI = prepare_js_tempROI(coord_comb,coord,json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
+        
+        state_ROI_all.append(state_ROI)
+        s5 = time.time()
+        #print(s5-s1)
+    final_f =[]
+    temp = 0
+    for i in range(*f_range):
+        if state_ROI_all[i]==0:
+            final_f.append(temp)
         else:
-            all_json_data_f = []
+            temp = i
+            final_f.append(i)
+    temp = i
+    #import pdb;pdb.set_trace()
+    for k in range(*f_range):
+        i = f_range[0]-k-1
+        #print(i)
+        if final_f[i]==0:
+            final_f[i] = temp
+        else:
+            temp = i
+        
 
-            for js_file in json_files_f:
-                all_json_data_f.append(read_json(js_file)) # len=4, 每一個包含偵測到的點座標+信心
-            
-            persons_per_view = [0] + [len(j) for j in all_json_data_f] # [0, num_peo_cam1.... ]
-            cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
-            affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)    
-            circ_constraint = circular_constraint(cum_persons_per_view)
-            affinity = affinity * circ_constraint
-            affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
-            affinity[affinity<min_affinity] = 0
-            proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
-            state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
-            
-            if (not state) and (state is not None):
-                break
-            
-    # recap message
-    recap_tracking(config, error_min_tot, cameras_off_tot)
-    print('成功結束personAssociation')
     
+    # recap message
+    coord_comb_outside=copy.deepcopy(coord_comb)
+    f_temp =0
+    for f in final_f:
+        
+        for cam in range(4):
+            coord_comb_outside[cam][f_temp] = coord_comb[cam][f].copy()
+            coord_comb_outside[cam][f_temp]['image_id'] = f_temp
+        f_temp =f_temp+1
+    for f in range(*f_range):
+        for cam in range(4):    
+            with open(json_tracked_files[cam][f], "w") as w:    
+                json.dump(coord_comb_outside[cam][f], w)
+                
+
+    
+    print('成功結束personAssociation')
+    return coord_comb_outside
+    
+    
+
+    
+
+# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4'
+# os.chdir(dir_task)
+# config = toml.load(os.path.join( dir_task,'User','Config.toml'))
+# track_2d_all(config)
