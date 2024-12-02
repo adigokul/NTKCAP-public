@@ -95,6 +95,44 @@ def select_directories_and_return_list(initial_dir):
             full_paths.append(os.path.join(initial_dir, patientId, date))
         if len(name_date_dict_recheck)==0:
             messagebox.showinfo("All files are upload to cloud ")
+    def cloud_all():
+        name_date_dict = get_name_and_dates(initial_dir)
+        name_date_dict_recheck = []
+        for patientId, date in name_date_dict:
+            if recheck(os.path.join(initial_dir, patientId, date)) == 0:
+                name_date_dict_recheck.append((patientId, date,getname(patientId)))
+        
+        # Add name-date pairs to the listbox
+        for patientId, date,name in name_date_dict_recheck:
+            display_name = f"{name} - {date}"
+            listbox.insert(END, display_name)
+            display_names.append(display_name)
+            full_paths.append(os.path.join(initial_dir, patientId, date))
+        if len(name_date_dict_recheck)==0:
+            messagebox.showinfo("All files are upload to cloud ")
+    def today():
+        name_date_list = []  # List to store tuples of folder names and their corresponding date
+        date_condition = datetime.now().strftime("%Y_%m_%d")
+        # Loop through the directories inside the initial_dir
+        for name in os.listdir(initial_dir):
+            name_path = os.path.join(initial_dir, name)
+            
+            # Check if it's a directory (the "name" folder)
+            if os.path.isdir(name_path):
+                
+                # Loop through the subdirectories (the "date" folders) inside the "name" folder
+                for date in os.listdir(name_path):
+                    date_path = os.path.join(name_path, date)
+                    # Check if it's a directory (the "date" folder) and meets the condition
+                    if os.path.isdir(date_path):
+                        if (date_condition is None or date == date_condition) and (not any(file.endswith('calculated') for file in os.listdir(date_path))):  
+                            # Store the folder name and date as a tuple
+                            display_name =f"{name} - {date}"
+                            listbox.insert(END, display_name)
+                            display_names.append(display_name)
+                            full_paths.append(os.path.join(initial_dir, name, date))
+
+
     # Setup Listbox
     listbox = Listbox(root, selectmode=SINGLE)
     listbox.pack(fill=BOTH, expand=True)
@@ -105,13 +143,17 @@ def select_directories_and_return_list(initial_dir):
 
     cloud_all_button = Button(root, text='Cloud All', command=cloud_all)
     cloud_all_button.pack(side=LEFT, padx=5, pady=5)
+
+    # New Button between Cloud All and Select directories
+    today_button = Button(root, text='today', command=today)
+    today_button.pack(side=LEFT, padx=5, pady=5)
+
     select_button = Button(root, text='Select directories...', command=get_directories)
     select_button.pack(side=LEFT, padx=5, pady=5)
 
     delete_button = Button(root, text='Delete Selected', command=delete_selected)
     delete_button.pack(side=LEFT, padx=5, pady=5)
-    # New Buttons for Cloud Today and Cloud All
- 
+
     complete_button = Button(root, text='Confirm Completion', command=confirm_completion)
     complete_button.pack(side=LEFT, padx=5, pady=5)
 

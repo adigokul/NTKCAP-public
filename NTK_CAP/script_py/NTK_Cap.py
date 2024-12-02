@@ -358,7 +358,7 @@ def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop
             break
 
     # while True:
-    while True:
+    for i in range(3):
         ret, frame = cap.read()
         if not ret:
             break
@@ -369,7 +369,7 @@ def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop
         if event_stop.is_set() | button_stop:
             break
         video_writers.write(frame)  
-        cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+        #cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
         cv2.circle(frame,(100, 100), 50, (0, 255, 0), -1)
         frame = cv2.resize(frame, (640, 480))
         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
