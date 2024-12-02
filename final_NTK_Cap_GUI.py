@@ -1287,7 +1287,10 @@ class NTK_CapApp(App):
         # 計算Marker
         btn_calculate_Marker = Button(text='4計算Marker以及IK', size_hint=(0.4,0.1), size=(btn_wide + 60, 50), pos_hint={'center_x': 0.20, 'center_y':self.pos_ref_y[6]}, on_release=self.button_calculate_Marker, font_name=self.font_path)
         self.layout.add_widget(btn_calculate_Marker)
-
+        self.checkbox_fastcalculated = CheckBox(size_hint=(0.05,0.05),pos_hint={'center_x': self.pos_ref_x[2]-0.07, 'center_y': self.pos_ref_y[5] + 0.1})
+        self.layout.add_widget(self.checkbox_fastcalculated)
+        label_fastcalculated = Label(text="Fast Calculation", pos_hint={'center_x': self.pos_ref_x[2]+0.02, 'center_y': self.pos_ref_y[5] + 0.1})
+        self.layout.add_widget(label_fastcalculated)
         # 計算IK
         # btn_calculate_IK = Button(text='5-1計算IK', size_hint=(0.19,0.1), size=(btn_wide, 50), pos=(240, 200), on_press=self.button_calculate_IK, font_name=self.font_path)
         # self.layout.add_widget(btn_calculate_IK)
@@ -2074,8 +2077,10 @@ class NTK_CapApp(App):
             # print("initial_dir:", self.patient_path)
             for dir_sel_loop in range(len(selected_directories)):
                 cal_folder_path =selected_directories[dir_sel_loop]
-
-                folder_calculated = marker_caculate_fast(self.current_directory , cal_folder_path)
+                if self.checkbox_fastcalculated.active:
+                    folder_calculated = marker_caculate_fast(self.current_directory , cal_folder_path)
+                else:
+                    folder_calculated = marker_caculate(self.current_directory , cal_folder_path)
                 if self.btn_toggle_cloud_sinlge.text == 'Cloud':
                     recheck(cal_folder_path)
                 try:
