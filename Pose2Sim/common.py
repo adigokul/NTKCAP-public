@@ -127,8 +127,10 @@ def bilinear_interpolate(map, x, y):
     y1 = y0 + 1
     
     # Ensure coordinates are within bounds
-    if x1 >= map.shape[1] or y1 >= map.shape[0]:
-        return map[y0, x0]
+    x0 = np.clip(x0, -map.shape[1] + 1, map.shape[1] - 1)
+    x1 = np.clip(x1, -map.shape[1] + 1, map.shape[1] - 1)
+    y0 = np.clip(y0, -map.shape[0] + 1, map.shape[0] - 1)
+    y1 = np.clip(y1, -map.shape[0] + 1, map.shape[0] - 1)
     
     # Bilinear interpolation
     Ia = map[y0, x0]

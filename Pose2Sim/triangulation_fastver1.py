@@ -385,10 +385,10 @@ def bilinear_interpolate_cupy(map, x, y):
     y1 = y0 + 1
 
     # Ensure coordinates are within bounds
-    x0 = cp.clip(x0, -map.shape[1] - 1, map.shape[1] - 1)
-    x1 = cp.clip(x1, -map.shape[1] - 1, map.shape[1] - 1)
-    y0 = cp.clip(y0, -map.shape[0] - 1, map.shape[0] - 1)
-    y1 = cp.clip(y1, -map.shape[0] - 1, map.shape[0] - 1)
+    x0 = cp.clip(x0, -map.shape[1] + 1, map.shape[1] - 1)
+    x1 = cp.clip(x1, -map.shape[1] + 1, map.shape[1] - 1)
+    y0 = cp.clip(y0, -map.shape[0] + 1, map.shape[0] - 1)
+    y1 = cp.clip(y1, -map.shape[0] + 1, map.shape[0] - 1)
 
     # Use cp.take_along_axis for advanced indexing
     Ia = map[y0, x0]
