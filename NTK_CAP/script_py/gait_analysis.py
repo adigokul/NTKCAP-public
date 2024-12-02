@@ -56,7 +56,6 @@ def choose_file(directory):
             matching_files.append(file_path)
     
     # Display the matching files
-    print('Files not starting with "w" or "W":')
     for file in matching_files:
         print(file)
     #import pdb;pdb.set_trace()
@@ -395,8 +394,9 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     count1 = 0
     count2 = 0
     #import pdb;pdb.set_trace()
-    while count1 < len(R_locs_possible_min_n)- 1 and count2 < len(L_locs_possible_min_n)-1:
+    while count1 < len(R_locs_possible_min_n)-1 and count2 < len(L_locs_possible_min_n)-1:
         if a == 1:
+            
             temp = np.where((L_locs_possible_min_n > R_locs_possible_min_n[count1]) & 
                             (L_locs_possible_min_n < R_locs_possible_min_n[count1 + 1]))[0]
             if len(temp) > 1:
@@ -1653,6 +1653,33 @@ def gait1(dir_calculated):
         R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+
+def gait1_show(dir_calculated):
+    tasks=choose_file(dir_calculated)
+    #
+    for i in range(len(tasks)):
+        dir_task = tasks[i]
+        create_post_analysis_dir(dir_task)
+        path_parts = dir_task.split(os.sep)
+        patient_data_index = path_parts.index('Patient_data')
+        patient_id = path_parts[patient_data_index + 1]
+        date_str = path_parts[patient_data_index + 2]
+        task_str = path_parts[patient_data_index + 4]
+        title = patient_id+'_'+date_str+'_'+task_str
+        
+        IK_dir = os.path.join(dir_task, 'opensim', 'Balancing_for_IK_BODY.mot')
+        trc_dir = os.path.join(dir_task, 'opensim', 'Empty_project_filt_0-30.trc')
+        data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
+        #import pdb;pdb.set_trace()    
+        #AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL = 0,0,0,0,0,0
+        AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
+        rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
+        pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
+        R_knee_steady,L_knee_steady,R_knee,L_knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+        os.startfile(os.path.join(dir_task,'post_analysis'))
 def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):  
 
     dir_task = output_dir
@@ -1707,5 +1734,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 #######Ignored Here
 
-# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\TSIA_FAKE\2024_09_19\2024_10_28_11_23_calculated'
-# gait1(dir_calculated)
+# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\33exhib_test2\2024_11_29\2024_12_02_14_43_calculated'
+# gait1_show(dir_calculated)

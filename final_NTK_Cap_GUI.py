@@ -2085,8 +2085,12 @@ class NTK_CapApp(App):
                     recheck(cal_folder_path)
                 try:
                     if self.gait_anlaysis.text =='Gait1':
-                        from NTK_CAP.script_py.gait_analysis import gait1
-                        gait1(folder_calculated)
+                        from NTK_CAP.script_py.gait_analysis import gait1,gait1_show
+                        if self.checkbox_fastcalculated.active:
+                            gait1_show(folder_calculated)
+                        else:
+                            gait1(folder_calculated)
+                    
                 except Exception as e:
                     print("An error occurred:")
                     traceback.print_exc()
