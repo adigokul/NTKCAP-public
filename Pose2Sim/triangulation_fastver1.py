@@ -255,9 +255,9 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
                     y_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+1] )
                     likelihood_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+2] )
                 except:
-                    x_files_cam.append( np.nan )
-                    y_files_cam.append( np.nan )
-                    likelihood_files_cam.append( np.nan )
+                    x_files_cam.append( np.array(0) )
+                    y_files_cam.append( np.array(0))
+                    likelihood_files_cam.append( np.array(0))
 
         x_files.append(x_files_cam)
         y_files.append(y_files_cam)
@@ -293,9 +293,9 @@ def extract_files_frame_f_fast(f,coord, keypoints_ids):
                 y_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+1] )
                 likelihood_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+2] )
             except:
-                x_files_cam.append( np.nan )
-                y_files_cam.append( np.nan )
-                likelihood_files_cam.append( np.nan )
+                x_files_cam.append( np.array(0) )
+                y_files_cam.append( np.array(0))
+                likelihood_files_cam.append( np.array(0))
 
         x_files.append(x_files_cam)
         y_files.append(y_files_cam)
@@ -890,6 +890,7 @@ def triangulate_all(coord,config):
     ## delete the liklelihoood vlue which is too low
     real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
     loc = cp.where(prep_like < likelihood_threshold)
+    #import pdb;pdb.set_trace()
     real_dist[loc] = cp.inf
     # Find the index of the first non-inf element along axis 2
     non_inf_mask = ~cp.isinf(real_dist)
@@ -964,6 +965,7 @@ def triangulate_all(coord,config):
         [value_map[val] for val in array]  # Map each value in the 22-element array
         for array in result_list           # Process each 22-element array in the list
     ]
+    #import pdb;pdb.set_trace()
     np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
     mdic = {'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)

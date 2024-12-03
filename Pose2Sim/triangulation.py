@@ -926,9 +926,9 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
                     y_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+1] )
                     likelihood_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+2] )
                 except:
-                    x_files_cam.append( np.nan )
-                    y_files_cam.append( np.nan )
-                    likelihood_files_cam.append( np.nan )
+                    x_files_cam.append( np.array(0) )
+                    y_files_cam.append( np.array(0) )
+                    likelihood_files_cam.append( np.array(0) )
 
         x_files.append(x_files_cam)
         y_files.append(y_files_cam)
