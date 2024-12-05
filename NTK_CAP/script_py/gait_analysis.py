@@ -394,6 +394,7 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     count1 = 0
     count2 = 0
     #import pdb;pdb.set_trace()
+
     while count1 < len(R_locs_possible_min_n)-1 and count2 < len(L_locs_possible_min_n)-1:
         if a == 1:
             
@@ -551,7 +552,12 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     e75edit = e75 + add
     s25edit_lateral = 25 - add_lateral_only
     e75edit_lateral = e75 + add_lateral_only
+    if e75edit>cm.shape[0]:
+        e75edit = cm.shape[0]-1
+    if s25edit<0:
+        s25edit = 0
 
+    
     # Polynomial fit
     fitobject = fit_poly1(cm[:, 0], cm[:, 2])
     a = np.array([0, fitobject(0)])
@@ -583,7 +589,7 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
 
     fig =  plt.figure(figsize=(15, 9))
     ax1 = fig.add_subplot(121, projection='3d')
-
+    
     direction = cm[e75edit, 0] - cm[s25edit, 0]
     if direction > 0:
         ax1.scatter(C_proj_all[s25edit:e75edit+1, 0], -C_proj_all[s25edit:e75edit+1, 2], C_proj_all[s25edit:e75edit+1, 1])
@@ -1276,22 +1282,23 @@ def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgrou
     # Process Right Knee Data
     for temp in range(len(frame_R_heel_sground) - 1):
         if temp > len(frame_R_heel_lground) - 2:
-            maxval = np.max(R_knee[frame_R_heel_sground[temp]:frame_R_heel_sground[temp+1]])
+            #maxval = np.max(R_knee[frame_R_heel_sground[temp]:frame_R_heel_sground[temp+1]])
             locmax = np.argmax(R_knee[frame_R_heel_sground[temp]:frame_R_heel_sground[temp+1]])
             loc_max_finalR.append(locmax + frame_R_heel_sground[temp])
         else:
-            maxval = np.max(R_knee[frame_R_heel_lground[temp]:frame_R_heel_lground[temp+1]])
+            #maxval = np.max(R_knee[frame_R_heel_lground[temp]:frame_R_heel_lground[temp+1]])
             locmax = np.argmax(R_knee[frame_R_heel_lground[temp]:frame_R_heel_lground[temp+1]])
             loc_max_finalR.append(locmax + frame_R_heel_lground[temp])
         
-        if temp == 0:
-            minval = np.min(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            locmin = np.argmin(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            loc_min_finalR.append(locmin + frame_R_heel_lground[temp])
-        else:
-            minval = np.min(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            locmin = np.argmin(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            loc_min_finalR.append(locmin + loc_max_finalR[temp-1])
+        # if temp == 0:
+            #minval = np.min(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
+            # locmin = np.argmin(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
+            # loc_min_finalR.append(locmin + frame_R_heel_lground[temp])
+        # else:
+            #minval = np.min(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
+            # import pdb;pdb.set_trace()
+            # locmin = np.argmin(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
+            # loc_min_finalR.append(locmin + loc_max_finalR[temp-1])
 
     # Initialize lists to store locations of max and min values for Left Knee Data
     loc_max_finalL = []
@@ -1308,14 +1315,14 @@ def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgrou
             locmax = np.argmax(L_knee[frame_L_heel_lground[temp]:frame_L_heel_lground[temp+1]])
             loc_max_finalL.append(locmax + frame_L_heel_lground[temp])
         
-        if temp == 0:
-            minval = np.min(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
-            locmin = np.argmin(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
-            loc_min_finalL.append(locmin + frame_L_heel_lground[temp])
-        else:
-            minval = np.min(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            locmin = np.argmin(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            loc_min_finalL.append(locmin + loc_max_finalL[temp-1])
+        # if temp == 0:
+            # minval = np.min(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
+            # locmin = np.argmin(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
+            # loc_min_finalL.append(locmin + frame_L_heel_lground[temp])
+        # else:
+            # minval = np.min(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
+            # locmin = np.argmin(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
+            # loc_min_finalL.append(locmin + loc_max_finalL[temp-1])
 
     # Plotting
     plt.figure(figsize=(15, 9))
@@ -1732,7 +1739,7 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 
 
-#######Ignored Here
+######Ignored Here
 
-# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\33exhib_test2\2024_11_29\2024_12_02_14_43_calculated'
+# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\000\2024_12_05\2024_12_05_09_11_calculated'
 # gait1_show(dir_calculated)

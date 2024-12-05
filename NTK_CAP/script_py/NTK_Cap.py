@@ -358,7 +358,7 @@ def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop
             break
 
     # while True:
-    for i in range(3):
+    for i in range(10):
         ret, frame = cap.read()
         if not ret:
             break

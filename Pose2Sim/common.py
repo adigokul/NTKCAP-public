@@ -99,7 +99,37 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
         Q = np.array([0.,0.,0.,1])
         
     return Q
-
+def weighted_triangulation_R(P_all,x_all,y_all,likelihood_all):
+    '''
+    Triangulation with direct linear transform,
+    weighted with likelihood of joint pose estimation.
+    
+    INPUTS:
+    - P_all: list of arrays. Projection matrices of all cameras
+    - x_all,y_all: x, y 2D coordinates to triangulate
+    - likelihood_all: likelihood of joint pose estimation
+    
+    OUTPUT:
+    - Q: array of triangulated point (x,y,z,1.)
+    '''
+    
+    A = np.empty((0,4))
+    for c in range(len(x_all)):
+        ch = c
+        P_cam = P_all[c]
+        A = np.vstack((A, (P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
+        #print(np.shape((P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
+        A = np.vstack((A, (P_cam[1] - y_all[c]*P_cam[2]) * likelihood_all[c] ))
+        #import pdb;pdb.set_trace()
+    
+    if np.shape(A)[0] >= 4:
+        S, U, Vt = cv2.SVDecomp(A)
+        V = Vt.T
+        Q = np.array([V[0][3]/V[3][3], V[1][3]/V[3][3], V[2][3]/V[3][3], 1])
+    else: 
+        Q = np.array([0.,0.,0.,1])
+        
+    return np.max(A@Q)
 def computemap(calib_file):
     # Only map one camera because four cameras has same intrinsic matrix and dist. coeff
     calib = toml.load(calib_file)

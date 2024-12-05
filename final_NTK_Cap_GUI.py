@@ -1242,6 +1242,7 @@ class NTK_CapApp(App):
         ###
         self.calib_toml_path = os.path.join(self.calibra_path, "Calib.toml")
         self.extrinsic_path = os.path.join(self.calibra_path,"ExtrinsicCalibration")
+        self.scriptpy_directory = os.path.join(self.current_directory,'NTK_CAP','script_py')
         ###
         # 字型設定
         self.font_path = os.path.join(self.current_directory, "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
@@ -2088,6 +2089,14 @@ class NTK_CapApp(App):
                         from NTK_CAP.script_py.gait_analysis import gait1,gait1_show
                         if self.checkbox_fastcalculated.active:
                             gait1_show(folder_calculated)
+                            task = os.listdir(folder_calculated)
+                            filtered_files = [f for f in task if "Apose" not in f]
+
+                            opensim_vis_dir = os.path.join(self.scriptpy_directory,'opensim_visual_test.py')
+                            mot_dir =os.path.join(folder_calculated,filtered_files[0],'opensim','Balancing_for_IK_BODY.mot')
+                            osim_dir = os.path.join(folder_calculated,filtered_files[0],'opensim','Model_Pose2Sim_Halpe26_scaled.osim')
+                            vtp_dir = os.path.join(self.scriptpy_directory,'Opensim_visualize_python')
+                            subprocess.Popen(['python' , opensim_vis_dir, mot_dir, osim_dir,vtp_dir], shell=True)
                         else:
                             gait1(folder_calculated)
                     

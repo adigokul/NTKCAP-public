@@ -52,7 +52,7 @@ try:
         reprojection, euclidean_distance, natural_sort
     from Pose2Sim.skeletons import *
     
-    from Pose2Sim.common import weighted_triangulation
+    from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
 except:
     from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
         reprojection, euclidean_distance, natural_sort
@@ -515,7 +515,7 @@ def SVT(matrix, threshold):
     return matrix_thresh
 
 
-def matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1):
+def matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 200, w_rank = 50, tol = 1e-4, w_sparse=0.1):
     '''
     Find low-rank approximation of 'affinity' while satisfying the circular constraint.
 
@@ -606,6 +606,7 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
     proposals = proposals[np.argsort(nb_detections)[::-1]]
 
     # remove row if any value is the same in previous rows at same index (nan!=nan so nan ignored)
+    
     proposals[proposals==-1] = np.nan
     mask = np.ones(proposals.shape[0], dtype=bool)
     for i in range(1, len(proposals)):
@@ -614,8 +615,8 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
     
     # remove identifications if less than N cameras see them
     nb_cams_per_person = [np.count_nonzero(~np.isnan(p)) for p in proposals]
-    proposals = np.array([p for (n,p) in zip(nb_cams_per_person, proposals) if n >= min_cameras_for_triangulation])
-    
+    proposals = np.array([p for (n,p) in zip(nb_cams_per_person, proposals) if n >=4])
+    #import pdb;pdb.set_trace()
     return proposals
 
 
@@ -687,6 +688,7 @@ def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, stat
     kp_idx = 18 # Neck
     nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))]) # maximum num of people detected
     person_to_remove = [] # index for outsiders
+    residual_all =[]
     for p in range(nb_det_max_p): # check if the person is outsid the area
         
         count = 0 # count for how many cameras have not detected the person
@@ -696,7 +698,7 @@ def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, stat
                     count += 1
             except:
                 import pdb;pdb.set_trace()
-        if count >= len(js) - 2: # if there are more than 2 cameras didn't detect the person
+        if count >= len(js) - 3: # if there are more than 2 cameras didn't detect the person
             person_to_remove.append(p) # remove
             #import pdb;pdb.set_trace()
             continue
@@ -704,10 +706,13 @@ def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, stat
         kp_2D = []
         cam_indices = []
         for cam in range(len(js)):
+
             if js[cam]['people'][p] != {}:
                 # record 2D keypoints and the according camera indices
                 cam_indices.append(cam)
                 kp_2D.append(js[cam]['people'][p]['pose_keypoints_2d'][kp_idx*3:(kp_idx+1)*3] )
+            else:
+                import pdb;pdb.set_trace()
         
         P_all = []
         x_all = []
@@ -720,16 +725,34 @@ def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, stat
             lik_all.append(kp_2D[idx][2]) # z
         #import pdb;pdb.set_trace()
         Q = weighted_triangulation(P_all, x_all, y_all, lik_all) # triangulate 3D coordinate for Neck
-
+        residual = weighted_triangulation_R(P_all, x_all, y_all, lik_all)
         pos = []
         pos = calculate_camera_position(calib_file) # compute camera position
         
         pos_2d = [d[:2] for d in pos]
-        delaunay = Delaunay(pos_2d) # create Convex hull
-        
-        if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+        pos_x = [d[0] for d in pos]
+        pos_y = [d[0] for d in pos]
+        #import pdb;pdb.set_trace()
+        residual_all.append(residual)
+        #import pdb;pdb.set_trace()
+        if Q[0]>np.max(pos_x)*0.3 or Q[0]<np.min(pos_x)*0.3 or Q[1]>np.max(pos_y) or Q[1]<np.min(pos_y) or residual>70:
             person_to_remove.append(p)
+        # delaunay = Delaunay(pos_2d) # create Convex hull
+        # centroid = np.mean(pos_2d, axis=0)
+        # scale_factor = 0.8
+        # scaled_pos_2d = centroid + scale_factor * (pos_2d - centroid)
 
+# Create Delaunay triangulation with reduced size
+        # delaunay = Delaunay(scaled_pos_2d)
+        # import pdb;pdb.set_trace()
+        # if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+            # person_to_remove.append(p)
+    # loc = np.argmin(residual_all)
+    # if nb_det_max_p>1:
+        #import pdb;pdb.set_trace()
+        # person_to_remove= list(range(nb_det_max_p))
+        # del person_to_remove[loc]
+       
     for person in sorted(person_to_remove, reverse=True):
         for cam in range(len(js)):
             del js[cam]['people'][person]       
@@ -779,8 +802,9 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
 
         pos = []
         pos = calculate_camera_position(calib_file) # compute camera position
-        
+        import pdb;pdb.set_trace()
         pos_2d = [d[:2] for d in pos]
+
         delaunay = Delaunay(pos_2d) # create Convex hull
         
         if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
@@ -903,6 +927,7 @@ def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_
 
                     js_new['people'] += [js['people'][int(new_comb[cam])]]
                 else:
+                    import pdb;pdb.set_trace()
                     js_new['people'] += [{}]
         js_new_all.append(js_new)
     
@@ -1028,6 +1053,7 @@ def track_2d_all(coord,config):
     
     calib_dir = os.path.join(project_dir, calib_folder_name) # walk1/calib-2d
     calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0] # walk1/calib-2d 中的.toml
+    # import pdb;pdb.set_trace()
     pose_dir = os.path.join(project_dir, pose_folder_name) # walk1/pose-2d
     poseTracked_dir = os.path.join(project_dir, poseTracked_folder_name) # walk1/pose-2d-tracked
 
@@ -1089,6 +1115,7 @@ def track_2d_all(coord,config):
         cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
         
         affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold) 
+        
         s11=time.time()
         
         s12=time.time()
@@ -1098,7 +1125,7 @@ def track_2d_all(coord,config):
         #affinity_cupy = compute_affinity_GPU(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)   
         #affinity = cp.asnumpy(affinity_cupy) * circ_constraint
         
-        affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
+        affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 200, w_rank = 50, tol = 1e-4, w_sparse=0.1)
         
         s3 = time.time()
         affinity[affinity<min_affinity] = 0
