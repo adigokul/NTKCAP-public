@@ -592,14 +592,15 @@ def rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range):
         with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
             json_tracked_f.write(json.dumps(js_allin_range[cam]))
 
-from Pose2Sim.common import weighted_triangulation
+from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
 import re
 
-def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
+def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state, proposals):
     
     kp_idx = 18 # Neck
     nb_det_max_p = max([len(js[i]['people']) for i in range(len(js))]) # maximum num of people detected
     person_to_remove = [] # index for outsiders
+    proposals_index = []
     for p in range(nb_det_max_p): # check if the person is outsid the area
         
         count = 0 # count for how many cameras have not detected the person
@@ -629,17 +630,22 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             lik_all.append(kp_2D[idx][2]) # z
         
         Q = weighted_triangulation(P_all, x_all, y_all, lik_all) # triangulate 3D coordinate for Neck
-
+        
         pos = []
         pos = calculate_camera_position(calib_file) # compute camera position
         
         pos_2d = [d[:2] for d in pos]
         delaunay = Delaunay(pos_2d) # create Convex hull
-        
-        if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+        R=weighted_triangulation_R(P_all, x_all, y_all, lik_all)
+        if not is_point_in_hull(Q[:2], delaunay) or R>50: # the person is inside or outside the area defined by four cameras using convex hull
             person_to_remove.append(p)
+        else:
+            proposals_index.append(p)
         
-    
+            # import pdb;pdb.set_trace()
+        
+    print(person_to_remove)
+    #import pdb; pdb.set_trace()
     if nb_det_max_p - len(person_to_remove) == 0: # there is no person in the area
         # state = None # whether the previous frame has person in the area : None means no, True means yes 
         if (state) and (frame != 0): # previous frame has person in the area. The situation happens in which the person walks out the area.
@@ -692,6 +698,12 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
             rewrite_js_file(len(js), json_tracked_files_f, js_new)
             return state
     else:
+        pro_min = 100
+        pro_min_ind = 0
+        if nb_det_max_p - len(person_to_remove) > 1:
+            pro_min_ind = min(proposals_index, key=lambda idx: sum(proposals[idx]))    
+            pro_min = sum(proposals[pro_min_ind])
+            person_to_remove.extend(idx for idx in proposals_index if idx != pro_min_ind)
         for index in sorted(person_to_remove, reverse=True):
             for cam in range(len(js)):
                 if index <= len(js[cam]['people']):
@@ -756,7 +768,7 @@ def prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_
                     js_new['people'] += [{}]
         js_new_all.append(js_new)
     
-    state = outsider(js_new_all, calib_file, f, P, frame_range, json_tracked_files_f, state)
+    state = outsider(js_new_all, calib_file, f, P, frame_range, json_tracked_files_f, state, proposals)
     if state == 'terminate':
         return False
     return state
@@ -921,6 +933,7 @@ def track_2d_all(config):
             affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
             affinity[affinity<min_affinity] = 0
             proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
+            print(proposals)
             state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
             
             if (not state) and (state is not None):
