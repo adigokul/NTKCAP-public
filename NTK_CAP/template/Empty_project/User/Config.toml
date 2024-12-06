@@ -93,7 +93,7 @@ likelihood_threshold_association = 0.7
 error_threshold_tracking = 10 # px
    [personAssociation.multi_person]
    reconstruction_error_threshold = 0.1 # m
-   min_affinity = 0.2
+   min_affinity = 0.8
 
 
 [triangulation]
