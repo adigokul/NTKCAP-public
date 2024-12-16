@@ -1971,6 +1971,7 @@ class NTK_CapApp(App):
             # self.label_log.text = '請輸入Patient ID'
             self.label_log.text = 'check Patient ID'
         elif self.label_task_real.text == "":
+            
             # self.label_log.text = '請輸入task name'
             self.label_log.text = 'Enter task name'
         elif os.path.isdir(os.path.join(self.record_path, "Patient_data",self.patient_genID,date,'raw_data','Apose'))==0:## check if Apose exist
@@ -2087,18 +2088,18 @@ class NTK_CapApp(App):
                 try:
                     if self.gait_anlaysis.text =='Gait1':
                         from NTK_CAP.script_py.gait_analysis import gait1,gait1_show
-                        if self.checkbox_fastcalculated.active:
-                            gait1_show(folder_calculated)
-                            task = os.listdir(folder_calculated)
-                            filtered_files = [f for f in task if "Apose" not in f]
+                        
+                        gait1_show(folder_calculated)
+                        task = os.listdir(folder_calculated)
+                        filtered_files = [f for f in task if "Apose" not in f]
 
-                            opensim_vis_dir = os.path.join(self.scriptpy_directory,'opensim_visual_test.py')
-                            mot_dir =os.path.join(folder_calculated,filtered_files[0],'opensim','Balancing_for_IK_BODY.mot')
-                            osim_dir = os.path.join(folder_calculated,filtered_files[0],'opensim','Model_Pose2Sim_Halpe26_scaled.osim')
-                            vtp_dir = os.path.join(self.scriptpy_directory,'Opensim_visualize_python')
-                            subprocess.Popen(['python' , opensim_vis_dir, mot_dir, osim_dir,vtp_dir], shell=True)
-                        else:
-                            gait1(folder_calculated)
+                        opensim_vis_dir = os.path.join(self.scriptpy_directory,'opensim_visual_test.py')
+                        mot_dir =os.path.join(folder_calculated,filtered_files[0],'opensim','Balancing_for_IK_BODY.mot')
+                        osim_dir = os.path.join(folder_calculated,filtered_files[0],'opensim','Model_Pose2Sim_Halpe26_scaled.osim')
+                        vtp_dir = os.path.join(self.scriptpy_directory,'Opensim_visualize_python')
+                        subprocess.Popen(['python' , opensim_vis_dir, mot_dir, osim_dir,vtp_dir], shell=True)
+                        
+                    
                     
                 except Exception as e:
                     print("An error occurred:")

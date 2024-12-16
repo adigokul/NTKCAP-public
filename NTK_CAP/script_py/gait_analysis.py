@@ -1741,5 +1741,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 ######Ignored Here
 
-# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\000\2024_12_05\2024_12_05_09_11_calculated'
+# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\4010\2024_12_08\2024_12_08_11_46_calculated'
 # gait1_show(dir_calculated)
