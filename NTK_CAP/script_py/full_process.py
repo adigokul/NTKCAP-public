@@ -129,7 +129,7 @@ def timesync_video(video_folder,cam_num,opensim_folder):
             except NameError:
                 calibrate_array = calibrate  # Initialize on the first loop
             for i in range(cam_num):
-                print(max(aim)-aim[i])
+                # print(max(aim)-aim[i])
                 if max(aim)-aim[i]>TR:
                     calibrate[0][i] = calibrate[0][i]+1
                     check = check+1

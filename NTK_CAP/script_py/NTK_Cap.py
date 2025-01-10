@@ -21,8 +21,9 @@ import sys
 sys.path.insert(0, r'd:\NTKCAP')
 from Pose2Sim import Pose2Sim
 import inspect;
-
+from .gait_analysis import gait1
 import  serial
+from .osimConverters.convertOsim2Gltf import convertOsim2Gltf
 ######################################################
 ######################################################
 # create calibration folder
@@ -57,7 +58,7 @@ def create_calibration_folder(PWD, button_create=False):
     os.makedirs(cali_fold, exist_ok=True)
 ######################################################
 # update camera ID config
-def camera_config_update(save_path, search_num=20):
+def camera_config_update(save_path, search_num=20, new_gui=False):
     config_name = os.path.join(save_path, "config.json")
     with open(config_name, 'r') as f:
         data = json.load(f)
@@ -97,7 +98,8 @@ def camera_config_update(save_path, search_num=20):
     # 写入更新后的JSON文件
     with open(config_name, 'w') as f:
         json.dump(data, f, indent=4)
-
+    if new_gui:
+        return camera_list
 ######################################################
 # create camera ID config
 def camera_config_create(save_path):
@@ -615,7 +617,6 @@ def camera_Motion_record(config_path, save_path, patientID, task, date,button_ca
     time_file_path = os.path.join(save_path, "recordtime.txt")
     save_path = os.path.join(save_path, "videos")
     os.makedirs(save_path)
-
     if os.path.exists(time_file_path):
         with open(time_file_path, "r") as file:
             formatted_datetime = file.read().strip()
@@ -624,7 +625,6 @@ def camera_Motion_record(config_path, save_path, patientID, task, date,button_ca
         formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
         with open(time_file_path, "w") as file:
             file.write(formatted_datetime)
-
 
     # save_path_1 = os.path.join(save_path, "1.mp4")
     with open(config_name, 'r') as f:
@@ -875,7 +875,6 @@ def shrink_video_1frame(file_path):
             export_first_frame(full_path,full_path)
 
 def calib_extri(PWD,manual_token):
-
     file_path = os.path.join(PWD, "calibration")
     output_toml_path = os.path.join(file_path, "Calib.toml")
     file_path = os.path.join(file_path, "ExtrinsicCalibration")
@@ -930,8 +929,11 @@ def read_err_calib_extri(PWD):
     return err_list
 ######################################################
 # openpose & pose2sim
-
-def marker_caculate(PWD,cal_data_path):
+def mp_marker_calculate(PWD, calculate_path_list):
+    for dir_sel_loop in range(len(calculate_path_list)):
+        cal_folder_path = calculate_path_list[dir_sel_loop]
+        folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
+def marker_caculate(PWD,cal_data_path, gait_token=None):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
@@ -1042,7 +1044,6 @@ def marker_caculate(PWD,cal_data_path):
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
 
-        
         print("切換至" + os.getcwd())
         for l in range(1,5):
             now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
@@ -1202,7 +1203,24 @@ def marker_caculate(PWD,cal_data_path):
         #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
-    return caculate_finshed_path
+    if gait_token==1: 
+        gait1(caculate_finshed_path)
+        for task_gltf in os.listdir(caculate_finshed_path):
+            if task_gltf != "Apose":
+                osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+                geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+                motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+                outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+                working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+                os.chdir(working_dir)
+                try:
+                    convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+                except:
+                    continue
+
+        os.chdir(ori_path)
+    else:
+        return caculate_finshed_path
 
 # subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
                 
