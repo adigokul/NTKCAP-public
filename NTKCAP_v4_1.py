@@ -214,6 +214,7 @@ class UpdateThread(QThread):
         self.cam_id = cam_id
         self.frame_id = 0
         self.out = None
+        self.data = {}
         self.buffer_length = 4
         self.scale_size = None
 
@@ -260,7 +261,7 @@ class VideoPlayer(QThread):
         self.start_server()
     def load_video(self, cal_task_path: str):
         self.result_load_videos_allframes = []
-        self.progress = 0
+        self.progress = None
         for i in range(4):
             video_path = os.path.join(cal_task_path, 'videos_pose_estimation_repj_combine', f"{i+1}.mp4")
             cap = cv2.VideoCapture(video_path)
@@ -1041,6 +1042,7 @@ class MainWindow(QMainWindow):
     def slider_changed(self, value):
         if self.is_playing:
             self.play_stop()
+        print(value)
         self.video_player.progress = value/100
         self.video_player.slider_changed()
         self.result_video_slider.setValue(value)

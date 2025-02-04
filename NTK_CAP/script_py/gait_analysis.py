@@ -317,17 +317,17 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     locs_minR = TF_R[vR[TF_R] < np.mean(vR) - 0.2 * np.std(vR)]
     final_temp_locs_R = locs_R[pks_R > TR_R]
     final_locs_R = []
-
+    final_temp_locs_R = np.append(final_temp_locs_R,-1)
     for i in range(len(final_temp_locs_R) - 1):
         if np.min(vR[final_temp_locs_R[i]:final_temp_locs_R[i + 1]]) < np.mean(vR) - 0.2 * np.std(vR):
             final_locs_R.append(final_temp_locs_R[i])
-    if len(final_temp_locs_R) > 1 and np.min(vR[final_temp_locs_R[-2]:final_temp_locs_R[-1]]) < np.mean(vR) - 0.2 * np.std(vR):
-        final_locs_R.append(final_temp_locs_R[-1])
+    # import pdb;pdb.set_trace()
+    # if len(final_temp_locs_R) > 1 and np.min(vR[final_temp_locs_R[-2]:final_temp_locs_R[-1]]) < np.mean(vR) - 0.2 * np.std(vR):
+    #     final_locs_R.append(final_temp_locs_R[-1])
     
     locs_possible_min_R = np.where((np.abs(np.diff(vR) / np.std(np.diff(vR))) < 0.3))[0]
     locs_possible_min_R = locs_possible_min_R[vR[locs_possible_min_R] < np.mean(vR) - 0.2 * np.std(vR)]
     locs_possible_min_R = np.sort(np.concatenate((locs_minR, locs_possible_min_R)))
-
     p_R = []
     n_R = []
 
@@ -353,12 +353,12 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     locs_minL = TF_L[vL[TF_L] < np.mean(vL) - 0.2 * np.std(vL)]
     final_temp_locs_L = locs_L[pks_L > TR_L]
     final_locs_L = []
-
+    final_temp_locs_L= np.append(final_temp_locs_L,-1)
     for i in range(len(final_temp_locs_L) - 1):
         if np.min(vL[final_temp_locs_L[i]:final_temp_locs_L[i + 1]]) < np.mean(vL) - 0.2 * np.std(vL):
                 final_locs_L.append(final_temp_locs_L[i])
-    if len(final_temp_locs_L) > 1 and np.min(vL[final_temp_locs_L[-2]:final_temp_locs_L[-1]]) < np.mean(vL) - 0.2 * np.std(vL):
-            final_locs_L.append(final_temp_locs_L[-1])
+    # if len(final_temp_locs_L) > 1 and np.min(vL[final_temp_locs_L[-2]:final_temp_locs_L[-1]]) < np.mean(vL) - 0.2 * np.std(vL):
+    #         final_locs_L.append(final_temp_locs_L[-1])
     
     locs_possible_min_L = np.where((np.abs(np.diff(vL) / np.std(np.diff(vL))) < 0.3))[0]
     locs_possible_min_L = locs_possible_min_L[vL[locs_possible_min_L] < np.mean(vL) - 0.2 * np.std(vL)]
@@ -393,7 +393,6 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     a = np.argmin([R_locs_possible_min_n[0], L_locs_possible_min_n[0]]) + 1
     count1 = 0
     count2 = 0
-    #import pdb;pdb.set_trace()
 
     while count1 < len(R_locs_possible_min_n)-1 and count2 < len(L_locs_possible_min_n)-1:
         if a == 1:
@@ -429,7 +428,9 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             elif len(temp) == 0:
                 L_locs_possible_min_n = np.delete(L_locs_possible_min_n, count2 + 1)
                 L_locs_possible_min_p = np.delete(L_locs_possible_min_p, count2 + 1)
-                final_locs_L =np.delete(final_locs_L ,count1 + 1)
+
+                final_locs_L =np.delete(final_locs_L ,count2 + 1)
+
                 count2 -= 1
                 a = 2
             else:
@@ -944,6 +945,8 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     locs = locs.astype(int)
     temp = temp.astype(int)
     # Plot updated local minima and maxima
+    locs1 = locs
+    temp1 = temp
     plt.scatter(locs, yR[locs], marker='v', c='b', label='Updated Peaks')
     plt.scatter(temp, yR[temp], c='r', marker='*', label='Updated Minima')
     plt.grid(True)
@@ -1032,6 +1035,9 @@ def COM_analysis(cm,frame_R_heel_sground,dir_task,title):
     # All[patient_aim][61] = [zR[locs[zyL]], zR[m2]]
 
     # Ensure All is saved or used as needed
+    COM = {
+
+    }
     return  right_area,left_area,zR[locs[zyR]],zR[m1],zR[locs[zyL]],zR[m2]
 def Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title):
 
@@ -1143,8 +1149,19 @@ def Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,tit
     #plt.savefig(os.path.join(post_anlaysis_dir, 'COM_vertical.png'))
     if title !='False':
         plt.savefig(os.path.join(dir_task,'post_analysis','Speed '+ title+ '.png'))
-    #plt.show()
-    return rms_final_steady,rms_start_end,rms_All,np.max(mean_velocity)
+
+    Speed={
+        'B':B,
+        'mean_velocity':mean_velocity,
+        'flunc_velocity':flunc_velocity,
+        'interp_speed':interp_speed,
+        'bound':bound,
+        'bound_start_end':bound_start_end,
+        'rms_final_steady':rms_final_steady,
+        'rms_start_end':rms_start_end,
+        'rms_All':rms_All
+    }
+    return rms_final_steady,rms_start_end,rms_All,np.max(mean_velocity),Speed
 def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title):
     
     R_heel = data[:, body_parts['RHeel']:body_parts['RHeel']+3]
@@ -1273,8 +1290,19 @@ def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
     # Setting the middle value
     temp_r[mid_r_index] = pace_r[mid_r_index]
     temp_l[mid_l_index] = pace_l[mid_l_index]
-    return pace_r,temp_r,pace_l,temp_l
+    Stride = {
+        'R_heel':R_heel,
+        'L_heel':L_heel,
+        'frame_R_heel_sground':frame_R_heel_sground,
+        'frame_L_heel_sground':frame_L_heel_sground,
+        'xmr':xmr,
+        'xml':xml,
+        'mid_r_index':mid_r_index,
+        'mid_l_index':mid_l_index
+    }
+    return pace_r,temp_r,pace_l,temp_l,Stride
 def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title):
+    
     loc_max_finalR = []
     loc_min_finalR = []
     R_knee = angle['knee_angle_r'].to_numpy()
@@ -1290,39 +1318,22 @@ def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgrou
             locmax = np.argmax(R_knee[frame_R_heel_lground[temp]:frame_R_heel_lground[temp+1]])
             loc_max_finalR.append(locmax + frame_R_heel_lground[temp])
         
-        # if temp == 0:
-            #minval = np.min(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            # locmin = np.argmin(R_knee[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            # loc_min_finalR.append(locmin + frame_R_heel_lground[temp])
-        # else:
-            #minval = np.min(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            # import pdb;pdb.set_trace()
-            # locmin = np.argmin(R_knee[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            # loc_min_finalR.append(locmin + loc_max_finalR[temp-1])
 
     # Initialize lists to store locations of max and min values for Left Knee Data
     loc_max_finalL = []
-    loc_min_finalL = []
-
+    
     # Process Left Knee Data
     for temp in range(len(frame_L_heel_sground) - 1):
         if temp > len(frame_L_heel_lground) - 2:
-            maxval = np.max(L_knee[frame_L_heel_sground[temp]:frame_L_heel_sground[temp+1]])
+            
             locmax = np.argmax(L_knee[frame_L_heel_sground[temp]:frame_L_heel_sground[temp+1]])
             loc_max_finalL.append(locmax + frame_L_heel_sground[temp])
         else:
-            maxval = np.max(L_knee[frame_L_heel_lground[temp]:frame_L_heel_lground[temp+1]])
+           
             locmax = np.argmax(L_knee[frame_L_heel_lground[temp]:frame_L_heel_lground[temp+1]])
             loc_max_finalL.append(locmax + frame_L_heel_lground[temp])
-        
-        # if temp == 0:
-            # minval = np.min(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
-            # locmin = np.argmin(L_knee[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]+ 1])
-            # loc_min_finalL.append(locmin + frame_L_heel_lground[temp])
-        # else:
-            # minval = np.min(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            # locmin = np.argmin(L_knee[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            # loc_min_finalL.append(locmin + loc_max_finalL[temp-1])
+    loc_max_finalR=np.unique(loc_max_finalR)
+    loc_max_finalL=np.unique(loc_max_finalL)    
 
     # Plotting
     plt.figure(figsize=(15, 9))
@@ -1344,7 +1355,15 @@ def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgrou
         plt.savefig(os.path.join(dir_task,'post_analysis','knee flexion '+ title+ '.png'))
 
     #plt.show()
-    return  [R_knee[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2) - 1)]]],[L_knee[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2) - 1)]]],R_knee[loc_max_finalR],L_knee[loc_max_finalL]
+    Knee = {
+        'R_knee' :R_knee,
+        'loc_max_finalR':loc_max_finalR,
+        'L_knee':L_knee,
+        'loc_max_finalL':loc_max_finalL,
+    }
+    
+
+    return  [R_knee[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2) - 1)]]],[L_knee[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2) - 1)]]],R_knee[loc_max_finalR],L_knee[loc_max_finalL],Knee
 def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title):
 # Sample data for demonstration
     R_ankle = angle['ankle_angle_r'].to_numpy()
@@ -1366,18 +1385,10 @@ def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgro
 
     # Process Right Ankle
     for temp in range(len(frame_R_heel_sground) - 1):
-        maxval = np.max(R_ankle[frame_R_heel_sground[temp]:frame_R_heel_sground[temp+1]])
+       
         locmax = np.argmax(R_ankle[frame_R_heel_sground[temp]:frame_R_heel_sground[temp+1]])
         loc_max_finalR.append(locmax + frame_R_heel_sground[temp])
         
-        if temp == 0:
-            minval = np.min(R_ankle[frame_R_heel_sground[temp]:locmax + frame_R_heel_sground[temp] + 1])
-            locmin = np.argmin(R_ankle[frame_R_heel_sground[temp]:locmax + frame_R_heel_sground[temp] + 1])
-            loc_min_finalR.append(locmin + frame_R_heel_sground[temp])
-        else:
-            minval = np.min(R_ankle[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            locmin = np.argmin(R_ankle[loc_max_finalR[temp-1]:loc_max_finalR[temp]])
-            loc_min_finalR.append(locmin + loc_max_finalR[temp-1])
 
     # Process Left Ankle
     for temp in range(len(frame_L_heel_sground) - 1):
@@ -1385,14 +1396,8 @@ def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgro
         locmax = np.argmax(L_ankle[frame_L_heel_sground[temp]:frame_L_heel_sground[temp+1]])
         loc_max_finalL.append(locmax + frame_L_heel_sground[temp])
         
-        if temp == 0:
-            minval = np.min(R_ankle[frame_L_heel_sground[temp]:locmax + frame_L_heel_sground[temp] + 1])
-            locmin = np.argmin(R_ankle[frame_L_heel_sground[temp]:locmax + frame_L_heel_sground[temp] + 1])
-            loc_min_finalL.append(locmin + frame_L_heel_sground[temp])
-        else:
-            minval = np.min(L_ankle[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            locmin = np.argmin(L_ankle[loc_max_finalL[temp-1]:loc_max_finalL[temp]])
-            loc_min_finalL.append(locmin + loc_max_finalL[temp-1])
+    loc_max_finalR=np.unique(loc_max_finalR)
+    loc_max_finalL=np.unique(loc_max_finalL)
 
     # Plotting
     plt.figure(figsize=(15, 9))
@@ -1414,7 +1419,13 @@ def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgro
         plt.savefig(os.path.join(dir_task,'post_analysis','ankle dorsiflexion '+ title+ '.png'))
 
     #plt.show()
-    return [R_ankle[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2)) - 1]]],[L_ankle[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2)) - 1]]],R_ankle[loc_max_finalR], L_ankle[loc_max_finalL]
+    Ankle={
+        'R_ankle':R_ankle,
+        'L_ankle':L_ankle,
+        'loc_max_finalR':loc_max_finalR,
+        'loc_max_finalL':loc_max_finalL
+    }
+    return [R_ankle[loc_max_finalR[(round_half_up((len(loc_max_finalR) + 1) / 2)) - 1]]],[L_ankle[loc_max_finalL[(round_half_up((len(loc_max_finalL) + 1) / 2)) - 1]]],R_ankle[loc_max_finalR], L_ankle[loc_max_finalL],Ankle
 def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title):
     R_Hip = angle['hip_flexion_r'].to_numpy()
     L_Hip = angle['hip_flexion_l'].to_numpy()
@@ -1433,22 +1444,13 @@ def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgroun
         R_Hip_locmaxonly = np.zeros_like(R_Hip)
         R_Hip_locmaxonly[peaks] = R_Hip[peaks]    
         if temp > len(frame_R_heel_lground) - 2:
-            maxval = np.max(R_Hip_locmaxonly[frame_R_heel_sground[temp]:frame_R_heel_sground[temp + 1]])
+            
             locmax = np.argmax(R_Hip_locmaxonly[frame_R_heel_sground[temp]:frame_R_heel_sground[temp + 1]])
             loc_max_finalR.append(locmax + frame_R_heel_sground[temp])
         else:
-            maxval = np.max(R_Hip_locmaxonly[frame_R_heel_lground[temp]:frame_R_heel_lground[temp + 1]])
+            
             locmax = np.argmax(R_Hip_locmaxonly[frame_R_heel_lground[temp]:frame_R_heel_lground[temp + 1]])
             loc_max_finalR.append(locmax + frame_R_heel_lground[temp])
-            
-        if temp == 0:
-            minval = np.min(R_Hip[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            locmin = np.argmin(R_Hip[frame_R_heel_lground[temp]:locmax + frame_R_heel_lground[temp]])
-            loc_min_finalR.append(locmin + frame_R_heel_lground[temp])
-        else:
-            minval = np.min(R_Hip[loc_max_finalR[temp - 1]:loc_max_finalR[temp]])
-            locmin = np.argmin(R_Hip[loc_max_finalR[temp - 1]:loc_max_finalR[temp]])
-            loc_min_finalR.append(locmin + loc_max_finalR[temp - 1])
 
     # Process Left Hip
     for temp in range(len(frame_L_heel_sground) - 1):
@@ -1459,22 +1461,16 @@ def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgroun
         L_Hip_locmaxonly = np.zeros_like(L_Hip)
         L_Hip_locmaxonly[peaks] = L_Hip[peaks]      
         if temp > len(frame_L_heel_lground) - 2:
-            maxval = np.max(L_Hip_locmaxonly[frame_L_heel_sground[temp]:frame_L_heel_sground[temp + 1]])
+        
             locmax = np.argmax(L_Hip_locmaxonly[frame_L_heel_sground[temp]:frame_L_heel_sground[temp + 1]])
             loc_max_finalL.append(locmax + frame_L_heel_sground[temp])
         else:
-            maxval = np.max(L_Hip_locmaxonly[frame_L_heel_lground[temp]:frame_L_heel_lground[temp + 1]])
+            
             locmax = np.argmax(L_Hip_locmaxonly[frame_L_heel_lground[temp]:frame_L_heel_lground[temp + 1]])
             loc_max_finalL.append(locmax + frame_L_heel_lground[temp])
-            
-        if temp == 0:
-            minval = np.min(L_Hip[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]])
-            locmin = np.argmin(L_Hip[frame_L_heel_lground[temp]:locmax + frame_L_heel_lground[temp]])
-            loc_min_finalL.append(locmin + frame_L_heel_lground[temp])
-        else:
-            minval = np.min(L_Hip[loc_max_finalL[temp - 1]:loc_max_finalL[temp]])
-            locmin = np.argmin(L_Hip[loc_max_finalL[temp - 1]:loc_max_finalL[temp]])
-            loc_min_finalL.append(locmin + loc_max_finalL[temp - 1])
+    
+    loc_max_finalR=np.unique(loc_max_finalR)
+    loc_max_finalL=np.unique(loc_max_finalL)
     # Plotting
     plt.figure(figsize=(15, 9))
     plt.plot(R_Hip, linewidth=1.5, color='r', label='Right Hip')
@@ -1492,9 +1488,15 @@ def hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgroun
     plt.title('hip flexion '+ title,fontsize = 20)
     if title !='False':
         plt.savefig(os.path.join(dir_task,'post_analysis','hip flexion '+ title+ '.png'))
-    #import pdb;pdb.set_trace()
+    
     #plt.show()
-    return [R_Hip[loc_max_finalR[round_half_up((len(loc_max_finalR) + 1) / 2) - 1]]],[L_Hip[loc_max_finalL[round_half_up((len(loc_max_finalL) + 1) / 2) - 1]]],R_Hip[loc_max_finalR], L_Hip[loc_max_finalL]
+    Hip ={
+        'R_Hip':R_Hip,
+        'L_Hip':L_Hip,
+        'loc_max_finalR':loc_max_finalR,
+        'loc_max_finalL':loc_max_finalL
+    }
+    return [R_Hip[loc_max_finalR[round_half_up((len(loc_max_finalR) + 1) / 2) - 1]]],[L_Hip[loc_max_finalL[round_half_up((len(loc_max_finalL) + 1) / 2) - 1]]],R_Hip[loc_max_finalR], L_Hip[loc_max_finalL],Hip
 def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l):
     excel_output = {
     'Title': [  'Tasktype',
@@ -1597,12 +1599,15 @@ def excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady
     # Print the categorized filenames
     for category, files in file_categories.items():
         #import pdb;pdb.set_trace()
-        print(f"{category.capitalize()} files: {files}")
-        img = Image(os.path.join(dir_task,'post_analysis',files[0]))
-        img.width, img.height =700,420
-        img.anchor = 'D'+str(count*21+1)  # Position the image at cell A10
-        worksheet.add_image(img)
-        count = count+1
+        try:
+            print(f"{category.capitalize()} files: {files}")
+            img = Image(os.path.join(dir_task,'post_analysis',files[0]))
+            img.width, img.height =700,420
+            img.anchor = 'D'+str(count*21+1)  # Position the image at cell A10
+            worksheet.add_image(img)
+            count = count+1
+        except:
+            print('no excel image found')
     
 
 
@@ -1653,14 +1658,19 @@ def gait1(dir_calculated):
         data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
         #import pdb;pdb.set_trace()    
         #AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL = 0,0,0,0,0,0
-        AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
-        rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
-        pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
-        R_knee_steady,L_knee_steady,R_knee,L_knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
-        R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
-        R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        try:
+            AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
+        except:
+            AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL = 0,0,0,0,0,0
+        
+        rms_final_steady,rms_start_end,rms_All,max_mean_velocity,Speed=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
+        pace_r,temp_r,pace_l,temp_l,Stride=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
+        R_knee_steady,L_knee_steady,R_knee,L_knee,Knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        R_ankle_steady,L_ankle_steady,R_ankle,L_ankle,Ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
+        R_hip_steady,L_hip_steady,R_hip,L_hip,Hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
-
+        np.savez(os.path.join(dir_task,'post_analysis','raw_data.npz'),Knee = Knee,Stride = Stride,Speed = Speed,Ankle=Ankle,Hip=Hip)
+        
 def gait1_show(dir_calculated):
     tasks=choose_file(dir_calculated)
     #
@@ -1686,6 +1696,7 @@ def gait1_show(dir_calculated):
         R_ankle_steady,L_ankle_steady,R_ankle,L_ankle=ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         R_hip_steady,L_hip_steady,R_hip,L_hip=hip_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
         excel_output(dir_task,patient_id,date_str,task_str,R_hip_steady,L_hip_steady,R_knee_steady,L_knee_steady,R_ankle_steady,L_ankle_steady,max_mean_velocity,rms_final_steady,rms_start_end,rms_All,AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL,temp_r,temp_l)
+        
         os.startfile(os.path.join(dir_task,'post_analysis'))
 def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):  
 
@@ -1699,7 +1710,9 @@ def gait1_singlefile(IK_dir,trc_dir,output_dir,patient_id,date_str,task_str):
     title = patient_id+'_'+date_str+'_'+task_str
 
     data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
+    
     AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
+
     rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
     pace_r,temp_r,pace_l,temp_l=stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
     R_knee_steady,L_knee_steady,R_knee,L_knee=knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title)
@@ -1722,7 +1735,7 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 
 
-####### Input parameter
+# ###### Input parameter
 # IK_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1\opensim\Balancing_for_IK_BODY.mot'
 # trc_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1\opensim\Empty_project_filt_0-30.trc'
 # output_dir=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\Patient_ID\2024_05_07\2024_09_03_16_47_calculated\Walk1'
@@ -1737,9 +1750,7 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 
 
-
-
 ######Ignored Here
 
-# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\4010\2024_12_08\2024_12_08_11_46_calculated'
-# gait1_show(dir_calculated)
+# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\1006_justin\2024_10_06\2024_12_06_10_51_calculated'
+# gait1(dir_calculated)

@@ -20,25 +20,111 @@ from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, P
 from mmdeploy_runtime import PoseTracker
 import copy
 import socket
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import pyqtgraph as pg
+# VISUALIZATION_CFG = dict(
+#     halpe26=dict(
+#         skeleton=[(15,13), (13,11), (11,19),(16,14), (14,12), (12,19),
+#                   (17,18), (18,19), (18,5), (5,7), (7,9), (18,6), (6,8),
+#                   (8,10), (1,2), (0,1), (0,2), (1,3), (2,4), (3,5), (4,6),
+#                   (15,20), (15,22), (15,24),(16,21),(16,23), (16,25)],
+#         # palette=[(51,153,255), (0,255,0), (255,128,0)],
+#         palette=[(128,128,128), (51,153,255), (192,192,192)],
+#         link_color=[
+#             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+#         ],
+#         point_color=[
+#             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+#         ],
+#         sigmas=[
+#             0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
+#             0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
+#             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
+#         ]))
 VISUALIZATION_CFG = dict(
+    coco=dict(
+        skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
+                  (6, 12), (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2),
+                  (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6)],
+        palette=[(255, 128, 0), (255, 153, 51), (255, 178, 102), (230, 230, 0),
+                 (255, 153, 255), (153, 204, 255), (255, 102, 255),
+                 (255, 51, 255), (102, 178, 255), (51, 153, 255),
+                 (255, 153, 153), (255, 102, 102), (255, 51, 51),
+                 (153, 255, 153), (102, 255, 102), (51, 255, 51), (0, 255, 0),
+                 (0, 0, 255), (255, 0, 0), (255, 255, 255)],
+        link_color=[
+            0, 0, 0, 0, 7, 7, 7, 9, 9, 9, 9, 9, 16, 16, 16, 16, 16, 16, 16
+        ],
+        point_color=[16, 16, 16, 16, 16, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0],
+        sigmas=[
+            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
+            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089
+        ]),
+    coco_wholebody=dict(
+        skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
+                  (6, 12), (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2),
+                  (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6), (15, 17),
+                  (15, 18), (15, 19), (16, 20), (16, 21), (16, 22), (91, 92),
+                  (92, 93), (93, 94), (94, 95), (91, 96), (96, 97), (97, 98),
+                  (98, 99), (91, 100), (100, 101), (101, 102), (102, 103),
+                  (91, 104), (104, 105), (105, 106), (106, 107), (91, 108),
+                  (108, 109), (109, 110), (110, 111), (112, 113), (113, 114),
+                  (114, 115), (115, 116), (112, 117), (117, 118), (118, 119),
+                  (119, 120), (112, 121), (121, 122), (122, 123), (123, 124),
+                  (112, 125), (125, 126), (126, 127), (127, 128), (112, 129),
+                  (129, 130), (130, 131), (131, 132)],
+        palette=[(51, 153, 255), (0, 255, 0), (255, 128, 0), (255, 255, 255),
+                 (255, 153, 255), (102, 178, 255), (255, 51, 51)],
+        link_color=[
+            1, 1, 2, 2, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1,
+            1, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1, 1
+        ],
+        point_color=[
+            0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2,
+            2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1,
+            1, 1, 3, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1, 1
+        ],
+        sigmas=[
+            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
+            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.068,
+            0.066, 0.066, 0.092, 0.094, 0.094, 0.042, 0.043, 0.044, 0.043,
+            0.040, 0.035, 0.031, 0.025, 0.020, 0.023, 0.029, 0.032, 0.037,
+            0.038, 0.043, 0.041, 0.045, 0.013, 0.012, 0.011, 0.011, 0.012,
+            0.012, 0.011, 0.011, 0.013, 0.015, 0.009, 0.007, 0.007, 0.007,
+            0.012, 0.009, 0.008, 0.016, 0.010, 0.017, 0.011, 0.009, 0.011,
+            0.009, 0.007, 0.013, 0.008, 0.011, 0.012, 0.010, 0.034, 0.008,
+            0.008, 0.009, 0.008, 0.008, 0.007, 0.010, 0.008, 0.009, 0.009,
+            0.009, 0.007, 0.007, 0.008, 0.011, 0.008, 0.008, 0.008, 0.01,
+            0.008, 0.029, 0.022, 0.035, 0.037, 0.047, 0.026, 0.025, 0.024,
+            0.035, 0.018, 0.024, 0.022, 0.026, 0.017, 0.021, 0.021, 0.032,
+            0.02, 0.019, 0.022, 0.031, 0.029, 0.022, 0.035, 0.037, 0.047,
+            0.026, 0.025, 0.024, 0.035, 0.018, 0.024, 0.022, 0.026, 0.017,
+            0.021, 0.021, 0.032, 0.02, 0.019, 0.022, 0.031
+        ]),
     halpe26=dict(
-        skeleton=[(15,13), (13,11), (11,19),(16,14), (14,12), (12,19),
+        skeleton=[(15, 13), (13, 11), (11,19),(16, 14), (14, 12), (12,19),
                   (17,18), (18,19), (18,5), (5,7), (7,9), (18,6), (6,8),
                   (8,10), (1,2), (0,1), (0,2), (1,3), (2,4), (3,5), (4,6),
                   (15,20), (15,22), (15,24),(16,21),(16,23), (16,25)],
-        # palette=[(51,153,255), (0,255,0), (255,128,0)],
-        palette=[(128,128,128), (51,153,255), (192,192,192)],
+        palette=[(51, 153, 255), (0, 255, 0), (255, 128, 0)],
         link_color=[
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            1, 1, 1, 2, 2, 2, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2
         ],
         point_color=[
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
         ],
         sigmas=[
             0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
             0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
-        ]))
+        ]
+    )
+)
 # !!!!
 det_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-nano")
 pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
@@ -246,6 +332,7 @@ class UpdateThread(QThread):
         return Pic
 class VideoPlayer(QThread):
     frame_changed = pyqtSignal(int)
+    data_ready = pyqtSignal(np.ndarray, np.ndarray, int, int)
     def __init__(self, labels: list[QLabel], web_viewer: QWebEngineView, parent=None):
         super().__init__(parent)
         self.video_path = None
@@ -256,7 +343,7 @@ class VideoPlayer(QThread):
         self.timer.timeout.connect(self.run)
         self.result_load_videos_allframes = []
         self.web_view_widget = web_viewer
-        self.progress = None
+        self.progress = 0
         self.start_server()
     def load_video(self, cal_task_path: str):
         self.result_load_videos_allframes = []
@@ -279,16 +366,56 @@ class VideoPlayer(QThread):
         q_image = QImage(resized_frame, width, height, bytes_per_line, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(q_image)
         return pixmap
+    def result_load_gait_figures(self, cal_task_path: str):
+        
+        self.result_gait_figures = []
+        self.result_gait_figures_names = []
+        
+        result_post_analysis_imgs_data_path = os.path.join(cal_task_path, 'post_analysis', "raw_data.npz")
+        raw_data_all = np.load(result_post_analysis_imgs_data_path, allow_pickle=True)
+        raw_data_dict_hip = raw_data_all['Hip'].item()
+        raw_data_dict_knee = raw_data_all['Knee'].item()
+        raw_data_dict_Ankle = raw_data_all['Ankle'].item()
+        raw_data_dict_Speed = raw_data_all['Speed'].item()
+        raw_data_dict_Stride = raw_data_all['Stride'].item()
+        for i in range(5): # 0:Hip, 1:Knee, 2:Ankle, 3:Speed, 4:Stride
+            self.result_gait_figures.append([])
+        self.result_gait_figures[0].append(raw_data_dict_hip['R_Hip'])
+        self.result_gait_figures[0].append(raw_data_dict_hip['L_Hip'])
+
+        # self.result_gait_figures[1].append(raw_data_dict_hip['R_knee'])
+        # self.result_gait_figures[1].append(raw_data_dict_hip['loc_max_finalR'])
+        # self.result_gait_figures[1].append(raw_data_dict_hip['L_knee'])
+        # self.result_gait_figures[1].append(raw_data_dict_hip['loc_max_finalL'])
+
+        # self.result_gait_figures[2].append(raw_data_dict_hip['R_ankle'])
+        # self.result_gait_figures[2].append(raw_data_dict_hip['loc_max_finalR'])
+        # self.result_gait_figures[2].append(raw_data_dict_hip['L_ankle'])
+        # self.result_gait_figures[2].append(raw_data_dict_hip['loc_max_finalL'])
+
+        # self.result_gait_figures[0].append(raw_data_dict_hip['R_Hip'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['loc_max_finalR'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['L_Hip'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['loc_max_finalL'])
+
+        # self.result_gait_figures[0].append(raw_data_dict_hip['R_Hip'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['loc_max_finalR'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['L_Hip'])
+        # self.result_gait_figures[0].append(raw_data_dict_hip['loc_max_finalL'])
+        
+        
+        # self.label_gait_figure_name.setText(self.result_gait_figures_names[0])
     def set_slider_value(self, progress):
         self.progress = progress
-        if self.progress is not None:
+        if self.progress !=0:
             if int(progress * 100) >= 100:
                 self.progress = 0
                 self.frame_changed.emit(0)
                 self.web_view_widget.page().runJavaScript("resetAnimation();")
                 
             else:
-                self.frame_changed.emit(int(self.progress * 100))
+                self.frame_changed.emit(round(self.progress * 100))
+                print(round(self.progress * 100))
     def run(self):        
         cap_b = time.perf_counter()      
         self.web_view_widget.page().runJavaScript(
@@ -308,6 +435,12 @@ class VideoPlayer(QThread):
         self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][int(self.progress * self.frame_count)]))
         self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][int(self.progress * self.frame_count)]))
         self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][int(self.progress * self.frame_count)]))
+        start = int(self.progress * self.frame_count)
+        if int(self.progress * self.frame_count)+50>self.frame_count:
+            end = self.frame_count
+        else:
+            end = int(self.progress * self.frame_count)+50
+        self.data_ready.emit(self.result_gait_figures[0][0][start:end], self.result_gait_figures[0][1][start:end], start, end)
 
     def slider_changed(self):
         self.web_view_widget.page().runJavaScript(f"window.updateAnimationProgress({self.progress});")     
@@ -344,7 +477,7 @@ class VideoPlayer(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        uic.loadUi('NTKCAP_GUI.ui', self)
+        uic.loadUi('NTKCAP_GUI_dec.ui', self)
         self.showMaximized()
         # Initialization
         self.current_directory = os.getcwd()
@@ -363,6 +496,16 @@ class MainWindow(QMainWindow):
         self.show_result_path = None
         self.err_calib_extri.setText(read_err_calib_extri(self.current_directory)) # Show ext calib err
         self.label_cam = None
+        self.tabWidgetRight = self.findChild(QTabWidget, "tabWidget_2")
+        self.tabWidgetRight.hide()
+        self.tabWidgetLeft = self.findChild(QTabWidget, "tabWidget")
+        self.tabWidgetLeft.currentChanged.connect(self.left_tab_changed)
+        self.btn_shortcut_load_videos = self.findChild(QPushButton, "btn_shortcut_load_videos")
+        self.btn_shortcut_load_videos.clicked.connect(self.button_shortcut_load_videos)
+        self.btn_shortcut_new_recording = self.findChild(QPushButton, "btn_shortcut_new_recording")
+        self.btn_shortcut_new_recording.clicked.connect(self.button_shortcut_new_recording)
+        self.btn_shortcut_calculation = self.findChild(QPushButton, "btn_shortcut_calculation")
+        self.btn_shortcut_calculation.clicked.connect(self.button_shortcut_calculation)
         # self.btn_calibration_folder.clicked.connect(self.create_calibration_ask) # create new calib confirmation
         
         self.btn_extrinsic_record.clicked.connect(self.button_extrinsic_record)
@@ -402,7 +545,8 @@ class MainWindow(QMainWindow):
         self.record_enter_task_name_kb_listen = False
         self.record_enter_task_name.focusInEvent = self.record_enter_task_name_infocus
         self.record_enter_task_name.focusOutEvent = self.record_enter_task_name_outfocus
-
+        self.list_widget_patient_task_record = self.findChild(QListWidget, "list_widget_patient_task_record")
+        
         # record Apose
         self.btn_Apose_record: QPushButton = self.findChild(QPushButton, "btn_Apose_record")
         self.btn_Apose_record.clicked.connect(self.Apose_record_ask)
@@ -410,6 +554,10 @@ class MainWindow(QMainWindow):
         self.timer_apose = QTimer()
         self.timer_apose.timeout.connect(self.check_apose_finish)
         # Show result
+        self.widget_gait_figure = self.findChild(QWidget, "widget_gait_figure")
+        self.graphWidget = pg.PlotWidget()
+        self.gait_figure_layout = QVBoxLayout(self.widget_gait_figure)
+        self.gait_figure_layout.addWidget(self.graphWidget)
         self.select_result_cal_rpjvideo_labels = [
             self.findChild(QLabel, "rpjvideo1"),
             self.findChild(QLabel, "rpjvideo2"),
@@ -431,6 +579,7 @@ class MainWindow(QMainWindow):
         self.is_playing = False
         self.video_player = VideoPlayer(self.select_result_cal_rpjvideo_labels, self.result_web_view_widget)
         self.video_player.frame_changed.connect(self.update_slider)
+        self.video_player.data_ready.connect(self.result_update_gait_figure_data)
         self.result_select_patient_id, self.result_select_date, self.result_select_cal_time, self.result_select_task = None, None, None, None
         self.result_select_depth = 0
         
@@ -474,6 +623,21 @@ class MainWindow(QMainWindow):
         self.marker_calculate_process = None
         self.timer_marker_calculate = QTimer()
         self.timer_marker_calculate.timeout.connect(self.check_cal_finish)
+    def button_shortcut_calculation(self):
+        self.left_tab_changed(1)
+        self.tabWidgetRight.setCurrentIndex(1)
+    def button_shortcut_load_videos(self):
+        self.left_tab_changed(2)
+        self.tabWidgetLeft.setCurrentIndex(2)
+    def button_shortcut_new_recording(self):
+        self.left_tab_changed(1)
+        self.tabWidgetLeft.setCurrentIndex(1)
+        self.tabWidgetRight.setCurrentIndex(0)
+    def left_tab_changed(self, index):
+        if index == 1:
+            self.tabWidgetRight.show()
+        else:
+            self.tabWidgetRight.hide()
     def reset_setup_tab(self):
         self.record_select_patientID = None
         self.record_task_name = None
@@ -509,12 +673,20 @@ class MainWindow(QMainWindow):
 
     def record_enter_task_name_outfocus(self, event):
         self.record_enter_task_name_kb_listen = False
-
+    def lw_patient_task_record(self):
+        patient_today_task_recorded = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"))
+        if os.path.exists(patient_today_task_recorded):
+            patient_tasks_recorded_list = [item for item in os.listdir(os.path.join(patient_today_task_recorded, "raw_data"))]
+            for item in patient_tasks_recorded_list:
+                self.list_widget_patient_task_record.addItem(item)
+        else:
+            self.label_log.setText("No tasks recorded today")
     def lw_record_select_patientID(self, item):
         self.record_select_patientID = item.text()
         self.record_enter_task_name.setEnabled(True)
         self.btn_Apose_record.setEnabled(True)
         self.record_task_name = None
+        self.lw_patient_task_record()
     def record_list_widget_patient_id_list_show(self):
         self.record_list_widget_patient_id.clear()
         patientID_list = [item for item in os.listdir(self.patient_path)]
@@ -980,35 +1152,25 @@ class MainWindow(QMainWindow):
         self.result_video_slider.setValue(int(self.video_player.progress * 100))
         self.frame_label.setText(str(int(self.video_player.progress * 100)))
     def select_result_cal_task(self, patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task):
+        print(123)
         self.show_result_path = os.path.join(patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task)
         self.video_player.load_video(self.show_result_path)
-        self.result_load_gait_figures()
-        
+        self.video_player.result_load_gait_figures(self.show_result_path)
+        self.graphWidget.setYRange(-100, 100)
+        self.plot_line1 = self.graphWidget.plot(pen=pg.mkPen(color='r', width=2), name="Line 1")
+        self.plot_line2 = self.graphWidget.plot(pen=pg.mkPen(color='b', width=2), name="Line 2")
+        self.btn_left_gait_figure.setEnabled(True)
+        self.btn_right_gait_figure.setEnabled(True)
+        self.result_gait_figures_idx = 0
+        self.graphWidget.clear()
         self.video_player.load_gltf_file_in_viewer(f"./Patient_data/{result_select_patient_id}/{result_select_date}/{result_select_cal_time}/{result_select_task}/model.gltf")
         self.playButton.setEnabled(True)
         self.result_video_slider.setEnabled(True)
         
-    def result_load_gait_figures(self):
-        self.label_gait_figure.clear()
-        self.result_gait_figures_idx = 0
-        self.result_gait_figures = []
-        self.result_gait_figures_names = []
-        self.btn_left_gait_figure.setEnabled(True)
-        self.btn_right_gait_figure.setEnabled(True)
-        result_post_analysis_imgs_folder_path = os.path.join(self.show_result_path, 'post_analysis')
-        for png_file in os.listdir(result_post_analysis_imgs_folder_path):
-            if png_file.endswith('.png'):
-                self.result_gait_figures_names.append(png_file.split(self.result_select_patient_id)[0].split('for')[0])
-                img = cv2.imread(os.path.join(result_post_analysis_imgs_folder_path, png_file))
-                resized_img = cv2.resize(img, (self.label_gait_figure.size().width(), self.label_gait_figure.size().height()), interpolation=cv2.INTER_LINEAR)
-                img_rgb = cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB)
-                height, width, channel = img_rgb.shape
-                bytesPerline = channel * width
-                ConvertToQtFormat = QImage(img_rgb, width, height, bytesPerline, QImage.Format.Format_RGB888)
-                pixmap = QPixmap.fromImage(ConvertToQtFormat)
-                self.result_gait_figures.append(pixmap)
-        self.label_gait_figure.setPixmap(self.result_gait_figures[0])
-        self.label_gait_figure_name.setText(self.result_gait_figures_names[0])
+    
+    def result_update_gait_figure_data(self, y1, y2, x1, x2):
+        self.plot_line1.setData(np.arange(x1, x2), y1)
+        self.plot_line2.setData(np.arange(x1, x2), y2)
     def result_update_gait_figure(self):
         self.label_gait_figure.clear()
         self.label_gait_figure.setPixmap(self.result_gait_figures[self.result_gait_figures_idx])
@@ -1035,7 +1197,8 @@ class MainWindow(QMainWindow):
             self.is_playing = False
         else:
             self.result_web_view_widget.page().runJavaScript("startAnimation();")
-            self.video_player.timer.start(33)
+            self.video_player.timer.start(15)
+            
             self.is_playing = True
     
     def slider_changed(self, value):

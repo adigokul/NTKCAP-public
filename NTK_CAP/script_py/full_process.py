@@ -118,8 +118,8 @@ def timesync_video(video_folder,cam_num,opensim_folder):
     check =0
     calibrate = np.zeros((1,cam_num),int)
     mean_time  =[]
+
     #calibrate_array =calibrate
-    #import pdb;pdb.set_trace()
     if token ==1:
         while max(calibrate[0])<=min(end_record):
             aim = np.array([cap_array[0][calibrate[0][0]],cap_array[1][calibrate[0][1]],cap_array[2][calibrate[0][2]],cap_array[3][calibrate[0][3]]])
@@ -135,9 +135,8 @@ def timesync_video(video_folder,cam_num,opensim_folder):
                     check = check+1
             if check ==0:
                 calibrate = calibrate+1
-            
-            
             check =0
+        import pdb; pdb.set_trace()
         #import pdb;pdb.set_trace()
         for i in range(cam_num):
         # Open the video
@@ -150,8 +149,6 @@ def timesync_video(video_folder,cam_num,opensim_folder):
             # Define the codec and create VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec used to compress the frames
             out = cv2.VideoWriter(os.path.join(video_folder,str(i+1)+'sync.mp4'), fourcc, fps, (frame_width, frame_height))
-
-            
 
             # Frame number you want to access
             for frame_index in range(np.shape(calibrate_array )[0]):
@@ -353,7 +350,6 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
             break
         results = tracker(state, frame, detect=-1)
         keypoints, bboxes, _ = results
-        
         scores = keypoints[..., 2]
         keypoints = keypoints[..., :2]
         num_people = len(keypoints)
