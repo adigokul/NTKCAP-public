@@ -1298,7 +1298,8 @@ class MainWindow(QMainWindow):
             
             err_list =calib_extri(self.current_directory,1)
             self.label_log.text = 'calculate finished'
-            self.err_calib_extri.text = err_list      
+            self.err_calib_extri.text = err_list     
+            self.err_calib_extri.xetText(read_err_calib_extri(self.current_directory)) 
         except:
             # self.label_log.text = '檢查是否有拍攝以及計算內參，以及是否有拍攝外參'
             self.label_log.text = 'check intrinsic and extrinsic exist'
