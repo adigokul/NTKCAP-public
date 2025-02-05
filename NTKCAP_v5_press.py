@@ -156,7 +156,7 @@ class TrackerProcess(Process):
         shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
         np.set_printoptions(precision=4, suppress=True)
         tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=3)
+        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
         existing_shm_kp = shared_memory.SharedMemory(name=self.shm_kp)
         shared_array_kp = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm_kp.buf)
         idx = 0
