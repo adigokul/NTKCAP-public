@@ -61,7 +61,7 @@ QWidget#tab {
 }</string>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_home">
        <attribute name="title">
@@ -527,187 +527,218 @@ QPushButton:pressed {
        <attribute name="title">
         <string>Data Viewer</string>
        </attribute>
-       <widget class="QWidget" name="">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>312</y>
-          <width>941</width>
-          <height>631</height>
-         </rect>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_7">
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout" stretch="9,1">
-           <item>
-            <layout class="QGridLayout" name="gridLayout_3">
-             <item row="1" column="1">
-              <widget class="QLabel" name="rpjvideo4">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="rpjvideo3">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="rpjvideo1">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QLabel" name="rpjvideo2">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout">
-             <item>
-              <widget class="QPushButton" name="btn_result_video_playstop">
-               <property name="text">
-                <string>Play</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSlider" name="VideoProgressSlider">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QLabel" name="frame_show">
-             <property name="text">
-              <string>0</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>991</width>
-          <height>227</height>
-         </rect>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_8">
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_7">
-           <item>
-            <widget class="QListWidget" name="result_cal_task"/>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,9">
-             <item>
-              <widget class="QPushButton" name="btn_result_back_path">
-               <property name="text">
-                <string>Back</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="text_label_path_depth">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_2" stretch="4,1">
-           <item>
-            <widget class="QWidget" name="widget_gait_figure" native="true"/>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,5,1">
-             <item>
-              <widget class="QPushButton" name="btn_left_gait_figure">
-               <property name="text">
-                <string>L</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_gait_figure_name">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="btn_right_gait_figure">
-               <property name="text">
-                <string>R</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <widget class="QWebEngineView" name="result_web_view_widget" native="true">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,6,4">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_16">
+          <item>
+           <widget class="QListWidget" name="result_cal_task"/>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QLabel" name="label_result_patient_id">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_result_record_date">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_result_calculation_time">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_result_task">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_result_back_path">
+            <property name="text">
+             <string>Back</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout" stretch="9,1">
+            <item>
+             <layout class="QGridLayout" name="gridLayout_3">
+              <item row="1" column="1">
+               <widget class="QLabel" name="rpjvideo4">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="rpjvideo3">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="rpjvideo1">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="rpjvideo2">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <item>
+               <widget class="QPushButton" name="btn_result_video_playstop">
+                <property name="text">
+                 <string>Play</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="VideoProgressSlider">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QLabel" name="frame_show">
+              <property name="text">
+               <string>0</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_17">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_13" stretch="1,1">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_2" stretch="9,1">
+              <item>
+               <widget class="QWidget" name="widget_gait_figure" native="true"/>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0">
+                <item>
+                 <widget class="QComboBox" name="combobox_result_select_gait_figures">
+                  <item>
+                   <property name="text">
+                    <string>None</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Hip Flexion</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Knee Flexion</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Ankle Flexion</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Gait Speed</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Stride</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QWebEngineView" name="result_web_view_widget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="text_label_path_depth">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>

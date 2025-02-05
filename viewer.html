@@ -6,7 +6,7 @@
     <title>Interactive glTF Viewer - Dynamic Resize</title>
     <script src="./three.min.js"></script>
     <script src="./GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="./OrbitControls.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
     <div id="viewer" style="width: 100%; height: 100%;"></div>
@@ -101,6 +101,7 @@
                     const clip = gltf.animations[0];
                     const action = mixer.clipAction(clip);
                     action.play();
+                    isAnimating = false;
                     animationDuration = clip.duration;
                     console.log(`Animation Duration: ${animationDuration}`);
                 }
