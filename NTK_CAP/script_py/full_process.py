@@ -136,7 +136,7 @@ def timesync_video(video_folder,cam_num,opensim_folder):
             if check ==0:
                 calibrate = calibrate+1
             check =0
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         #import pdb;pdb.set_trace()
         for i in range(cam_num):
         # Open the video

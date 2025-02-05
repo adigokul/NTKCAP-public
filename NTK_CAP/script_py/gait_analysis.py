@@ -1160,6 +1160,7 @@ def Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,tit
         'rms_final_steady':rms_final_steady,
         'rms_start_end':rms_start_end,
         'rms_All':rms_All
+
     }
     return rms_final_steady,rms_start_end,rms_All,np.max(mean_velocity),Speed
 def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title):
@@ -1298,7 +1299,11 @@ def stride_length(data,frame_R_heel_sground,frame_L_heel_sground,dir_task,title)
         'xmr':xmr,
         'xml':xml,
         'mid_r_index':mid_r_index,
-        'mid_l_index':mid_l_index
+        'mid_l_index':mid_l_index,
+        'ymr':ymr,
+        'yml':yml,
+        'pace_r':pace_r,
+        'pace_l' :pace_l
     }
     return pace_r,temp_r,pace_l,temp_l,Stride
 def knee_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lground,frame_L_heel_sground,frame_L_heel_lground,title):
@@ -1752,5 +1757,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 ######Ignored Here
 
-# dir_calculated = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\1006_justin\2024_10_06\2024_12_06_10_51_calculated'
+# dir_calculated = r'D:\NTKCAP\Patient_data\test20250205\2025_02_05\2025_02_05_22_34_calculated'
 # gait1(dir_calculated)

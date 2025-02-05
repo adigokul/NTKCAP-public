@@ -236,10 +236,11 @@ class CameraProcess(Process):
             cap_s = time.time()
             ret, frame = cap.read()
             cap_e = time.time()
+            
             if not ret or self.stop_evt.is_set():
                 break
             
-            if self.task_stop_rec_evt.is_set():
+            if self.task_stop_rec_evt.is_set() and self.recording:
                 self.recording = False
                 self.start_time = None
                 self.frame_count = 0
@@ -285,6 +286,7 @@ class CameraProcess(Process):
             np.copyto(shared_array[idx,:], frame)     
             self.queue.put(idx)
             idx = (idx+1) % self.buffer_length
+
         cap.release()
 class UpdateThread(QThread):
     update_signal = pyqtSignal(QImage)
@@ -377,7 +379,7 @@ class VideoPlayer(QThread):
         self.ankle_data = data['Ankle'].item()
         self.Stride  = data['Stride'].item()
         self.Speed = data['Speed'].item()
-        R_knee = self.knee_data['RKnee']
+        R_knee = self.knee_data['R_knee']
         L_knee = self.knee_data['L_knee']
         
         self.plot.showGrid(x=True, y=True, alpha=0.2)  # Enable grid
@@ -465,7 +467,7 @@ class VideoPlayer(QThread):
         self.scatter_ball_L.setData([frame_index], [self.hip_data['L_Hip'][frame_index]])
     def knee_flexion_plot(self):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
-        R_knee = self.knee_data['RKnee']
+        R_knee = self.knee_data['R_knee']
         L_knee = self.knee_data['L_knee']
         loc_max_finalR = self.knee_data['loc_max_finalR']
         loc_max_finalL = self.knee_data['loc_max_finalL']
@@ -508,7 +510,7 @@ class VideoPlayer(QThread):
         frame_index = int(self.progress * self.frame_count)
         # Move the vertical timeline and scatter balls
         self.xline.setPos(frame_index)
-        self.scatter_ball_R.setData([frame_index], [self.knee_data['RKnee'][frame_index]])
+        self.scatter_ball_R.setData([frame_index], [self.knee_data['R_knee'][frame_index]])
         self.scatter_ball_L.setData([frame_index], [self.knee_data['L_knee'][frame_index]])
     def ankle_flexion_plot(self):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
@@ -874,11 +876,13 @@ class MainWindow(QMainWindow):
                     self.btnStartRecording.setEnabled(True)
                     self.btnStopRecording.setEnabled(True)
                     self.btn_Apose_record.setEnabled(False)
+                    self.label_log.setText(f"Current task name : {self.record_task_name}")
             else:
                 self.record_task_name = self.record_enter_task_name.text()
                 self.btnStartRecording.setEnabled(True)
                 self.btnStopRecording.setEnabled(True)
                 self.btn_Apose_record.setEnabled(False)
+                self.label_log.setText(f"Current task name : {self.record_task_name}")
 
     def record_enter_task_name_infocus(self, event):
         self.record_enter_task_name_kb_listen = True
@@ -886,6 +890,7 @@ class MainWindow(QMainWindow):
     def record_enter_task_name_outfocus(self, event):
         self.record_enter_task_name_kb_listen = False
     def lw_patient_task_record(self):
+        self.list_widget_patient_task_record.clear()
         patient_today_task_recorded = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"))
         if os.path.exists(patient_today_task_recorded):
             patient_tasks_recorded_list = [item for item in os.listdir(os.path.join(patient_today_task_recorded, "raw_data"))]
@@ -899,6 +904,7 @@ class MainWindow(QMainWindow):
         self.btn_Apose_record.setEnabled(True)
         self.record_task_name = None
         self.lw_patient_task_record()
+        self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
     def record_list_widget_patient_id_list_show(self):
         self.record_list_widget_patient_id.clear()
         patientID_list = [item for item in os.listdir(self.patient_path)]
@@ -921,6 +927,8 @@ class MainWindow(QMainWindow):
                     self.label_log.setText(f"Patient ID {text} is selected")
                     self.record_list_widget_patient_id_list_show()
                     self.btn_Apose_record.setEnabled(True)
+                    self.record_select_patientID = text
+                    self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
                 elif reply == QMessageBox.StandardButton.No:
                     self.button_create_new_patient()
             else:
@@ -929,14 +937,15 @@ class MainWindow(QMainWindow):
                 self.label_log.setText(f"Patient ID {text} is selected")
                 self.record_list_widget_patient_id_list_show()
                 self.btn_Apose_record.setEnabled(True)
-                
+                self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
     def check_apose_finish(self):
-        if not self.apose_rec_evt.is_set():
+        if not self.apose_rec_evt1.is_set() and not self.apose_rec_evt2.is_set() and not self.apose_rec_evt3.is_set() and not self.apose_rec_evt4.is_set():
             self.shared_dict_record_name.clear()
             self.record_opened = False
             self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
             self.timer_apose.stop()
             self.btn_pg1_reset.setEnabled(True)
+            self.label_log.setText("Apose finished!")
     def update_Apose_note(self):
         olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
         newdir_meetnote = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), 'raw_data', 'Meet_note.json')
@@ -959,8 +968,9 @@ class MainWindow(QMainWindow):
             self.label_log.setText("cali_time.txt 不存在")
 
         if os.path.exists(cali_file_path):
-            
-            shutil.copytree(cali_file_path, os.path.join(save_path_date,"calibration"))
+            if os.path.exists(os.path.join(save_path_date, "raw_data", "calibration")):
+                shutil.rmtree(os.path.join(save_path_date, "raw_data", "calibration"))
+            shutil.copytree(cali_file_path, os.path.join(save_path_date, "raw_data", "calibration"))
             self.label_log.setText("已成功複製 calibration資料夾")
         else:
             self.label_log.setText("calibration 資料夾 不存在")
@@ -980,7 +990,10 @@ class MainWindow(QMainWindow):
         self.record_opened = True
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.record_enter_task_name.setEnabled(False)
-        self.apose_rec_evt.set()
+        self.apose_rec_evt1.set()
+        self.apose_rec_evt2.set()
+        self.apose_rec_evt3.set()
+        self.apose_rec_evt4.set()
         self.timer_apose.start(1500)
     def Apose_record_ask(self):
         if (not self.camera_opened):
@@ -1002,7 +1015,8 @@ class MainWindow(QMainWindow):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self.btn_pg1_reset.setEnabled(False)
-                self.Apose_record(self.config_path, self.current_directory, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d")) 
+                shutil.rmtree(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", "Apose"))
+                self.Apose_record() 
                 self.update_Apose_note()
                 self.label_log.setText(f"Create new Apose for {self.record_select_patientID}")
         else:
@@ -1031,14 +1045,14 @@ class MainWindow(QMainWindow):
         self.task_stop_rec_evt.set()
         self.task_rec_evt.clear()
         self.shared_dict_record_name.clear()
-        self.record_select_patientID = None
         self.record_enter_task_name.clear()
         self.record_enter_task_name.setEnabled(True)
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.btn_pg1_reset.setEnabled(True)
         self.btnStopRecording.setEnabled(False)
         self.btnStartRecording.setEnabled(True)
-        self.label_log.setText("Recording end")
+        self.label_log.setText("Record end")
+        self.lw_patient_task_record()
     def image_update_slot(self, image, label):
         label.setPixmap(QPixmap.fromImage(image))
     # open cameras
@@ -1046,8 +1060,14 @@ class MainWindow(QMainWindow):
         self.camera_opened = True
         self.manager = Manager()
         self.task_rec_evt = Event()
-        self.apose_rec_evt = Event()
-        self.calib_rec_evt = Event()
+        self.apose_rec_evt1 = Event()
+        self.calib_rec_evt1 = Event()
+        self.apose_rec_evt2 = Event()
+        self.calib_rec_evt2 = Event()
+        self.apose_rec_evt3 = Event()
+        self.calib_rec_evt3 = Event()
+        self.apose_rec_evt4 = Event()
+        self.calib_rec_evt4 = Event()
         self.task_stop_rec_evt = Event()
         self.start_evt = Event()
         self.stop_evt = Event()
@@ -1064,21 +1084,7 @@ class MainWindow(QMainWindow):
         for i in range(4):
             shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.shm_lst.append(shm)
-            p = CameraProcess(
-                self.shm_lst[i].name, 
-                i,
-                self.start_evt,
-                self.task_rec_evt,
-                self.apose_rec_evt,
-                self.calib_rec_evt,
-                self.stop_evt,
-                self.task_stop_rec_evt,
-                self.calib_save_path,
-                self.queue[i],
-                self.patient_path,
-                self.shared_dict_record_name
-            )
-            self.camera_proc_lst.append(p)
+            
             shm1 = shared_memory.SharedMemory(create=True, size=int(np.prod(self.shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.shm_kp_lst.append(shm1)
             p1 = TrackerProcess(
@@ -1099,6 +1105,66 @@ class MainWindow(QMainWindow):
                 self.shm_kp_lst[i].name
             )
             self.threads.append(thread)
+        p1 = CameraProcess(
+            self.shm_lst[0].name, 
+            0,
+            self.start_evt,
+            self.task_rec_evt,
+            self.apose_rec_evt1,
+            self.calib_rec_evt1,
+            self.stop_evt,
+            self.task_stop_rec_evt,
+            self.calib_save_path,
+            self.queue[0],
+            self.patient_path,
+            self.shared_dict_record_name
+        )
+        self.camera_proc_lst.append(p1)
+        p2 = CameraProcess(
+            self.shm_lst[1].name, 
+            1,
+            self.start_evt,
+            self.task_rec_evt,
+            self.apose_rec_evt2,
+            self.calib_rec_evt2,
+            self.stop_evt,
+            self.task_stop_rec_evt,
+            self.calib_save_path,
+            self.queue[1],
+            self.patient_path,
+            self.shared_dict_record_name
+        )
+        self.camera_proc_lst.append(p2)
+        p3 = CameraProcess(
+            self.shm_lst[2].name, 
+            2,
+            self.start_evt,
+            self.task_rec_evt,
+            self.apose_rec_evt3,
+            self.calib_rec_evt3,
+            self.stop_evt,
+            self.task_stop_rec_evt,
+            self.calib_save_path,
+            self.queue[2],
+            self.patient_path,
+            self.shared_dict_record_name
+        )
+        self.camera_proc_lst.append(p3)
+        p4 = CameraProcess(
+            self.shm_lst[3].name, 
+            3,
+            self.start_evt,
+            self.task_rec_evt,
+            self.apose_rec_evt4,
+            self.calib_rec_evt4,
+            self.stop_evt,
+            self.task_stop_rec_evt,
+            self.calib_save_path,
+            self.queue[3],
+            self.patient_path,
+            self.shared_dict_record_name
+        )
+        self.camera_proc_lst.append(p4)
         self.update()
         self.label_cam = {0:self.Camera1, 1:self.Camera2, 2:self.Camera3, 3:self.Camera4}
         for i in range(4):
@@ -1191,7 +1257,10 @@ class MainWindow(QMainWindow):
             with open(config_name, 'r') as f:
                 data = json.load(f)
             num_cameras = data['cam']['list']
-            self.calib_rec_evt.set()
+            self.calib_rec_evt1.set()
+            self.calib_rec_evt2.set()
+            self.calib_rec_evt3.set()
+            self.calib_rec_evt4.set()
             if os.path.exists(time_file_path)==1:
                 os.remove(time_file_path)
             now = datetime.now()
@@ -1199,11 +1268,12 @@ class MainWindow(QMainWindow):
             with open(time_file_path, "w") as file:
                 file.write(formatted_datetime)
             while True:
-                if not self.calib_rec_evt.set():
+                if not self.calib_rec_evt1.set() and not self.calib_rec_evt2.set() and not self.calib_rec_evt3.set() and not self.calib_rec_evt4.set():
                     self.label_log.setText("Finish extrinsic record")
                     self.button_extrinsic_calculate()
                     self.label_log.setText("Finish extrinsic calculation")
                     self.btn_pg1_reset.setEnabled(True)
+                    self.err_calib_extri.setText(read_err_calib_extri(self.current_directory))
                     break
         
     def button_extrinsic_calculate(self):
