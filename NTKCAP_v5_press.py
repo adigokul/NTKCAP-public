@@ -946,6 +946,7 @@ class MainWindow(QMainWindow):
             self.timer_apose.stop()
             self.btn_pg1_reset.setEnabled(True)
             self.label_log.setText("Apose finished!")
+            self.record_enter_task_name.setEnabled(True)
     def update_Apose_note(self):
         olddir_meetnote = os.path.join(self.config_path, 'meetnote_layout.json')
         newdir_meetnote = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), 'raw_data', 'Meet_note.json')
@@ -995,6 +996,7 @@ class MainWindow(QMainWindow):
         self.apose_rec_evt3.set()
         self.apose_rec_evt4.set()
         self.timer_apose.start(1500)
+
     def Apose_record_ask(self):
         if (not self.camera_opened):
             QMessageBox.information(self, "Cameras are not opened", "Please open cameras first！")
@@ -1299,7 +1301,7 @@ class MainWindow(QMainWindow):
             err_list =calib_extri(self.current_directory,1)
             self.label_log.text = 'calculate finished'
             self.err_calib_extri.text = err_list     
-            self.err_calib_extri.xetText(read_err_calib_extri(self.current_directory)) 
+            self.err_calib_extri.setText(read_err_calib_extri(self.current_directory)) 
         except:
             # self.label_log.text = '檢查是否有拍攝以及計算內參，以及是否有拍攝外參'
             self.label_log.text = 'check intrinsic and extrinsic exist'
