@@ -326,9 +326,9 @@ class MainWindow(QMainWindow):
         self.apose_rec_evt3.set()
         self.apose_rec_evt4.set()
         self.timer_apose.start(1500)
-
+        
     def Apose_record_ask(self):
-        import pdb; pdb.set_trace()
+        
         if (not self.camera_opened):
             QMessageBox.information(self, "Cameras are not opened", "Please open cameras first！")
             return
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
         elif not self.record_select_patientID:
             QMessageBox.information(self, "Patient ID not selected", "Please select patient ID first！")
             return
-            
+        self.task_stop_rec_evt.clear()
         if os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", "Apose")):
             reply = QMessageBox.question(
                 self, 
@@ -386,6 +386,7 @@ class MainWindow(QMainWindow):
         self.label_log.setText("Record end")
         self.lw_patient_task_record()
         self.cal_load_folders()
+        
     def image_update_slot(self, image, label):
         label.setPixmap(QPixmap.fromImage(image))
     # open cameras
@@ -584,6 +585,7 @@ class MainWindow(QMainWindow):
         )
         if reply == QMessageBox.StandardButton.Yes:
             create_calibration_folder(self.current_directory)
+            self.task_stop_rec_evt.clear()
             self.btn_pg1_reset.setEnabled(False)
             self.label_log.setText("create new extrinsic params")
             config_name = os.path.join(self.config_path, "config.json")
