@@ -643,6 +643,7 @@ class MainWindow(QMainWindow):
     def check_cal_finish(self):
         if self.marker_calculate_process:
             if not self.marker_calculate_process.is_alive():
+                self.cal_show_selected_folder()
                 self.timer_marker_calculate.stop()
                 self.label_calculation_status.setText("Calculation is finished")
                 self.btn_cal_start_cal.setEnabled(True)
@@ -660,7 +661,6 @@ class MainWindow(QMainWindow):
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
-            self.cal_show_selected_folder()
             self.timer_marker_calculate.start(1000)
     # Calculation tab 
     def cal_select_back_path(self):
