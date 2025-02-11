@@ -152,15 +152,14 @@ def computemap(calib_file):
 def bilinear_interpolate(map, x, y):
     # Get integer coordinates surrounding the point
     x0 = int(np.floor(x))
-    x1 = x0 + 1
     y0 = int(np.floor(y))
-    y1 = y0 + 1
-    
     # Ensure coordinates are within bounds
-    x0 = np.clip(x0, -map.shape[1] + 1, map.shape[1] - 1)
-    x1 = np.clip(x1, -map.shape[1] + 1, map.shape[1] - 1)
-    y0 = np.clip(y0, -map.shape[0] + 1, map.shape[0] - 1)
-    y1 = np.clip(y1, -map.shape[0] + 1, map.shape[0] - 1)
+    x0 = np.clip(x0,0, map.shape[1] - 2)
+    y0 = np.clip(y0,0, map.shape[0] - 2)
+    
+    x1 = x0 + 1
+    
+    y1 = y0 + 1
     
     # Bilinear interpolation
     Ia = map[y0, x0]
@@ -176,6 +175,7 @@ def bilinear_interpolate(map, x, y):
 
     # Calculate the interpolated value
     return wa * Ia + wb * Ib + wc * Ic + wd * Id
+
 def undistort_points1(mappingx,mappingy,coords_2D_kpt):
     x_undistorted = []
     y_undistorted = []
