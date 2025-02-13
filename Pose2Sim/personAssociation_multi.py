@@ -45,10 +45,20 @@ from anytree.importer import DictImporter
 import logging
 from scipy.spatial import ConvexHull, Delaunay
 
-from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
-    reprojection, euclidean_distance, natural_sort
-from Pose2Sim.skeletons import *
-
+try:
+    from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+        reprojection, euclidean_distance, natural_sort
+    from Pose2Sim.skeletons import *
+    from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
+    
+    from Pose2Sim.common import weighted_triangulation
+except:
+    from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+        reprojection, euclidean_distance, natural_sort
+    from skeletons import *
+    
+    from common import weighted_triangulation
+    from common import weighted_triangulation,weighted_triangulation_R
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
@@ -527,7 +537,7 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
     # remove identifications if less than N cameras see them
     nb_cams_per_person = [np.count_nonzero(~np.isnan(p)) for p in proposals]
     proposals = np.array([p for (n,p) in zip(nb_cams_per_person, proposals) if n >= min_cameras_for_triangulation])
-
+    
     return proposals
 
 
@@ -592,7 +602,7 @@ def rewrite_js_file(n_cams, json_tracked_files_f, js_allin_range):
         with open(json_tracked_files_f[cam], 'w') as json_tracked_f:
             json_tracked_f.write(json.dumps(js_allin_range[cam]))
 
-from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
+
 import re
 
 def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state, proposals):
@@ -701,7 +711,8 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state,
         pro_min = 100
         pro_min_ind = 0
         if nb_det_max_p - len(person_to_remove) > 1:
-            pro_min_ind = min(proposals_index, key=lambda idx: sum(proposals[idx]))    
+            pro_min_ind = min(proposals_index, key=lambda idx: sum(proposals[idx])) 
+            
             pro_min = sum(proposals[pro_min_ind])
             person_to_remove.extend(idx for idx in proposals_index if idx != pro_min_ind)
         for index in sorted(person_to_remove, reverse=True):
@@ -943,3 +954,9 @@ def track_2d_all(config):
     recap_tracking(config, error_min_tot, cameras_off_tot)
     print('成功結束personAssociation')
     
+# dir_task = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp\醫療科技展\4025\2024_12_08\2024_12_08_15_18_calculated\1'
+# coord = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\4024\2024_12_08\2025_02_12_18_07_calculated\1\coord.npy'
+# # a = np.load(coord,allow_pickle = True)
+# os.chdir(dir_task)
+# config = toml.load(os.path.join( dir_task,'User','Config.toml'))
+# track_2d_all(config)

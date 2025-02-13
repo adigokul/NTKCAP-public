@@ -105,5 +105,6 @@ class CameraProcess(Process):
             np.copyto(shared_array[idx,:], frame)     
             self.queue.put(idx)
             idx = (idx+1) % self.buffer_length
+            print()
 
         cap.release()

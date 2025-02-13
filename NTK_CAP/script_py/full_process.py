@@ -25,6 +25,167 @@ except:
 
 import traceback
 ####parameter
+def rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,calibrate_array):
+    halpe26_pose2sim_rpj_order = [16,-1,-1,-1,-1,20,17,21,18,22,19,8,2,9,3,10,4,-1,14,1,11,5,12,6,13,7]
+    rpj_all = np.load(rpj_all_dir, allow_pickle=True)
+    show_tr = 0.2
+    camera_num = Video_path[-5:-4]
+
+    
+    cam_exclude = rpj_all['cam_choose']
+    
+    strongness = rpj_all['strongness_of_exclusion']
+
+    temp_dir = os.getcwd()
+    output_file = Path(out_video).parent.parent
+    check_track = os.path.join(output_file,'pose-2d-tracked','pose_cam' + str(camera_num ) +'_json')
+    output_file = os.path.join(output_file,'pose-2d-tracked','pose_cam' + str(camera_num ) +'_json')
+    
+    #import pdb;pdb.set_trace()
+    output_json = os.listdir(output_file)
+    check_json =os.listdir(check_track)
+    ### video output
+    video_full_path = Video_path
+    output = out_video
+    cap = cv2.VideoCapture(video_full_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    line = [[0,1],[1,3],[0,2],[2,4],[0,17],[0,18],[18,5],[5,7],[7,9],[18,6],[6,8],[8,10],[18,19],[19,11],[11,13],[13,15],[15,24],[15,20],[15,22],[19,12],[12,14],[14,16],[16,25],[16,21],[16,23]]
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output, fourcc, fps, (width, height))
+    count_frame = 0
+    dots = np.array((range(0,26)))*3
+    #keypoints
+    frame_temp  = 0
+    keypointsx= np.empty((1,1,26))
+    keypointsy= np.empty((1,1,26))
+    keypoint_scores = np.empty((1,26))
+    track_state = np.empty((1))
+    cam_num =int(camera_num)-1
+    a = []
+    if  not np.isnan(calibrate_array).any():
+        calibrate_array[:,cam_num]
+    
+    for i in range(len(output_json)):
+        f = open(os.path.join(output_file,output_json[frame_temp]))
+        temp = json.load(f) #載入同檔名的json file
+        f.close()
+        if frame_temp<len(check_json):
+            fc = open(os.path.join(check_track,check_json[frame_temp]))
+            temp_check = json.load(fc)
+            fc.close()
+        else:
+            fc = open(os.path.join(check_track,check_json[len(check_json)-1]))
+            temp_check = json.load(fc)
+            fc.close()
+        if len(temp_check['people']) ==0:
+            track_state = np.append(track_state,[0])
+        else:
+            track_state = np.append(track_state,[1])
+        
+        if temp["people"][0] == {}:
+            x = np.zeros(26)
+            y = np.zeros(26)
+            scores = np.zeros(26)
+        else:
+            x = np.array(temp["people"][0]['pose_keypoints_2d'])[dots]
+            y = np.array(temp["people"][0]['pose_keypoints_2d'])[dots+1]
+            scores =np.array(temp["people"][0]['pose_keypoints_2d'])[dots+2]
+        
+        keypointsx = np.append(keypointsx,[[x]],axis=0)
+        keypointsy = np.append(keypointsy,[[y]],axis=0)
+        keypoint_scores = np.append(keypoint_scores,[scores],axis=0)
+        frame_temp = frame_temp+1
+
+    keypointsx = np.delete(keypointsx,0,0)
+    keypointsy = np.delete(keypointsy,0,0)
+    keypoint_scores = np.delete(keypoint_scores,0,0)
+    keypoints =np.concatenate((keypointsx, keypointsy), axis=1)
+    track_state = np.delete(track_state,0,0)
+    # import pdb;pdb.set_trace()
+
+    while True:
+        frame_count = count_frame
+        cap.set(cv2.CAP_PROP_POS_FRAMES,calibrate_array[:,cam_num][frame_count])
+        ret, frame = cap.read()
+        
+       
+        if (not ret) or (frame_count>=len(keypoint_scores)-1):
+            break
+        
+        
+        
+        #第一個0代表第幾幀，第二個0代表畫面中的第幾+1位辨識體，第三個0代表第幾個節點
+        count = 0
+        for i in range(26):
+
+            indicator = halpe26_pose2sim_rpj_order[i] 
+            # import pdb;pdb.set_trace()
+            if count_frame<np.shape(cam_exclude)[0]:
+                
+                if  any(cam_exclude_temp ==(int(camera_num)-1) for cam_exclude_temp in cam_exclude[count_frame][indicator-1]):  
+                    rpj_state = True
+                else:
+                    rpj_state = False
+            else:
+                rpj_state = False
+            
+            p = keypoint_scores[frame_count][count]*255 #隨score顏色進行變換
+            #若keypoint score太低，則標示出來
+            if keypoint_scores[frame_count][count]>=show_tr and keypoint_scores[frame_count][count]<0.5 and rpj_state == False and track_state[frame_count]==1:
+                cv2.circle(frame,(int(keypoints[frame_count][0][count]), int(keypoints[frame_count][1][count])), 3, (255-p, p, 0), 3)#frame, (x,y), radius, color, thickness
+                font = cv2.FONT_HERSHEY_SIMPLEX # font
+                org = (int(keypoints[frame_count][0][count])+3, int(keypoints[frame_count][1][count])) # 偏移
+                fontScale = 0.5 # fontScale
+                color = (255, 255, 255) # Blue color in BGR
+                thickness = 1 # Line thickness of 2 px 
+                # Using cv2.putText() method 
+                image = cv2.putText(frame, str(int(keypoint_scores[frame_count][count]*100)), org, font,  
+                                        fontScale, color, thickness, cv2.LINE_AA) 
+            elif keypoint_scores[frame_count][count]>=0.5 and rpj_state == False and track_state[frame_count]==1:
+                cv2.circle(frame,(int(keypoints[frame_count][0][count]), int(keypoints[frame_count][1][count])), 2, (0, 255, p), 3)
+
+                 
+            elif rpj_state == True and track_state[frame_count]==1:
+                #error_all21 = error[frame_count][indicator-1][0]-error[frame_count][indicator-1][int(camera_num)]
+                #print(error_all21)
+                
+                cv2.circle(frame,(int(keypoints[frame_count][0][count]), int(keypoints[frame_count][1][count])), 4, (strongness[frame_count][indicator-1]*10, strongness[frame_count][indicator-1]*10,strongness[frame_count][indicator-1]*10), 3)
+
+            count = count+1
+
+            
+                
+
+        for i in range(25):
+            if keypoint_scores[frame_count][line[i][0]]>show_tr and keypoint_scores[frame_count][line[i][1]]>show_tr and track_state[frame_count]==1: 
+                #import pdb;pdb.set_trace()
+                cv2.line(frame, (int(keypoints[frame_count][0][line[i][0]]), int(keypoints[frame_count][1][line[i][0]])), (int(keypoints[frame_count][0][line[i][1]]), int(keypoints[frame_count][1][line[i][1]])), (0, 0, 255), 1)
+            elif track_state[frame_count]==0:
+                cv2.line(frame, (int(keypoints[frame_count][0][line[i][0]]), int(keypoints[frame_count][1][line[i][0]])), (int(keypoints[frame_count][0][line[i][1]]), int(keypoints[frame_count][1][line[i][1]])), (255, 255, 255), 1) 
+        
+        out.write(frame)
+        count_frame = count_frame+1
+        frame_count = frame_count+1
+
+    
+    
+        # for i in range(len(rearranged_list)):
+        #     print('a') # Update 'image_id' to match the index (starting from 1)
+        #     #import pdb;pdb.set_trace()
+    
+    
+
+    cap.release()
+    out.release()
+    clear_output(wait=False)
+
+
+    os.chdir(temp_dir)
 def timesync2rtm(video_folder,cam_num,opensim_folder,out_json):
     raw_video_path = video_folder
     calibrate_array = timesync_arrayoutput(video_folder,cam_num,opensim_folder)
@@ -34,7 +195,7 @@ def timesync2rtm(video_folder,cam_num,opensim_folder,out_json):
         out_dir = os.path.join(out_json,"pose_cam" + str(i+1) + "_json.json")
         rtm_coord.append(rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array))
     #import pdb;pdb.set_trace()
-    return rtm_coord
+    return rtm_coord,calibrate_array
 def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
     cap = []
     cap_array =[]
@@ -48,8 +209,11 @@ def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
             token =0
             break
         temp =np.load(os.path.join(video_folder,str(i+1)+'_dates.npy'))
+        
+        indices0 = np.where(temp[:,0] == 0)[0]
+        indices1 = np.where(temp[:,1] == 0)[0]
+        indices = np.intersect1d(indices0, indices1)
         temp =(temp[:,0]+temp[:,1])/2
-        indices = np.where(temp == 0)[0]
         cap_array.append(temp*1000)
         end_record.append(min(indices)-1)
     TR = 50 ##ms
@@ -82,9 +246,10 @@ def timesync_arrayoutput(video_folder,cam_num,opensim_folder):
             marker = (marker-min(mean_time))/1000+0.03333
             marker_path = Path(os.path.join(video_folder,'marker_stamp.npy'))
             marker_path.unlink()
-
-        mean_time = (mean_time-min(mean_time))/1000+0.03333
-
+        try:
+            mean_time = (mean_time-min(mean_time))/1000+0.03333
+        except:
+            import pdb;pdb.set_trace()
         # Saving multiple arrays into a single file
         np.savez(os.path.join(opensim_folder ,'sync_time_marker.npz'), sync_timeline=np.array(mean_time), marker=marker)
 
@@ -912,10 +1077,19 @@ def add_frame_from_video(video_full_path,output_video):
     out.release()
     cap.release
 
-# video_folder=r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\raw_data\outside4\videos'
-# cam_num = 4
-# opensim_folder = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\opensim'
-# out_json =r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\pose-2d'
-# rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
+video_folder=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\raw_data\1\videos'
+cam_num = 4
+opensim_folder = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\opensim'
+out_json =r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\pose-2d'
+rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
 # with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\my_list.json", "w") as f:
 #     json.dump(rtm_coord, f)
+
+# opensim_folder = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\2025_02_12_22_57_calculated\1\opensim'
+# Video_path=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\raw_data\1\videos\4.mp4'
+# Video_folder=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\raw_data\1\videos'
+# cam_num = 4
+# out_video=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\2025_02_12_22_57_calculated\1\videos_pose_estimation_repj_combine\4.mp4'
+# rpj_all_dir=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\2025_02_12_22_57_calculated\1\User\reprojection_record.npz'
+# calibrate_array = timesync_arrayoutput(Video_folder,cam_num,opensim_folder)
+# rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,calibrate_array)

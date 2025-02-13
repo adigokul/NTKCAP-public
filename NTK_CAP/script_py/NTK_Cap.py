@@ -932,7 +932,8 @@ def read_err_calib_extri(PWD):
 def mp_marker_calculate(PWD, calculate_path_list):
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
-        folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
+        folder_calculated =marker_caculate_fast(PWD, cal_folder_path)
+        #folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
 def marker_caculate(PWD,cal_data_path, gait_token=None):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
     ori_path = PWD
@@ -1227,7 +1228,7 @@ def marker_caculate(PWD,cal_data_path, gait_token=None):
 
 
 def marker_caculate_fast(PWD,cal_data_path):
-    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
     openpose_path = os.path.join(openpose_path, "ThirdParty")
@@ -1429,7 +1430,8 @@ def marker_caculate_fast(PWD,cal_data_path):
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
         print("切換至" + os.getcwd())
-        rtm_coord=timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
+        rtm_coord,calibrate_array=timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
+        np.save(os.path.join(now_project,'coord.npz'),rtm_coord)
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
         os.chdir(now_project)
@@ -1454,7 +1456,18 @@ def marker_caculate_fast(PWD,cal_data_path):
         for m in trc_files:
             if "filt" in m:
                 copy_3d = m
+        ############## output rpj videos
+        
+        rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
+        if os.path.isfile(rpj_all_dir):
+            if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
+                os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+            for video_rpj_count in range(1,5):
+                out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                Video_path = os.path.join(now_task_videos ,str(video_rpj_count) + '.mp4')
+                rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,calibrate_array)
 
+        ##############
         now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
         copy_3d_2 = os.path.join(now_project, "opensim")
         copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
@@ -1478,6 +1491,23 @@ def marker_caculate_fast(PWD,cal_data_path):
         #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
+    
+    gait1(caculate_finshed_path)
+    for task_gltf in os.listdir(caculate_finshed_path):
+        if task_gltf != "Apose":
+            osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+            geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+            motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+            outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+            working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+            os.chdir(working_dir)
+            try:
+                convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+            except:
+                continue
+
+    os.chdir(ori_path)
+    
     return caculate_finshed_path
 
 # subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)

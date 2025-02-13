@@ -52,13 +52,13 @@ try:
         reprojection, euclidean_distance, natural_sort
     from Pose2Sim.skeletons import *
     
-    from Pose2Sim.common import weighted_triangulation
+    from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
 except:
     from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
         reprojection, euclidean_distance, natural_sort
     from skeletons import *
     
-    from common import weighted_triangulation
+    from common import weighted_triangulation,weighted_triangulation_R
 import cupy as cp
 import copy
 ## AUTHORSHIP INFORMATION
@@ -615,7 +615,6 @@ def person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangu
     # remove identifications if less than N cameras see them
     nb_cams_per_person = [np.count_nonzero(~np.isnan(p)) for p in proposals]
     proposals = np.array([p for (n,p) in zip(nb_cams_per_person, proposals) if n >= min_cameras_for_triangulation])
-    
     return proposals
 
 
@@ -726,18 +725,33 @@ def inside_ROI(js, calib_file, frame, P, frame_range, json_tracked_files_f, stat
         
         pos_2d = [d[:2] for d in pos]
         delaunay = Delaunay(pos_2d) # create Convex hull
-        
-        if not is_point_in_hull(Q[:2], delaunay): # the person is inside or outside the area defined by four cameras using convex hull
+        R=weighted_triangulation_R(P_all, x_all, y_all, lik_all)
+        if not is_point_in_hull(Q[:2], delaunay) or R>50: # the person is inside or outside the area defined by four cameras using convex hull
             person_to_remove.append(p)
 
     for person in sorted(person_to_remove, reverse=True):
         for cam in range(len(js)):
             del js[cam]['people'][person]       
     person_count = nb_det_max_p - len(person_to_remove)
-    if person_count>0:
+    if person_count>1:##### choose the index number the smallest
+        re_proposals = [[
+            js[cam]['people'][part].get('person_id', np.nan) 
+            if part < len(js[cam].get('people', [])) else np.nan 
+            for cam in range(len(js))
+        ] for part in range(person_count)]
+        
+        pro_min_ind = min(
+            list(range(person_count)), 
+            key=lambda idx: np.nanmean(re_proposals[idx])  # Use nanmean to ignore NaNs
+        )
+        
+        for cam in range(len(js)):
+            js[cam]['people'][:] = [js[cam]['people'][pro_min_ind]]
         person_count = 1
+    elif person_count==1:
+        person_count =1
     else:
-        person_count = 0
+        persoun_count = 0
     return person_count
 def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state):
     
@@ -1112,7 +1126,7 @@ def track_2d_all(coord,config):
         state_ROI_all.append(state_ROI)
         s5 = time.time()
         #print(s5-s1)
-    
+    #import pdb;pdb.set_trace()
     final_f =[]
     temp = 0
     for i in range(*f_range):
@@ -1157,7 +1171,9 @@ def track_2d_all(coord,config):
 
     
 
-# dir_task = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4'
+# dir_task = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\2025_02_12_21_17_calculated\1'
+# coord = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\01\2025_02_11\2025_02_12_21_17_calculated\1\coord.npz.npy'
+# a = np.load(coord,allow_pickle = True)
 # os.chdir(dir_task)
 # config = toml.load(os.path.join( dir_task,'User','Config.toml'))
-# track_2d_all(config)
+# track_2d_all(a,config)
