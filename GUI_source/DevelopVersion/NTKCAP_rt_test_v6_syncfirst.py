@@ -16,6 +16,7 @@ import time
 import numpy as np
 from collections import deque
 import asyncio
+from anytree import Node, RenderTree
 '''
 找問題 : # !!!!
 version : cap.read -> sync -> tracker -> update label + triangulation
@@ -51,7 +52,7 @@ link_color = VISUALIZATION_CFG['halpe26']['link_color']
 point_color = VISUALIZATION_CFG['halpe26']['point_color']
 
 class Triangulation(Process):
-    def __init__(self, keypoints_sync_shm_name, sync_tracker_queue, start_evt, stop_evt, *args, **kwargs):
+    def __init__(self, keypoints_sync_shm_name, sync_tracker_queue, start_evt, stop_evt, config, *args, **kwargs):
         super().__init__()
         self.keypoints_sync_shm_name = keypoints_sync_shm_name
         self.sync_tracker_queue = sync_tracker_queue
@@ -59,6 +60,10 @@ class Triangulation(Process):
         self.keypoints_sync_shm_shape = (4, 1, 26, 3)
         self.start_evt = start_evt
         self.stop_evt = stop_evt
+        self.config_dict = config
+        pose_model = self.config_dict.get('pose').get('pose_model')
+        model = eval(pose_model)
+        self.keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
     def run(self):
         existing_shm_keypoints = shared_memory.SharedMemory(name=self.keypoints_sync_shm_name)
         shared_array_keypoints = np.ndarray((self.buffer_length,) + self.keypoints_sync_shm_shape, dtype=np.float32, buffer=existing_shm_keypoints.buf)
@@ -71,6 +76,31 @@ class Triangulation(Process):
                 time.sleep(0.01)
                 continue
             keypoints = shared_array_keypoints[idx_get, : ] # shape = (4, 1, 26, 3)
+            combinations_4 = [[0, 1, 2, 3]]
+            combinations_3 = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
+            combinations_2 = [[2, 3], [1, 3], [1, 2], [0, 3], [0, 2], [0, 1]]
+            x_files, y_files, likelihood_files = [], [], []
+            for cam_nb in range(4):
+                x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
+                js = keypoints[cam_nb][0]
+                for keypoint_id in self.keypoints_ids:
+                    try:
+                        x_files_cam.append(js[keypoint_id*3])
+                        y_files_cam.append(js[keypoint_id*3+1] )
+                        likelihood_files_cam.append(js[keypoint_id*3+2])
+                    except:
+                        x_files_cam.append(np.array(0))
+                        y_files_cam.append(np.array(0))
+                        likelihood_files_cam.append(np.array(0))
+                x_files.append(x_files_cam)
+                y_files.append(y_files_cam)
+                likelihood_files.append(likelihood_files_cam)
+            x_files = np.array(x_files)
+            y_files = np.array(y_files)
+            likelihood_files = np.array(likelihood_files)
+            arrays = [x_files, y_files, likelihood_files]
+            stacked = np.stack(arrays, axis=0)
+            result = np.transpose(stacked, (2, 1, 0))
             # triangulation
 
 class PreTri_Process(Process):
@@ -447,8 +477,19 @@ class MainWindow(QMainWindow):
         self.camera_opened = False
         self.keypoints_sync_shm_shape = (4, 1, 26, 3) # !!!
         self.sync_frame_shm_lst = []
+        
+        # Params for triangulation
+        config = os.path.join(os.getcwd(), "NTK_CAP", "template", "Empty_project", "User", "Config.toml")
+        if type(config)==dict:
+            self.config_dict = config
+        else:
+            self.config_dict = self.read_config_file(config)
+    def read_config_file(self, config):
+        config_dict = toml.load(config)
+        return config_dict
     def image_update_slot(self, image, label):
         label.setPixmap(QPixmap.fromImage(image))
+    
     def OpenCamera(self):
         # Initialization
         self.camera_proc_lst = []
@@ -472,6 +513,7 @@ class MainWindow(QMainWindow):
         self.sync_frame_show_shm_lst = []
         self.threads = []
         self.keypoints_sync_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.keypoints_sync_shm_shape) * np.dtype(np.float32).itemsize * self.buffer_length)) # for triangulation
+        
         for i in range(4):
             camera_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.camera_shm_shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.camera_shm_lst.append(camera_shm)
@@ -534,7 +576,8 @@ class MainWindow(QMainWindow):
             self.keypoints_sync_shm.name,
             self.sync_tracker_queue,
             self.start_camera_evt,
-            self.stop_camera_evt
+            self.stop_camera_evt,
+            self.config_dict
         )
         self.time_sync_process = SyncProcess(
             self.camera_shm_lst[0].name, # shm for receiving frames from four camera processes

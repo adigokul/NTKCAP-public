@@ -308,23 +308,22 @@ def extract_files_frame_f_fast(f,coord, keypoints_ids):
 def create_prep(coord,f_range,n_cams,keypoints_ids,json_tracked_files):
 
     # Elements
-    elements = [0, 1, 2, 3]
+    # elements = [0, 1, 2, 3]
 
     # Total elements
-    n = len(elements)
+    # n = len(elements)
 
     # Generate combinations based on remaining elements
-    combinations_4 = [elements]  # No deletions
-    combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
-    combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements
-
-
+    # combinations_4 = [elements]  # No deletions
+    # combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
+    # combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements
+    combinations_4 = [[0, 1, 2, 3]]
+    combinations_3 = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
+    combinations_2 = [[2, 3], [1, 3], [1, 2], [0, 3], [0, 2], [0, 1]]
     # Print results
     print("4-Combinations (No deletions):", combinations_4)
     print("3-Combinations (Keep 3 elements):", combinations_3)
     print("2-Combinations (Keep 2 elements):", combinations_2)
-
-
     # Combine all combinations
     all_combinations = combinations_4 + combinations_3 + combinations_2
     prep = []
@@ -342,8 +341,10 @@ def create_prep(coord,f_range,n_cams,keypoints_ids,json_tracked_files):
         stacked = np.stack(arrays, axis=0)  # Shape: (3, 4, 22)
         result = np.transpose(stacked, (2, 1, 0))  # Shape: (22, 4, 3)
         prep.append(result)
+
     prep = cp.array(prep)
     result_list = []
+
     # Iterate over combinations
     for comb in combinations_4:
         # Extract the slices corresponding to the combination
@@ -370,7 +371,9 @@ def create_prep(coord,f_range,n_cams,keypoints_ids,json_tracked_files):
 
     # Stack the combinations into a new dimension
     prep_2 = cp.stack(result_list, axis=2)  # Shape: (184, 22, 6, 4, 3)
+
     return prep_4,prep_3,prep_2
+
 def bilinear_interpolate_cupy(map, x, y):
     """
     Perform bilinear interpolation for CuPy arrays.
@@ -404,7 +407,6 @@ def bilinear_interpolate_cupy(map, x, y):
 
     # Calculate the interpolated value
     return wa * Ia + wb * Ib + wc * Ic + wd * Id
-
 
 def undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2):
     """
@@ -838,7 +840,6 @@ def triangulate_all(coord,config):
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_idx = list(range(len(keypoints_ids)))
     keypoints_nb = len(keypoints_ids)
-    
     # 2d-pose files selection
     pose_listdirs_names = next(os.walk(pose_dir))[1]
     pose_listdirs_names = natural_sort(pose_listdirs_names)

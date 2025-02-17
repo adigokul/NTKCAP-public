@@ -459,11 +459,14 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     #plt.savefig(f'{post_analysis_dir}/Heel_segment.png')
     if title !='False':
         plt.savefig(os.path.join(dir_task,'post_analysis','Find Heel Strike'  +title+ '.png'))
+    if L_locs_possible_min_p[:1]<L_locs_possible_min_n[:1]:
+        L_locs_possible_min_p = R_locs_possible_min_p[1:]
+    if R_locs_possible_min_p[:1]<R_locs_possible_min_n[:1]:
+        R_locs_possible_min_p = L_locs_possible_min_p[1:]
     frame_R_heel_sground = np.concatenate((R_locs_possible_min_n[:1], R_locs_possible_min_p))
     frame_L_heel_sground = np.concatenate((L_locs_possible_min_n[:1], L_locs_possible_min_p))
     frame_R_heel_lground = R_locs_possible_min_n 
     frame_L_heel_lground = L_locs_possible_min_n 
-    
     return frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground
 def initial_read_data(IK_dir,trc_dir,dir_task,title):
     
@@ -1396,8 +1399,8 @@ def ankle_flexion_analysis(angle,dir_task,frame_R_heel_sground,frame_R_heel_lgro
         
 
     # Process Left Ankle
+    
     for temp in range(len(frame_L_heel_sground) - 1):
-        maxval = np.max(L_ankle[frame_L_heel_sground[temp]:frame_L_heel_sground[temp+1]])
         locmax = np.argmax(L_ankle[frame_L_heel_sground[temp]:frame_L_heel_sground[temp+1]])
         loc_max_finalL.append(locmax + frame_L_heel_sground[temp])
         
@@ -1691,8 +1694,7 @@ def gait1_show(dir_calculated):
         
         IK_dir = os.path.join(dir_task, 'opensim', 'Balancing_for_IK_BODY.mot')
         trc_dir = os.path.join(dir_task, 'opensim', 'Empty_project_filt_0-30.trc')
-        data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)
-        #import pdb;pdb.set_trace()    
+        data,angle,cm ,vr30, vl30,vcm30,frame_R_heel_sground,frame_L_heel_sground,frame_R_heel_lground,frame_L_heel_lground =initial_read_data(IK_dir,trc_dir,dir_task,title)    
         #AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL = 0,0,0,0,0,0
         AUC_R,AUC_L,vertical_maxR,vertical_minR,vertical_maxL,vertical_minL =COM_analysis(cm,frame_R_heel_sground,dir_task,title)
         rms_final_steady,rms_start_end,rms_All,max_mean_velocity=Speed_analysis(vcm30,frame_R_heel_lground,frame_L_heel_lground ,dir_task,title)
@@ -1757,5 +1759,5 @@ def gait1_dictoutput(IK_dir,trc_dir,output_dir):
 
 ######Ignored Here
 
-# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\1006_justin\2024_12_06\2024_12_06_10_51_calculated'
+# dir_calculated = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare035\2024_12_07\2025_02_17_18_23_calculated'
 # gait1(dir_calculated)

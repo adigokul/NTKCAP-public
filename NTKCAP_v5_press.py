@@ -17,7 +17,7 @@ from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
-from GUI_source.VideoPlayer import VideoPlayer        
+from GUI_source.VideoPlayer import VideoPlayer
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -655,14 +655,15 @@ class MainWindow(QMainWindow):
         else:
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
-            # self.closeCamera()
+            self.closeCamera()
             self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
             self.marker_calculate_process.start()
+            
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
             self.timer_marker_calculate.start(1000)
-    # Calculation tab 
+    # Calculation tab
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
             self.cal_select_depth -= 1
