@@ -655,13 +655,20 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
             x.append(P0_dot_Q / P2_dot_Q)
             y.append(P1_dot_Q / P2_dot_Q)
             dist.append(cp.sqrt(cp.sum((Q4[:, :, i, 0:3] - cam_coord[d]) ** 2, axis=-1)))
+            
+            
 
+        
+            
         inner_results_stackedx = cp.stack(x, axis=2) 
         final_resultsx.append(inner_results_stackedx)
         inner_results_stackedy = cp.stack(y, axis=2) 
         final_resultsy.append(inner_results_stackedy)
         final_dist.append(cp.stack(dist,axis=2))
 
+
+    
+    
     X = cp.stack(final_resultsx, axis=2)
     Y = cp.stack(final_resultsy, axis=2) 
     final_dist = cp.stack(final_dist,axis = 2)
@@ -675,6 +682,9 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
     real_dist  = final_dist*rpj
     real_dist4 = cp.max(real_dist, axis=-1)
 
+
+
+    
     final_resultsx =[]
     final_resultsy =[]
     final_dist = []
@@ -696,13 +706,20 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
             x.append(P0_dot_Q / P2_dot_Q)
             y.append(P1_dot_Q / P2_dot_Q)
             dist.append(cp.sqrt(cp.sum((Q3_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
+            
+            
 
+        
+            
         inner_results_stackedx = cp.stack(x, axis=2) 
         final_resultsx.append(inner_results_stackedx)
         inner_results_stackedy = cp.stack(y, axis=2) 
         final_resultsy.append(inner_results_stackedy)
         final_dist.append(cp.stack(dist,axis=2))
 
+
+    
+    
     X = cp.stack(final_resultsx, axis=2)
     Y = cp.stack(final_resultsy, axis=2) 
     final_dist = cp.stack(final_dist,axis = 2)
@@ -715,6 +732,12 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
     rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     real_dist  = final_dist*rpj
     real_dist3 = cp.max(real_dist, axis=-1)
+
+
+
+
+    
+    
     final_resultsx =[]
     final_resultsy =[]
     final_dist = []
@@ -735,12 +758,20 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
             x.append(P0_dot_Q / P2_dot_Q)
             y.append(P1_dot_Q / P2_dot_Q)
             dist.append(cp.sqrt(cp.sum((Q2_bug[:, :, 0, 0:3] - cam_coord[d]) ** 2, axis=-1)))
+            
+            
 
+        
+            
         inner_results_stackedx = cp.stack(x, axis=2) 
         final_resultsx.append(inner_results_stackedx)
         inner_results_stackedy = cp.stack(y, axis=2) 
         final_resultsy.append(inner_results_stackedy)
         final_dist.append(cp.stack(dist,axis=2))
+
+
+    
+    
     X = cp.stack(final_resultsx, axis=2)
     Y = cp.stack(final_resultsy, axis=2) 
     final_dist = cp.stack(final_dist,axis = 2)

@@ -11,12 +11,19 @@ from mmdeploy_runtime import PoseTracker
 import copy
 import sys
 import os
+import cupy as cp
 import cv2
 import time
 import numpy as np
 from collections import deque
 import asyncio
 from anytree import Node, RenderTree
+import glob
+
+from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
+euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1,find_camera_coordinate
+from Pose2Sim.skeletons import *
+
 '''
 找問題 : # !!!!
 version : cap.read -> sync -> tracker -> update label + triangulation
@@ -50,58 +57,6 @@ palette = VISUALIZATION_CFG['halpe26']['palette']
 skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
 link_color = VISUALIZATION_CFG['halpe26']['link_color']
 point_color = VISUALIZATION_CFG['halpe26']['point_color']
-
-class Triangulation(Process):
-    def __init__(self, keypoints_sync_shm_name, sync_tracker_queue, start_evt, stop_evt, config, *args, **kwargs):
-        super().__init__()
-        self.keypoints_sync_shm_name = keypoints_sync_shm_name
-        self.sync_tracker_queue = sync_tracker_queue
-        self.buffer_length = 20
-        self.keypoints_sync_shm_shape = (4, 1, 26, 3)
-        self.start_evt = start_evt
-        self.stop_evt = stop_evt
-        self.config_dict = config
-        pose_model = self.config_dict.get('pose').get('pose_model')
-        model = eval(pose_model)
-        self.keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
-    def run(self):
-        existing_shm_keypoints = shared_memory.SharedMemory(name=self.keypoints_sync_shm_name)
-        shared_array_keypoints = np.ndarray((self.buffer_length,) + self.keypoints_sync_shm_shape, dtype=np.float32, buffer=existing_shm_keypoints.buf)
-        self.start_evt.wait()
-        idx = 0
-        while self.start_evt.is_set():
-            try:
-                idx_get = self.sync_tracker_queue.get(timeout=0.03)
-            except:
-                time.sleep(0.01)
-                continue
-            keypoints = shared_array_keypoints[idx_get, : ] # shape = (4, 1, 26, 3)
-            combinations_4 = [[0, 1, 2, 3]]
-            combinations_3 = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
-            combinations_2 = [[2, 3], [1, 3], [1, 2], [0, 3], [0, 2], [0, 1]]
-            x_files, y_files, likelihood_files = [], [], []
-            for cam_nb in range(4):
-                x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
-                js = keypoints[cam_nb][0]
-                for keypoint_id in self.keypoints_ids:
-                    try:
-                        x_files_cam.append(js[keypoint_id*3])
-                        y_files_cam.append(js[keypoint_id*3+1] )
-                        likelihood_files_cam.append(js[keypoint_id*3+2])
-                    except:
-                        x_files_cam.append(np.array(0))
-                        y_files_cam.append(np.array(0))
-                        likelihood_files_cam.append(np.array(0))
-                x_files.append(x_files_cam)
-                y_files.append(y_files_cam)
-                likelihood_files.append(likelihood_files_cam)
-            x_files = np.array(x_files)
-            y_files = np.array(y_files)
-            likelihood_files = np.array(likelihood_files)
-            arrays = [x_files, y_files, likelihood_files]
-            stacked = np.stack(arrays, axis=0)
-            result = np.transpose(stacked, (2, 1, 0))
-            # triangulation
 
 class PreTri_Process(Process):
     def __init__(self, sync_tracker_shm_name0, sync_tracker_shm_name1, sync_tracker_shm_name2, sync_tracker_shm_name3, sync_tracker_queue_lst, keypoints_sync_shm_name, sync_tracker_queue, start_evt, stop_evt, *args, **kwargs):
@@ -456,7 +411,154 @@ class CameraProcess(Process):
             self.cam_q.put(idx)
             idx = (idx+1) % self.buffer_length
             
+class Triangulation(Process):
+    def __init__(self, keypoints_sync_shm_name, sync_tracker_queue, start_evt, stop_evt, config, *args, **kwargs):
+        super().__init__()
+        self.keypoints_sync_shm_name = keypoints_sync_shm_name
+        self.sync_tracker_queue = sync_tracker_queue
+        self.buffer_length = 20
+        self.keypoints_sync_shm_shape = (4, 1, 26, 3)
+        self.start_evt = start_evt
+        self.stop_evt = stop_evt
+        self.config_dict = config
+        pose_model = self.config_dict.get('pose').get('pose_model')
+        model = eval(pose_model)
+        self.keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
+        calib_folder_name = self.config_dict.get('project').get('calib_folder_name')
+        calib_dir = os.path.join(os.getcwd(), calib_folder_name)
+        calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0]
+        self.P = computeP(calib_file)
+        mappingx, mappingy = computemap(calib_file)
+        self.mappingx = cp.array(mappingx)
+        self.mappingy = cp.array(mappingy)
+    def run(self):
+        existing_shm_keypoints = shared_memory.SharedMemory(name=self.keypoints_sync_shm_name)
+        shared_array_keypoints = np.ndarray((self.buffer_length,) + self.keypoints_sync_shm_shape, dtype=np.float32, buffer=existing_shm_keypoints.buf)
+        self.start_evt.wait()
+        idx = 0
+        while self.start_evt.is_set():
+            try:
+                idx_get = self.sync_tracker_queue.get(timeout=0.03)
+            except:
+                time.sleep(0.01)
+                continue
+            keypoints = shared_array_keypoints[idx_get, : ] # shape = (4, 1, 26, 3)
+            #prep = keypoints.squeeze(axis=1) # shape = (4, 26, 3)
+            combinations_4 = [[0, 1, 2, 3]]
+            combinations_3 = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
+            combinations_2 = [[2, 3], [1, 3], [1, 2], [0, 3], [0, 2], [0, 1]]
+            x_files, y_files, likelihood_files = [], [], []
+            for cam_nb in range(4):
+                x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
+                js = keypoints[cam_nb][0]
+                for keypoint_id in self.keypoints_ids:
+                    try:
+                        x_files_cam.append(js[keypoint_id*3])
+                        y_files_cam.append(js[keypoint_id*3+1] )
+                        likelihood_files_cam.append(js[keypoint_id*3+2])
+                    except:
+                        x_files_cam.append(np.array(0))
+                        y_files_cam.append(np.array(0))
+                        likelihood_files_cam.append(np.array(0))
+                x_files.append(x_files_cam)
+                y_files.append(y_files_cam)
+                likelihood_files.append(likelihood_files_cam)
+            x_files = np.array(x_files)
+            y_files = np.array(y_files)
+            likelihood_files = np.array(likelihood_files)
+            arrays = [x_files, y_files, likelihood_files]
+            stacked = np.stack(arrays, axis=0)
+            result = np.transpose(stacked, (2, 1, 0)) # shape: (22, 4, 3)
+            prep = cp.array(result)
+            result_list = []
+            for comb in combinations_4:
+                combined = prep[:, comb, :]  # Shape: (22, 4, 3)
+                result_list.append(combined)
+            prep_4 = cp.stack(result_list, axis=1)
+            result_list = []
+            for comb in combinations_3:
+                combined = prep[:, comb, :]  # Shape: (22, 3, 3)
+                result_list.append(combined)
+            prep_3 = cp.stack(result_list, axis=1)
+            result_list = []
+            for comb in combinations_2:
+                combined = prep[:, comb, :]  # Shape: (22, 2, 3)
+                result_list.append(combined)
+            prep_2 = cp.stack(result_list, axis=1)
+            prep_4,prep_3,prep_2 = self.undistort_points_cupy(self.mappingx, self.mappingy, prep_4,prep_3,prep_2)
+            prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
+            prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
+            prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
+            # triangulation
+    def undistort_points_cupy(self, mappingx, mappingy, prep_4,prep_3,prep_2):
+        
+        x = prep_4[:, :, :, 0]  # Shape: (155, 22, 4, 3)
+        y = prep_4[:, :, :, 1]  # Shape: (155, 22, 4, 3)
+        likelihood = prep_4[:, :, :, 2]  # Shape: (155, 22, 4, 3)
 
+        # Perform bilinear interpolation on x and y
+        x_undistorted = self.bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+        y_undistorted = self.bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+        # Combine results into a single array
+        prep_4 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+
+
+        # Extract x, y, and likelihood values
+        x = prep_3[:, :, :, 0]  # Shape: (155, 22, 4, 3)
+        y = prep_3[:, :, :, 1]  # Shape: (155, 22, 4, 3)
+        likelihood = prep_3[:, :, :, 2]  # Shape: (155, 22, 4, 3)
+
+        # Perform bilinear interpolation on x and y
+        x_undistorted = self.bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+        y_undistorted = self.bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+        # Combine results into a single array
+        prep_3 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+
+
+        x = prep_2[:, :, :, 0]  # Shape: (155, 22, 4, 3)
+        y = prep_2[:, :, :, 1]  # Shape: (155, 22, 4, 3)
+        likelihood = prep_2[:, :, :, 2]  # Shape: (155, 22, 4, 3)
+
+        # Perform bilinear interpolation on x and y
+        x_undistorted = self.bilinear_interpolate_cupy(mappingx, x, y)  # Shape: (155, 22, 4, 3)
+        y_undistorted = self.bilinear_interpolate_cupy(mappingy, x, y)  # Shape: (155, 22, 4, 3)
+
+        # Combine results into a single array
+        prep_2 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+        return prep_4,prep_3,prep_2
+    def bilinear_interpolate_cupy(map, x, y):
+        """
+        Perform bilinear interpolation for CuPy arrays.
+        map: The 2D CuPy array on which interpolation is performed.
+        x: x-coordinates (float) for interpolation.
+        y: y-coordinates (float) for interpolation.
+        """
+        # Get integer coordinates surrounding the point
+        x0 = cp.floor(x).astype(cp.int32)
+        y0 = cp.floor(y).astype(cp.int32)
+        # Ensure coordinates are within bounds
+        x0 = cp.clip(x0,0, map.shape[1] - 2)
+        y0 = cp.clip(y0,0, map.shape[0] - 2)
+
+        x1 = x0 + 1
+        y1 = y0 + 1
+
+        # Use cp.take_along_axis for advanced indexing
+        Ia = map[y0, x0]
+        Ib = map[y0, x1]
+        Ic = map[y1, x0]
+        Id = map[y1, x1]
+
+        # Interpolation weights
+        wa = (x1 - x) * (y1 - y)
+        wb = (x - x0) * (y1 - y)
+        wc = (x1 - x) * (y - y0)
+        wd = (x - x0) * (y - y0)
+
+        # Calculate the interpolated value
+        return wa * Ia + wb * Ib + wc * Ic + wd * Id
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()

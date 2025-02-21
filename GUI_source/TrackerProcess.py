@@ -88,7 +88,7 @@ VISUALIZATION_CFG = dict(
     )
 )
 det_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-nano")
-pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
+pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-t")
 device ="cuda"
 
 sigmas = VISUALIZATION_CFG['halpe26']['sigmas']

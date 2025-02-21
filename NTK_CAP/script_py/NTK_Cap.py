@@ -933,7 +933,7 @@ def mp_marker_calculate(PWD, calculate_path_list):
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
         folder_calculated =marker_caculate_fast(PWD, cal_folder_path)
-        #folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
+        # folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
 def marker_caculate(PWD,cal_data_path, gait_token=None):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
     ori_path = PWD

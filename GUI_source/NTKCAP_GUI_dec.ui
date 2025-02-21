@@ -534,6 +534,13 @@ QPushButton:pressed {
            <widget class="QListWidget" name="result_cal_task"/>
           </item>
           <item>
+           <widget class="QPushButton" name="btn_result_refresh">
+            <property name="text">
+             <string>Refresh</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <layout class="QVBoxLayout" name="verticalLayout_7">
             <item>
              <widget class="QLabel" name="label_result_patient_id">

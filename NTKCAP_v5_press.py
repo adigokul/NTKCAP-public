@@ -98,6 +98,8 @@ class MainWindow(QMainWindow):
         self.timer_apose = QTimer()
         self.timer_apose.timeout.connect(self.check_apose_finish)
         # Show result
+        self.btn_result_refresh = self.findChild(QPushButton, "btn_result_refresh")
+        self.btn_result_refresh.clicked.connect(self.result_load_folders)
         self.widget_gait_figure = self.findChild(QWidget, "widget_gait_figure")
         pg.setConfigOption('background', 'w') # White background
         pg.setConfigOption('foreground', 'k') # Set text and grid to black
@@ -656,13 +658,14 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
-            self.marker_calculate_process.start()
+            mp_marker_calculate(cur_dir, cal_list)
+            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
+            # self.marker_calculate_process.start()
             
-            self.cal_select_list = []
-            self.label_calculation_status.setText("Calculating")
-            self.btn_cal_start_cal.setEnabled(False)
-            self.timer_marker_calculate.start(1000)
+            # self.cal_select_list = []
+            # self.label_calculation_status.setText("Calculating")
+            # self.btn_cal_start_cal.setEnabled(False)
+            # self.timer_marker_calculate.start(1000)
     # Calculation tab
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:

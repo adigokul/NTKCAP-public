@@ -1077,11 +1077,11 @@ def add_frame_from_video(video_full_path,output_video):
     out.release()
     cap.release
 
-video_folder=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\raw_data\1\videos'
-cam_num = 4
-opensim_folder = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\opensim'
-out_json =r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\pose-2d'
-rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
+# video_folder=r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\raw_data\1\videos'
+# cam_num = 4
+# opensim_folder = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\opensim'
+# out_json =r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\v5\2025_02_13\2025_02_13_17_19_calculated\1\pose-2d'
+# rtm_coord = timesync2rtm(video_folder,cam_num,opensim_folder,out_json)
 # with open(r"C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\multi_1p_exhibitiontest\2024_10_23\2024_11_28_17_54_calculated\outside4\my_list.json", "w") as f:
 #     json.dump(rtm_coord, f)
 
