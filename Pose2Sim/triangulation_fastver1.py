@@ -633,7 +633,7 @@ def find_real_dist_error(P,cam_coord,prep_4,Q4,prep_3,Q3,prep_2,Q2,Q3_bug,Q2_bug
     combinations_4 = [elements]  # No deletions
     combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
     combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements       
-            # Compute the first part
+    # Compute the first part
     
     final_resultsx =[]
     final_resultsy =[]

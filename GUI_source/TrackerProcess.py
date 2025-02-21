@@ -2,6 +2,7 @@ import os
 import cv2
 import time
 import numpy as np
+import cupy as cp
 from mmdeploy_runtime import PoseTracker
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
 VISUALIZATION_CFG = dict(

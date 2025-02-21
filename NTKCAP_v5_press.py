@@ -18,7 +18,7 @@ from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-
+from GUI_source.DevelopVersion.real_time_testmod import tri
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -502,7 +502,8 @@ class MainWindow(QMainWindow):
         )
         self.camera_proc_lst.append(p4)
         self.update()
-        
+        self.p5 = Process(target=tri)
+        self.p5.start()
         for i in range(4):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
@@ -549,6 +550,7 @@ class MainWindow(QMainWindow):
             if process.is_alive():
                 process.terminate()
                 process.join()
+        self.p5.terminate()
         self.camera_proc_lst.clear()
         self.tracker_proc_lst.clear()
         self.camera_opened = False

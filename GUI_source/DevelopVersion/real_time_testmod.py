@@ -11,6 +11,9 @@ import time
 from Pose2Sim.skeletons import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+cp.cuda.Device(0).use()
+dummy = cp.array([1, 2, 3, 4])
+dummy.sum()
 def extract_files_frame_f_fast(f,coord, keypoints_ids):
     '''
     Extract data from json files for frame f, 
@@ -492,7 +495,7 @@ def map_to_listdynamic(value):
         return [5,6,7,8,9,10]  # Map 3 to [1, 2, 3, 4]
     elif value == 2:
         return []  # Map 2 to [5, 6, 7, 8, 9, 10]
-def main():
+def tri():
     
     cal_path = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_18_00_02_calculated\1005_1\pose-2d-tracked"
     template = ["pose_cam1_json", "pose_cam2_json", "pose_cam3_json", "pose_cam4_json"]
@@ -566,84 +569,87 @@ def main():
         cp.stack([cp.concatenate([P[d][j].reshape(1, -1) for d in combinations_2[i]], axis=0) for j in range(3)], axis=0)
         for i in range(6)
     ], axis=0)
-    while True:
-        for f in range(133):
-            c1 = np.array(coord1[f]['people'][0]['pose_keypoints_2d'])
-            c2 = np.array(coord2[f]['people'][0]['pose_keypoints_2d'])
-            c3 = np.array(coord3[f]['people'][0]['pose_keypoints_2d'])
-            c4 = np.array(coord4[f]['people'][0]['pose_keypoints_2d'])
-            arr1 = c1.reshape(26, 3)
-            arr2 = c2.reshape(26, 3)
-            arr3 = c3.reshape(26, 3)
-            arr4 = c4.reshape(26, 3)
-            t1 = time.time()
-            stacked = np.stack([arr1, arr2, arr3, arr4], axis=0)
-            
-            prep = stacked[:, keypoints_ids, :]
-            result = cp.array(np.transpose(prep, (1, 0, 2)))
-            prep_4 = cp.expand_dims(result, axis=1) # shape = (22, 1, 4, 3)
-            
-            prep_4 = cp.expand_dims(prep_4, axis=0)
-            result_list = []
-            for comb in combinations_3:
-                combined = result[:, comb, :]
-                result_list.append(combined)
-            
-            prep_3 = cp.stack(result_list, axis=1) # shape = (22, 4, 3, 3)
-            prep_3 = cp.expand_dims(prep_3, axis=0)
-            result_list = []
-            for comb in combinations_2:
-                combined = result[:, comb, :]
-                result_list.append(combined)
-            prep_2 = cp.stack(result_list, axis=1) # shape = (22, 6, 2, 3)
-            prep_2 = cp.expand_dims(prep_2, axis=0)
-            
-            
-            prep_4,prep_3,prep_2 =undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2)
-            prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
-            prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
-            prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
-            prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
-            
-            A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
-            
-            Q4,Q3,Q2 =find_Q(A4,A3,A2)
-            
-            Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
-            Q3_bug,Q2_bug=create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
-            
+    stream_cupy = cp.cuda.Stream(non_blocking=True)
+    with stream_cupy:
+        while True:
+            for f in range(133):
+                c1 = np.array(coord1[f]['people'][0]['pose_keypoints_2d'])
+                c2 = np.array(coord2[f]['people'][0]['pose_keypoints_2d'])
+                c3 = np.array(coord3[f]['people'][0]['pose_keypoints_2d'])
+                c4 = np.array(coord4[f]['people'][0]['pose_keypoints_2d'])
+                arr1 = c1.reshape(26, 3)
+                arr2 = c2.reshape(26, 3)
+                arr3 = c3.reshape(26, 3)
+                arr4 = c4.reshape(26, 3)
+                
+                stacked = np.stack([arr1, arr2, arr3, arr4], axis=0)
+                t1 = time.time()
+                prep = stacked[:, keypoints_ids, :]
+                result = cp.array(np.transpose(prep, (1, 0, 2)))
+                prep_4 = cp.expand_dims(result, axis=1) # shape = (22, 1, 4, 3)
+                
+                prep_4 = cp.expand_dims(prep_4, axis=0)
+                result_list = []
+                for comb in combinations_3:
+                    combined = result[:, comb, :]
+                    result_list.append(combined)
+                
+                prep_3 = cp.stack(result_list, axis=1) # shape = (22, 4, 3, 3)
+                prep_3 = cp.expand_dims(prep_3, axis=0)
+                result_list = []
+                for comb in combinations_2:
+                    combined = result[:, comb, :]
+                    result_list.append(combined)
+                prep_2 = cp.stack(result_list, axis=1) # shape = (22, 6, 2, 3)
+                prep_2 = cp.expand_dims(prep_2, axis=0)
+                
+                
+                prep_4,prep_3,prep_2 =undistort_points_cupy(mappingx, mappingy, prep_4,prep_3,prep_2)
+                prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
+                prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
+                prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
+                prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
+                
+                A4,A3,A2 = create_A(prep_4,prep_3,prep_2,P)
+                
+                Q4,Q3,Q2 =find_Q(A4,A3,A2)
+                
+                Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
+                Q3_bug,Q2_bug=create_QBug(likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
+                
 
-            real_dist4, real_dist3, real_dist2 = find_real_dist_error(P, cam_coord, prep_4, Q4, prep_3, Q3, prep_2, Q2, Q3_bug, Q2_bug, P_cam_comb4, P_cam_comb3, comb_3, P_cam_comb2, comb_2)
-            
-            ## delete the liklelihoood vlue which is too low
-            real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
-            loc = cp.where(prep_like < likelihood_threshold)
-            #import pdb;pdb.set_trace()
-            real_dist[loc] = cp.inf
-            # Find the index of the first non-inf element along axis 2
-            
-            non_inf_mask = ~cp.isinf(real_dist)
-            min_locations_nan = cp.argmax(non_inf_mask, axis=2)
-            real_dist_dynamic = cp.copy(real_dist)
-            list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-            list_dynamic_mincam_prep = [map_to_listdynamic(value) for value in list_dynamic_mincam.values()]
-            ## setting the list dynamic
-            
-            for i in range(22):    
-                real_dist_dynamic[:,i,list_dynamic_mincam_prep[i]] = cp.inf
-            
-            ## find the minimum combination
-            temp_shape = cp.shape(Q)
-            checkinf = cp.min(real_dist_dynamic,axis =2)
-            min_locations = cp.argmin(real_dist_dynamic, axis=2)
-            loc =cp.where(checkinf==cp.inf)
-            min_locations[loc] = min_locations_nan[loc]
-            batch_indices, time_indices = cp.meshgrid(cp.arange(temp_shape[0]), cp.arange(temp_shape[1]), indexing='ij')
-            Q_selected = Q[batch_indices, time_indices, min_locations]
-            Q_selected = Q_selected[:,:,0:3]
-            Q_selected = cp.asnumpy(Q_selected)
-            Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
-            print(time.time()-t1)
+                real_dist4, real_dist3, real_dist2 = find_real_dist_error(P, cam_coord, prep_4, Q4, prep_3, Q3, prep_2, Q2, Q3_bug, Q2_bug, P_cam_comb4, P_cam_comb3, comb_3, P_cam_comb2, comb_2)
+                
+                ## delete the liklelihoood vlue which is too low
+                real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
+                loc = cp.where(prep_like < likelihood_threshold)
+                #import pdb;pdb.set_trace()
+                real_dist[loc] = cp.inf
+                # Find the index of the first non-inf element along axis 2
+                
+                non_inf_mask = ~cp.isinf(real_dist)
+                min_locations_nan = cp.argmax(non_inf_mask, axis=2)
+                real_dist_dynamic = cp.copy(real_dist)
+                list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
+                list_dynamic_mincam_prep = [map_to_listdynamic(value) for value in list_dynamic_mincam.values()]
+                ## setting the list dynamic
+                
+                for i in range(22):    
+                    real_dist_dynamic[:,i,list_dynamic_mincam_prep[i]] = cp.inf
+                
+                ## find the minimum combination
+                temp_shape = cp.shape(Q)
+                checkinf = cp.min(real_dist_dynamic,axis =2)
+                min_locations = cp.argmin(real_dist_dynamic, axis=2)
+                loc =cp.where(checkinf==cp.inf)
+                min_locations[loc] = min_locations_nan[loc]
+                batch_indices, time_indices = cp.meshgrid(cp.arange(temp_shape[0]), cp.arange(temp_shape[1]), indexing='ij')
+                Q_selected = Q[batch_indices, time_indices, min_locations]
+                Q_selected = Q_selected[:,:,0:3]
+                Q_selected = cp.asnumpy(Q_selected)
+                Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
+                print(time.time()-t1)
+    stream_cupy.synchronize()
     #         ax.cla()  # 清除當前圖表
     #         points = Q_tot_gpu[0].reshape(22, 3)
     #         x, y, z = points[:, 0], points[:, 1], points[:, 2]
@@ -667,4 +673,4 @@ def main():
             
     # plt.ioff()
 
-main()
+# tri()
