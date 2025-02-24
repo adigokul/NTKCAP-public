@@ -5,9 +5,20 @@ import os
 import cv2
 import time
 import numpy as np
-import copy
 VISUALIZATION_CFG = dict(
     halpe26=dict(
+        skeleton=[(15,13), (13,11), (11,19),(16,14), (14,12), (12,19),
+                  (17,18), (18,19), (18,5), (5,7), (7,9), (18,6), (6,8),
+                  (8,10), (1,2), (0,1), (0,2), (1,3), (2,4), (3,5), (4,6),
+                  (15,20), (15,22), (15,24),(16,21),(16,23), (16,25)],
+        # palette=[(51,153,255), (0,255,0), (255,128,0)],
+        palette=[(128,128,128), (51,153,255), (192,192,192)],
+        link_color=[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
+        point_color=[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ],
         sigmas=[
             0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
             0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
@@ -19,9 +30,12 @@ pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", 
 device ="cuda"
 
 sigmas = VISUALIZATION_CFG['halpe26']['sigmas']
-
+palette = VISUALIZATION_CFG['halpe26']['palette']
+skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
+link_color = VISUALIZATION_CFG['halpe26']['link_color']
+point_color = VISUALIZATION_CFG['halpe26']['point_color']
 class Tracker_Process(Process):
-    def __init__(self, group_id, sync_frame_shm_name, sync_frame_queue, sync_tracker_shm_name1, sync_tracker_queue1, sync_tracker_shm_name2, sync_tracker_queue2, sync_frame_show_shm_name1, draw_frame_queue1, sync_frame_show_shm_name2, draw_frame_queue2, sync_tracker_show_shm_name1, sync_tracker_show_shm_name2, start_evt, stop_evt, *args, **kwargs):
+    def __init__(self, group_id, sync_frame_shm_name, sync_frame_queue, sync_tracker_shm_name1, sync_tracker_queue1, sync_tracker_shm_name2, sync_tracker_queue2, sync_frame_show_shm_name1, draw_frame_queue1, sync_frame_show_shm_name2, draw_frame_queue2, start_evt, stop_evt, *args, **kwargs):
         super().__init__()
         self.group_id = group_id
 
@@ -37,9 +51,6 @@ class Tracker_Process(Process):
         self.draw_frame_queue1 = draw_frame_queue1
         self.sync_frame_show_shm_name2 = sync_frame_show_shm_name2
         self.draw_frame_queue2 = draw_frame_queue2
-
-        self.sync_tracker_show_shm_name1 = sync_tracker_show_shm_name1
-        self.sync_tracker_show_shm_name2 = sync_tracker_show_shm_name2
 
         self.start_evt = start_evt
         self.stop_evt = stop_evt
@@ -67,11 +78,6 @@ class Tracker_Process(Process):
         shared_array_frame_show2 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame_show2.buf)
         keypoints_template = np.full((1, 26, 3), np.nan, dtype=np.float32)
         
-        existing_shm_tracker_show1 = shared_memory.SharedMemory(name=self.sync_tracker_show_shm_name1)
-        shared_array_tracker_show1 = np.ndarray((self.buffer_length,) + self.tracker_shm_shape, dtype=np.float32, buffer=existing_shm_tracker_show1.buf)
-        existing_shm_tracker_show2 = shared_memory.SharedMemory(name=self.sync_tracker_show_shm_name2)
-        shared_array_tracker_show2 = np.ndarray((self.buffer_length,) + self.tracker_shm_shape, dtype=np.float32, buffer=existing_shm_tracker_show2.buf)
-        
         idx, idx_show = 0, 0
         self.start_evt.wait()
         while self.start_evt.is_set():
@@ -85,23 +91,44 @@ class Tracker_Process(Process):
             frame2 = frames[1]
             keypoints1, _ = tracker(state, frame1, detect=-1)[:2]
             keypoints2, _ = tracker(state, frame2, detect=-1)[:2]
-            if keypoints1.shape == (0, 0, 3):
-                keypoints1 = copy.deepcopy(keypoints_template)
+            if keypoints1.shape == (0, 0, 3): 
+                np.copyto(shared_array_tracker1[idx, :], keypoints_template)
+            else:
+                np.copyto(shared_array_tracker1[idx, :], keypoints1)
             if keypoints2.shape == (0, 0, 3):
-                keypoints2 = copy.deepcopy(keypoints_template)
-            np.copyto(shared_array_tracker1[idx, :], keypoints1)
-            np.copyto(shared_array_tracker2[idx, :], keypoints2)
+                np.copyto(shared_array_tracker2[idx, :], keypoints_template)
+            else:
+                np.copyto(shared_array_tracker2[idx, :], keypoints2)
             # print("Tracker", self.cam_id, count)
             self.sync_tracker_queue1.put(idx)
             self.sync_tracker_queue2.put(idx)
             idx = (idx+1) % self.buffer_length
             
+            scores1 = keypoints1[..., 2]
+            keypoints1 = np.round(keypoints1[..., :2], 3)
+            self.draw_frame(frame1, keypoints1, scores1, palette, skeleton, link_color, point_color)
             np.copyto(shared_array_frame_show1[idx_show,:], frame1)
-            np.copyto(shared_array_frame_show2[idx_show,:], frame2)
-            np.copyto(shared_array_tracker_show1[idx_show, :], keypoints1)
-            np.copyto(shared_array_tracker_show2[idx_show, :], keypoints2)
-    
             self.draw_frame_queue1.put(idx_show)
+            
+            scores2 = keypoints2[..., 2]
+            keypoints2 = np.round(keypoints2[..., :2], 3)
+            
+            self.draw_frame(frame2, keypoints2, scores2, palette, skeleton, link_color, point_color)
+            np.copyto(shared_array_frame_show2[idx_show,:], frame2)
             self.draw_frame_queue2.put(idx_show)
             
             idx_show = (idx_show+1) % self.buffer_length
+            
+    def draw_frame(self, frame, keypoints, scores, palette, skeleton, link_color, point_color):
+        keypoints = keypoints.astype(int)
+        # cv2.putText(frame, (10, 250), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+        for kpts, score in zip(keypoints, scores):
+            show = [1] * len(kpts)
+            for (u, v), color in zip(skeleton, link_color):
+                if score[u] > 0.5 and score[v] > 0.5:
+                    cv2.line(frame, kpts[u], tuple(kpts[v]), palette[color], 2, cv2.LINE_AA)
+                else:
+                    show[u] = show[v] = 0
+            for kpt, show, color in zip(kpts, show, point_color):
+                if show:
+                    cv2.circle(frame, kpt, 1, palette[color], 2, cv2.LINE_AA)
