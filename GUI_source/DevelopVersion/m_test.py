@@ -652,17 +652,6 @@ def tri():
             
     # plt.ioff()
 import cupy as cp
-import threading
-import time
+props = cp.cuda.runtime.getDeviceProperties(0)
+print("MultiProcessor Count:", props['multiProcessorCount'])
 
-def keep_gpu_awake(interval=1):
-    while True:
-        # Perform a lightweight query. For example, get device properties.
-        _ = cp.cuda.runtime.getDeviceProperties(0)
-        time.sleep(interval)
-
-# Start the background thread as a daemon so it doesn't block program exit.
-awake_thread = threading.Thread(target=keep_gpu_awake, args=(1,), daemon=True)
-awake_thread.start()
-
-tri()

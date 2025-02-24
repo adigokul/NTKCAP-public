@@ -18,7 +18,7 @@ from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-from GUI_source.DevelopVersion.real_time_testmod import tri
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -502,8 +502,7 @@ class MainWindow(QMainWindow):
         )
         self.camera_proc_lst.append(p4)
         self.update()
-        self.p5 = Process(target=tri)
-        self.p5.start()
+        
         for i in range(4):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
@@ -550,7 +549,7 @@ class MainWindow(QMainWindow):
             if process.is_alive():
                 process.terminate()
                 process.join()
-        self.p5.terminate()
+
         self.camera_proc_lst.clear()
         self.tracker_proc_lst.clear()
         self.camera_opened = False
@@ -660,14 +659,14 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            mp_marker_calculate(cur_dir, cal_list)
-            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
-            # self.marker_calculate_process.start()
             
-            # self.cal_select_list = []
-            # self.label_calculation_status.setText("Calculating")
-            # self.btn_cal_start_cal.setEnabled(False)
-            # self.timer_marker_calculate.start(1000)
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
+            self.marker_calculate_process.start()
+            
+            self.cal_select_list = []
+            self.label_calculation_status.setText("Calculating")
+            self.btn_cal_start_cal.setEnabled(False)
+            self.timer_marker_calculate.start(1000)
     # Calculation tab
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
