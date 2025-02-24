@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self.sync_frame_shm_lst = []
         self.sync_frame_show_shm_lst = []
         self.threads = []
+        self.tracker_sync_draw_shm_lst = []
         self.keypoints_sync_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.keypoints_sync_shm_shape) * np.dtype(np.float32).itemsize * self.buffer_length)) # for triangulation
         for i in range(4):
             camera_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.camera_shm_shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
@@ -84,8 +85,10 @@ class MainWindow(QMainWindow):
             self.time_stamp_array_lst.append(time_stamp_array)
             tracker_sync_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.tracker_sync_shm_shape) * np.dtype(np.float32).itemsize * self.buffer_length))
             self.tracker_sync_shm_lst.append(tracker_sync_shm)
-            frame_show_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.camera_shm_shape) * np.dtype(np.uint8).itemsize * 10))
+            frame_show_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.camera_shm_shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.sync_frame_show_shm_lst.append(frame_show_shm)
+            tracker_sync_draw_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.tracker_sync_shm_shape) * np.dtype(np.float32).itemsize * self.buffer_length))
+            self.tracker_sync_draw_shm_lst.append(tracker_sync_draw_shm)
             p_camera = CameraProcess(
                 i,
                 self.camera_shm_lst[i].name,
@@ -101,6 +104,7 @@ class MainWindow(QMainWindow):
                 i,
                 self.sync_frame_show_shm_lst[i].name,
                 self.draw_frame_queue[i],
+                self.tracker_sync_draw_shm_lst[i].name,
                 self.start_camera_evt,
                 self.stop_camera_evt
             )
@@ -125,6 +129,8 @@ class MainWindow(QMainWindow):
             self.draw_frame_queue[0],
             self.sync_frame_show_shm_lst[1].name,
             self.draw_frame_queue[1],
+            self.tracker_sync_draw_shm_lst[0].name,
+            self.tracker_sync_draw_shm_lst[1].name,
             self.start_camera_evt,
             self.stop_camera_evt
         )
@@ -141,6 +147,8 @@ class MainWindow(QMainWindow):
             self.draw_frame_queue[2],
             self.sync_frame_show_shm_lst[3].name,
             self.draw_frame_queue[3],
+            self.tracker_sync_draw_shm_lst[2].name,
+            self.tracker_sync_draw_shm_lst[3].name,
             self.start_camera_evt,
             self.stop_camera_evt
         )
@@ -201,6 +209,9 @@ class MainWindow(QMainWindow):
             shm.close()
             shm.unlink()
         for shm in self.sync_frame_show_shm_lst: # 4 update pyqt label
+            shm.close()
+            shm.unlink()
+        for shm in self.tracker_sync_draw_shm_lst:
             shm.close()
             shm.unlink()
         self.keypoints_sync_shm.close() # 1 send to triangulation
