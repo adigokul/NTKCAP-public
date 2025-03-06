@@ -109,9 +109,9 @@ point_color = VISUALIZATION_CFG['halpe26']['point_color']
 cap = cv2.VideoCapture(1)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-ret, frame = cap.read()
-tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+# ##############ret, frame = cap.read()
+# tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
+# state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
 
 def extract_files_frame_f_fast(f,coord, keypoints_ids):
     '''
