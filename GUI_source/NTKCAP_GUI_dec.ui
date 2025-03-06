@@ -37,7 +37,7 @@
      <height>600</height>
     </size>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="2,1">
+   <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="3,1">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="sizePolicy">
@@ -1445,7 +1445,88 @@ QPushButton:pressed {
          </widget>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="10,0">
+          <item>
+           <widget class="QLabel" name="label_subjects">
+            <property name="styleSheet">
+             <string notr="true">QLabel {
+	background-color: rgb(234, 234, 234);
+	font-size: 16px;
+	border-radius: 5px;
+}</string>
+            </property>
+            <property name="text">
+             <string>Subjects</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_multi_subjects_selected_del">
+            <property name="text">
+             <string>Delete</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QListWidget" name="list_widget_multi_record_list">
+          <property name="maximumSize">
+           <size>
+            <width>900</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QListWidget {
+	background-color: rgb(234, 234, 234);
+	border-radius: 5px;
+	border: 1px solid black;
+}</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_15">
+          <item>
+           <widget class="QPushButton" name="btn_multi_person">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>50</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Multiple subjects</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton:enabled {
+	background-color : lightgray;
+	color: black;
+	font-size: 16px;
+	border: 2px solid #2980b9;
+	border-radius: 25px;
+}
+QPushButton:hover{
+	background-color: black;
+	color: white;
+}
+QPushButton:checked{
+	background-color: black;
+	color: white;
+}</string>
+            </property>
+            <property name="text">
+             <string>MP</string>
+            </property>
+           </widget>
+          </item>
           <item>
            <spacer name="horizontalSpacer_5">
             <property name="orientation">
@@ -1481,14 +1562,15 @@ QPushButton:pressed {
             </property>
             <property name="styleSheet">
              <string notr="true">QPushButton:enabled {
-	background-color : black;
-	color: white;
+	background-color : lightgray;
+	color: black;
 	font-size: 16px;
 	border: 2px solid #2980b9;
 	border-radius: 25px;
 }
 QPushButton:hover{
-	background-color: lightgray;
+	background-color: black;
+	color: white;
 }</string>
             </property>
             <property name="text">
@@ -1655,6 +1737,19 @@ QPushButton:pressed {
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_fast_cal">
+        <property name="geometry">
+         <rect>
+          <x>450</x>
+          <y>610</y>
+          <width>111</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Fast calculation</string>
         </property>
        </widget>
       </widget>

@@ -18,7 +18,8 @@ from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-
+from GUI_source.DevelopVersion.real_time_testmod import tri
+os.environ["CUDA_DEVICE_MAX_CONNECTIONS"] = "64"
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -74,6 +75,18 @@ class MainWindow(QMainWindow):
         self.label_cam = {0:self.Camera1, 1:self.Camera2, 2:self.Camera3, 3:self.Camera4}  
         
         # Record task
+        # multi person
+        self.btn_multi_person = self.findChild(QPushButton, "btn_multi_person")
+        self.btn_multi_person.toggled.connect(self.on_multi_person_toggled)
+        self.btn_multi_person.clicked.connect(self.multi_person_mode)
+        self.multi_person = False
+        self.multi_person_record_list = []
+        self.list_widget_multi_record_list = self.findChild(QListWidget, "list_widget_multi_record_list")
+        self.list_widget_multi_record_list.itemDoubleClicked.connect(self.lw_multi_subjects_selected_del_select)
+        self.lw_select_del = None
+        self.btn_multi_subjects_selected_del = self.findChild(QPushButton, "btn_multi_subjects_selected_del")
+        self.btn_multi_subjects_selected_del.clicked.connect(self.lw_multi_subjects_selected_del)
+        self.btn_multi_subjects_selected_del.setEnabled(False)
         self.record_list_widget_patient_id: QListWidget = self.findChild(QListWidget, "list_widget_patient_id_record")
         self.record_list_widget_patient_id.itemDoubleClicked.connect(self.lw_record_select_patientID)
         self.record_select_patientID = None
@@ -150,6 +163,10 @@ class MainWindow(QMainWindow):
         self.result_web_view_widget: QWebEngineView = self.findChild(QWebEngineView, "result_web_view_widget")
         
         # Calculation
+        self.checkBox_fast_cal = self.findChild(QCheckBox, "checkBox_fast_cal")
+        self.checkBox_fast_cal.setChecked(False)
+        self.checkBox_fast_cal.toggled.connect(self.on_fast_calculation)
+        self.fast_cal = False
         self.cal_select_patient_id, self.cal_select_date = None, None
         self.cal_select_depth = 0
         self.listwidget_select_cal_date = self.findChild(QListWidget, "listwidget_select_cal_date")
@@ -198,6 +215,48 @@ class MainWindow(QMainWindow):
         self.label_log.setText("Please select a patient ID")
         self.result_load_folders()
         self.list_widget_patient_task_record.clear()
+    def multi_person_mode(self):
+        reply = QMessageBox.question(
+            self, 
+            "Multi person mode",
+            "Have you completed the Apose of all subjects?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.btn_multi_person.setCheckable(True)
+            self.btn_multi_person.setChecked(True)
+        else:
+            self.btn_multi_person.setCheckable(False)
+            self.btn_multi_person.setChecked(False)
+    def on_multi_person_toggled(self, checked):
+        if checked:
+            self.record_select_patientID = "multi_person"
+            self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+            self.record_enter_task_name.setEnabled(True)
+            self.lw_patient_task_record()
+            self.multi_person = True
+        else:
+            self.record_select_patientID = None
+            self.label_selected_patient.setText(f"Selected patient :")
+            self.record_enter_task_name.setEnabled(False)
+            self.list_widget_patient_task_record.clear()
+            self.multi_person = False
+    def lw_multi_subjects_selected_del_select(self, item):
+        self.lw_select_del = item.text()
+        self.btn_multi_subjects_selected_del.setEnabled(True)
+    
+    def lw_multi_subjects_selected_del(self):
+        self.multi_person_record_list.remove(self.lw_select_del)
+        self.lw_select_del = None
+        self.btn_multi_subjects_selected_del.setEnabled(False)
+        self.lw_multi_subjects_selected_show()
+    def lw_multi_subjects_selected_show(self):
+        self.list_widget_multi_record_list.clear()
+        if self.multi_person_record_list:
+            for item in self.multi_person_record_list:
+
+                self.list_widget_multi_record_list.addItem(item)
+            
     # start record
     def keyPressEvent(self, event):
         if (self.record_enter_task_name_kb_listen) and (event.key() == 16777220):
@@ -236,17 +295,24 @@ class MainWindow(QMainWindow):
         else:
             self.label_log.setText("No tasks recorded today")
     def lw_record_select_patientID(self, item):
-        self.record_select_patientID = item.text()
-        self.record_enter_task_name.setEnabled(True)
-        self.btn_Apose_record.setEnabled(True)
-        self.record_task_name = None
-        self.lw_patient_task_record()
-        self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+        if self.multi_person:
+            if item.text() != 'multi_person':
+                self.multi_person_record_list.append(item.text())
+                self.record_enter_task_name.setEnabled(True)
+                self.lw_multi_subjects_selected_show()
+        else:
+            self.record_select_patientID = item.text()
+            self.record_enter_task_name.setEnabled(True)
+            self.btn_Apose_record.setEnabled(True)
+            self.record_task_name = None
+            self.lw_patient_task_record()
+            self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
     def record_list_widget_patient_id_list_show(self):
         self.record_list_widget_patient_id.clear()
         patientID_list = [item for item in os.listdir(self.patient_path)]
         for item in patientID_list:
-            self.record_list_widget_patient_id.addItem(item)
+            if item != 'multi_person':
+                self.record_list_widget_patient_id.addItem(item)
     def button_create_new_patient(self):
         text, ok = QInputDialog.getText(self, 'New subject', 'Enter patient ID:')
         
@@ -363,9 +429,14 @@ class MainWindow(QMainWindow):
         if not os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name)):
             os.makedirs(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos'))
         self.btn_pg1_reset.setEnabled(False)
-        self.shared_dict_record_name['name'] = self.record_select_patientID
-        self.shared_dict_record_name['task_name'] = self.record_task_name
-        self.shared_dict_record_name['start_time'] = time.time()
+        if self.multi_person:
+            self.shared_dict_record_name['name'] = self.record_select_patientID
+            self.shared_dict_record_name['task_name'] = self.record_task_name
+            self.shared_dict_record_name['start_time'] = time.time()
+        else:
+            self.shared_dict_record_name['name'] = self.record_select_patientID
+            self.shared_dict_record_name['task_name'] = self.record_task_name
+            self.shared_dict_record_name['start_time'] = time.time()
         self.task_stop_rec_evt.clear()
         self.btnStartRecording.setEnabled(False)
         self.task_rec_evt.set()
@@ -417,6 +488,7 @@ class MainWindow(QMainWindow):
         self.shm_kp_lst = []
         self.btnCloseCamera.setEnabled(True)
         self.btnOpenCamera.setEnabled(False)
+        
         for i in range(4):
             shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.shm_lst.append(shm)
@@ -502,7 +574,8 @@ class MainWindow(QMainWindow):
         )
         self.camera_proc_lst.append(p4)
         self.update()
-        
+        self.tri = Process(target=tri, args=())
+        self.tri.start()
         for i in range(4):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
@@ -660,7 +733,7 @@ class MainWindow(QMainWindow):
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
             
-            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list))
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal))
             self.marker_calculate_process.start()
             
             self.cal_select_list = []
@@ -668,6 +741,11 @@ class MainWindow(QMainWindow):
             self.btn_cal_start_cal.setEnabled(False)
             self.timer_marker_calculate.start(1000)
     # Calculation tab
+    def on_fast_calculation(self, checked):
+        if checked:
+            self.fast_cal = True
+        else:
+            self.fast_cal = False
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
             self.cal_select_depth -= 1
@@ -854,4 +932,5 @@ if __name__ == "__main__":
     App = QApplication(sys.argv)
     window = MainWindow()
     window.show()
+    multiprocessing.set_start_method("spawn")
     sys.exit(App.exec())

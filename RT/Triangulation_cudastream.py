@@ -29,12 +29,12 @@ class Triangulation(Process):
         self.mappingx = cp.array(mappingx)
         self.mappingy = cp.array(mappingy)
     def run(self):
-        combinations_4 = [[0, 1, 2, 3]]
+        count = 0
         combinations_3 = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
         combinations_2 = [[2, 3], [1, 3], [1, 2], [0, 3], [0, 2], [0, 1]]
         existing_shm_keypoints = shared_memory.SharedMemory(name=self.keypoints_sync_shm_name)
         shared_array_keypoints = np.ndarray((self.buffer_length,) + self.keypoints_sync_shm_shape, dtype=np.float32, buffer=existing_shm_keypoints.buf)
-        self.start_evt.wait()
+        
         idx = 0
         coord1 = []
         coord2 = []
@@ -76,8 +76,7 @@ class Triangulation(Process):
         arr4 = c4.reshape(26, 3)
         stacked = np.stack([arr1, arr2, arr3, arr4], axis=0)
         keypoints_ids = [19, 12, 14, 16, 21, 23, 25, 11, 13, 15, 20, 22, 24, 18, 17, 0, 6, 8, 10, 5, 7, 9]
- 
-        prep = stacked[:, keypoints_ids, :]
+
         P = cp.array(self.P)
         P_cam_0_comb4 = cp.concatenate([P[0][0].reshape(1, -1), P[1][0].reshape(1, -1), P[2][0].reshape(1, -1), P[3][0].reshape(1, -1)], axis=0)
         P_cam_1_comb4 = cp.concatenate([P[0][1].reshape(1, -1), P[1][1].reshape(1, -1), P[2][1].reshape(1, -1), P[3][1].reshape(1, -1)], axis=0)
@@ -95,53 +94,95 @@ class Triangulation(Process):
             cp.stack([cp.concatenate([P[d][j].reshape(1, -1) for d in combinations_2[i]], axis=0) for j in range(3)], axis=0)
             for i in range(6)
         ], axis=0)
+        P0, P1, P2 = P[:, 0, :].reshape(1, 1, 1, 4, 4), P[:, 1, :].reshape(1, 1, 1, 4, 4), P[:, 2, :].reshape(1, 1, 1, 4, 4)
+        P0_c3, P1_c3, P2_c3 = P[comb_3, 0, :][None, None, ...], P[comb_3, 1, :][None, None, ...], P[comb_3, 2, :][None, None, ...]
+        P0_c2, P1_c2, P2_c2 = P[comb_2, 0, :][None, None, ...], P[comb_2, 1, :][None, None, ...], P[comb_2, 2, :][None, None, ...]
         
+        self.start_evt.wait()
         while self.start_evt.is_set():
             try:
                 idx_get = self.sync_tracker_queue.get(timeout=0.01)
             except:
-                
                 continue
             keypoints = shared_array_keypoints[idx_get, : ] # shape = (4, 1, 26, 3)
+            print(f"Triangulation: {count}")
+            prep = stacked[:, keypoints_ids, :]
+            
             t1 = time.time()
             result = cp.array(np.transpose(prep, (1, 0, 2)))
-            prep_4 = cp.expand_dims(result, axis=(0, 2))
-            prep_3 = cp.expand_dims(result[:, combinations_3, :], axis=0)
-            prep_2 = cp.expand_dims(result[:, combinations_2, :], axis=0)
+            prep_4 = result[None, :, None, :]
+            prep_3 = result[:, combinations_3, :][None, :]
+            prep_2 = result[:, combinations_2, :][None, :]
             prep_4, prep_3, prep_2 = self.undistort_points_cupy(prep_4, prep_3, prep_2)
             
-            prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
-            prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
-            prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
-            prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
+            prep_4like = cp.min(prep_4[:,:,:,:,2], axis=3)
+            prep_3like = cp.min(prep_3[:,:,:,:,2], axis=3)
+            prep_2like = cp.min(prep_2[:,:,:,:,2], axis=3)
             
-            A4,A3,A2 = self.create_A(prep_4, prep_3, prep_2, P)
+            prep_4 = cp.stack([self.bilinear_interpolate_cupy(self.mappingx, prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]), self.bilinear_interpolate_cupy(self.mappingy, prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]), prep_4[:, :, :, :, 2]], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+            prep_4like = cp.min(prep_4[:,:,:,:,2],axis=3)
+            A4 = cp.stack([((P0 - prep_4[..., 0:1] * P2) * prep_4[..., 2:3]), ((P1 - prep_4[..., 1:2] * P2) * prep_4[..., 2:3])], axis=-2).reshape(1, 22, 1, 8, 4)
+            f4 = cp.shape(A4)
+            A4_flat = A4.reshape(-1, 8, 4)
+            Vt4 = cp.linalg.svd(A4_flat, full_matrices=False, compute_uv=True)[2]
+            V4 = Vt4.transpose(0, 2, 1)  
+            Q4 = cp.array([V4[:, 0, 3] / V4[:, 3, 3], V4[:, 1, 3] / V4[:, 3, 3], V4[:, 2, 3] / V4[:, 3, 3], cp.ones(V4.shape[0])]).T.reshape(f4[0], f4[1], f4[2], 4)
+            # real_dist4
+            result_c4 = cp.einsum('cik,btk->cit', P_cam_comb4, Q4[:,:,0,:])
+            rpj_coor_4 = cp.stack((cp.expand_dims((result_c4[0] / result_c4[2]).T, axis=(0, 2)), cp.expand_dims((result_c4[1] / result_c4[2]).T, axis=(0, 2))), axis=-1)
+            rpj = cp.sqrt((rpj_coor_4[:, :, :, :, 0] - prep_4[:, :, :, :, 0]) ** 2 + (rpj_coor_4[:, :, :, :, 1] - prep_4[:, :, :, :, 1]) ** 2)
+            real_dist4 = cp.max(cp.expand_dims(cp.sqrt(cp.sum((Q4[:, :, 0, 0:3] - cp.stack(self.cam_coord, axis=0)[:, None, :]) ** 2, axis=-1)).T, axis=(0, 2)) * rpj, axis=-1)
+
             
-            Q4,Q3,Q2 = self.find_Q(A4,A3,A2)
+            prep_3 = cp.stack([self.bilinear_interpolate_cupy(self.mappingx, prep_3[:, :, :, :, 0], prep_3[:, :, :, :, 1]), self.bilinear_interpolate_cupy(self.mappingy, prep_3[:, :, :, :, 0], prep_3[:, :, :, :, 1]), prep_3[:, :, :, :, 2]], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+            prep_3like = cp.min(prep_3[:,:,:,:,2],axis=3)
+            A3 = cp.stack([((P0_c3 - prep_3[..., 0:1] * P2_c3) * prep_3[..., 2:3]), ((P1_c3 - prep_3[..., 1:2] * P2_c3) * prep_3[..., 2:3])], axis=-2).reshape(1, 22, 4, 6, 4)
+            f3 = cp.shape(A3)
+            A3_flat = A3.reshape(-1, 6, 4)
+            Vt3 = cp.linalg.svd(A3_flat, full_matrices=False, compute_uv=True)[2]
+            V3 = Vt3.transpose(0, 2, 1)
+            Q3 = cp.array([V3[:, 0, 3] / V3[:, 3, 3], V3[:, 1, 3] / V3[:, 3, 3], V3[:, 2, 3] / V3[:, 3, 3], cp.ones(V3.shape[0])]).T.reshape(f3[0], f3[1], f3[2], 4)
+            prep_3like = cp.clip(prep_3like, self.likelihood_threshold, cp.inf)
+            Q3_bug = Q3[cp.arange(Q3.shape[0])[:, None], cp.arange(Q3.shape[1])[None, :], cp.argmax(~cp.isinf(prep_3like), axis=2), :][:, :, cp.newaxis, :]
+            # real_dist3
+            result_c3 = cp.einsum('ncik,nbtk->ncit', P_cam_comb3, Q3.transpose(2, 0, 1, 3))
+            rpj_coor_3 = cp.stack((cp.expand_dims((result_c3[:, 0] / result_c3[:, 2]).transpose(2, 0, 1), axis=0), cp.expand_dims((result_c3[:, 1] / result_c3[:, 2]).transpose(2, 0, 1), axis=0)),axis = -1)
+            rpj = cp.sqrt((rpj_coor_3[:, :, :, :, 0] - prep_3[:, :, :, :, 0]) ** 2 + (rpj_coor_3[:, :, :, :, 1] - prep_3[:, :, :, :, 1]) ** 2)
+            real_dist3 = cp.max(cp.expand_dims(cp.sqrt(cp.sum((Q3_bug.transpose(2, 0, 1, 3)[:, :, :, 0:3] - self.cam_coord[comb_3][:, :, None, :]) ** 2, axis=-1)).transpose(2, 0, 1), axis=0) * rpj, axis=-1)
+                
+            prep_2 = cp.stack([self.bilinear_interpolate_cupy(self.mappingx, prep_2[:, :, :, :, 0], prep_2[:, :, :, :, 1]), self.bilinear_interpolate_cupy(self.mappingy, prep_2[:, :, :, :, 0], prep_2[:, :, :, :, 1]), prep_2[:, :, :, :, 2]], axis=-1)  # Shape: (155, 22, 4, 3, 3)
+            prep_2like = cp.min(prep_2[:,:,:,:,2],axis=3)
+            A2 = cp.stack([((P0_c2 - prep_2[..., 0:1] * P2_c2) * prep_2[..., 2:3]), ((P1_c2 - prep_2[..., 1:2] * P2_c2) * prep_2[..., 2:3])], axis=-2).reshape(1, 22, 6, 4, 4)
+            f2 = cp.shape(A2)
+            A2_flat = A2.reshape(-1, 4, 4)
+            Vt2 = cp.linalg.svd(A2_flat, full_matrices=False, compute_uv=True)[2]
+            V2 = Vt2.transpose(0, 2, 1)
+            Q2 = cp.array([V2[:, 0, 3] / V2[:, 3, 3], V2[:, 1, 3] / V2[:, 3, 3], V2[:, 2, 3] / V2[:, 3, 3], cp.ones(V2.shape[0])]).T.reshape(f2[0], f2[1], f2[2], 4)
+            prep_2like = cp.clip(prep_2like, self.likelihood_threshold, cp.inf)
+            Q2_bug = Q2[cp.arange(Q2.shape[0])[:, None], cp.arange(Q2.shape[1])[None, :], cp.argmax(~cp.isinf(prep_2like), axis=2), :][:, :, cp.newaxis, :]
+            # real_dist2
+            result_c2 = cp.einsum('ncik,nbtk->ncit', P_cam_comb2, Q2.transpose(2, 0, 1, 3))
+            rpj_coor_2 = cp.stack((cp.expand_dims((result_c2[:, 0] / result_c2[:, 2]).transpose(2, 0, 1), axis=0), cp.expand_dims((result_c2[:, 1] / result_c2[:, 2]).transpose(2, 0, 1), axis=0)),axis = -1)
+            rpj = cp.sqrt((rpj_coor_2[:, :, :, :, 0] - prep_2[:, :, :, :, 0]) ** 2 + (rpj_coor_2[:, :, :, :, 1] - prep_2[:, :, :, :, 1]) ** 2)
+            real_dist2 = cp.max(cp.expand_dims(cp.sqrt(cp.sum((Q2_bug.transpose(2, 0, 1, 3)[:, :, :, 0:3] - self.cam_coord[comb_2][:, :, None, :]) ** 2, axis=-1)).transpose(2, 0, 1), axis=0) * rpj, axis=-1)
+                
             
-            Q = cp.concatenate((Q4,Q3,Q2),axis = 2)
-            Q3_bug,Q2_bug = self.create_QBug(self.likelihood_threshold,prep_3like,Q3,prep_2like,Q2)
-            
-            real_dist4, real_dist3, real_dist2 = self.find_real_dist_error(self.cam_coord, prep_4, Q4, prep_3, Q3, prep_2, Q2, Q3_bug, Q2_bug, P_cam_comb4, P_cam_comb3, comb_3, P_cam_comb2, comb_2)
-            
-            ## delete the liklelihoood vlue which is too low
-            real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
-            loc = cp.where(prep_like < self.likelihood_threshold)
-            #import pdb;pdb.set_trace()
-            real_dist[loc] = cp.inf
-            # Find the index of the first non-inf element along axis 2
-            
+            # delete the liklelihoood vlue which is too low
+            prep_like = cp.concatenate((prep_4like, prep_3like, prep_2like),axis =2)
+            real_dist = cp.concatenate((real_dist4, real_dist3, real_dist2), axis=2)
+            real_dist[cp.where(prep_like < self.likelihood_threshold)] = cp.inf
             non_inf_mask = ~cp.isinf(real_dist)
             min_locations_nan = cp.argmax(non_inf_mask, axis=2)
             real_dist_dynamic = cp.copy(real_dist)
             list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
             list_dynamic_mincam_prep = [self.map_to_listdynamic(value) for value in list_dynamic_mincam.values()]
             ## setting the list dynamic
-            
-            for i in range(22):    
+
+            for i in range(22):
                 real_dist_dynamic[:,i,list_dynamic_mincam_prep[i]] = cp.inf
             
             ## find the minimum combination
+            Q = cp.concatenate((Q4, Q3, Q2), axis=2)
             temp_shape = cp.shape(Q)
             checkinf = cp.min(real_dist_dynamic,axis =2)
             min_locations = cp.argmin(real_dist_dynamic, axis=2)
@@ -152,7 +193,8 @@ class Triangulation(Process):
             Q_selected = Q_selected[:,:,0:3]
             Q_selected = cp.asnumpy(Q_selected)
             Q_tot_gpu = [Q_selected[i].ravel() for i in range(Q_selected.shape[0])]
-            print(time.time()-t1)
+            print("Triangulation", time.time()-t1)
+            count += 1
     
     def computeP(self, calib_file):
         K, R, T, Kh, H = [], [], [], [], []
@@ -200,231 +242,7 @@ class Triangulation(Process):
     
         return mappingx,mappingy
 
-    def create_QBug(self, likelihood_threshold,prep_3like,Q3,prep_2like,Q2):
-        loc = cp.where(prep_3like < likelihood_threshold)
-        prep_3like[loc] = cp.inf
-        # Find the index of the first non-inf element along axis 2
-        non_inf_mask3 = ~cp.isinf(prep_3like)
-        min_locations_nan3 = cp.argmax(non_inf_mask3, axis=2)
-        batch_indices = cp.arange(Q3.shape[0])[:, None]  # Shape: (184, 1)
-        time_indices = cp.arange(Q3.shape[1])[None, :]   # Shape: (1, 22)
-
-    # Use advanced indexing to extract the desired values
-        selected_slices = Q3[batch_indices, time_indices, min_locations_nan3, :]
         
-    # Add an additional dimension to match the shape (184, 22, 1, 4)
-        Q3_bug = selected_slices[:, :, cp.newaxis, :]
-
-        loc = cp.where(prep_2like < likelihood_threshold)
-        prep_2like[loc] = cp.inf
-        # Find the index of the first non-inf element along axis 2
-        non_inf_mask2 = ~cp.isinf(prep_2like)
-        min_locations_nan2 = cp.argmax(non_inf_mask2, axis=2)
-        batch_indices = cp.arange(Q2.shape[0])[:, None]  # Shape: (184, 1)
-        time_indices = cp.arange(Q2.shape[1])[None, :]   # Shape: (1, 22)
-
-    # Use advanced indexing to extract the desired values
-        selected_slices = Q2[batch_indices, time_indices, min_locations_nan2, :]
-        
-    # Add an additional dimension to match the shape (184, 22, 1, 4)
-        Q2_bug = selected_slices[:, :, cp.newaxis, :]
-        return Q3_bug,Q2_bug
-    def find_Q(self, A4,A3,A2):
-        f = cp.shape(A4)
-        A_flat = A4.reshape(-1, 8, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-        # Step 2: Perform SVD in batch using CuPy
-        U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-
-        # Step 3: Compute Q
-        # Transpose Vt to get V
-        V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-        # Extract and compute Q
-        Q = cp.array([
-            V[:, 0, 3] / V[:, 3, 3],
-            V[:, 1, 3] / V[:, 3, 3],
-            V[:, 2, 3] / V[:, 3, 3],
-            cp.ones(V.shape[0])  # Add 1 as the last element of Q
-        ]).T  # Shape: (batch_size, 4)
-
-        # Step 4: Reshape Q back to (250, 22, 1, 4)
-        Q4 = Q.reshape(f[0], f[1], f[2], 4)
-        f = cp.shape(A3)
-        A_flat = A3.reshape(-1, 6, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-        # Step 2: Perform SVD in batch using CuPy
-        U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-
-        # Step 3: Compute Q
-        # Transpose Vt to get V
-        V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-        # Extract and compute Q
-        Q = cp.array([
-            V[:, 0, 3] / V[:, 3, 3],
-            V[:, 1, 3] / V[:, 3, 3],
-            V[:, 2, 3] / V[:, 3, 3],
-            cp.ones(V.shape[0])  # Add 1 as the last element of Q
-        ]).T  # Shape: (batch_size, 4)
-
-        # Step 4: Reshape Q back to (250, 22, 1, 4)
-        Q3 = Q.reshape(f[0], f[1], f[2], 4)
-        
-        f = cp.shape(A2)
-        A_flat = A2.reshape(-1, 4, 4)  # Shape: (250 * 22 * 1, 8, 4)
-
-        # Step 2: Perform SVD in batch using CuPy
-        U, S, Vt = cp.linalg.svd(A_flat, full_matrices=False)  # Batched SVD
-        # Step 3: Compute Q
-        # Transpose Vt to get V
-        V = Vt.transpose(0, 2, 1)  # Shape: (batch_size, 4, 4)
-
-        # Extract and compute Q
-        Q = cp.array([
-            V[:, 0, 3] / V[:, 3, 3],
-            V[:, 1, 3] / V[:, 3, 3],
-            V[:, 2, 3] / V[:, 3, 3],
-            cp.ones(V.shape[0])  # Add 1 as the last element of Q
-        ]).T  # Shape: (batch_size, 4)
-
-        # Step 4: Reshape Q back to (250, 22, 1, 4)
-        Q2 = Q.reshape(f[0], f[1], f[2], 4)
-
-
-        return Q4,Q3,Q2
-    def create_A(self, prep_4,prep_3,prep_2,P):
-        # Elements
-        
-        elements = [0, 1, 2, 3]
-
-        # Total elements
-        
-        combinations_3 = [elements[:i] + elements[i+1:] for i in range(len(elements))]  # Delete one element
-        combinations_2 = [elements[:i] + elements[i+1:j] + elements[j+1:] for i in range(len(elements)) for j in range(i+1, len(elements))]  # Delete two elements
-        results = []
-
-        # Iterate over the range 4 for c
-        for c in range(4):
-            # Compute the first part
-            part1 = (P[c][0] - prep_4[:, :, :, c, 0:1] * P[c][2]) * prep_4[:, :, :, c, 2:3]
-            # Compute the second part
-            part2 = (P[c][1] - prep_4[:, :, :, c, 1:2] * P[c][2]) * prep_4[:, :, :, c, 2:3]
-            
-            # Append the results along the last axis
-            results.append(part1)
-            results.append(part2)
-        # Concatenate all results along the new axis
-        A4 = cp.stack(results, axis=3)  # Concatenate along the 4th dimension
-
-        results1 = []
-        final_results =[]
-        # Iterate over the range 3 for c
-        for i in range(4):
-            results1 = []
-            for c in range(3):
-                camera_index = combinations_3[i]
-                d = camera_index[c]
-                
-                # Compute the first part
-                part1 = (P[d][0] - prep_3[:, :, i, c, 0:1] * P[d][2]) * prep_3[:, :, i, c, 2:3]
-                # Compute the second part
-                part2 = (P[d][1] - prep_3[:, :, i, c, 1:2] * P[d][2]) * prep_3[:, :, i, c, 2:3]
-                #import pdb;pdb.set_trace()
-                # Append the results along the last axis
-                results1.append(part1)           
-                results1.append(part2)
-            inner_results_stacked = cp.stack(results1, axis=2)
-            final_results.append(inner_results_stacked)
-            
-        A3 = cp.stack(final_results, axis=2) 
-        
-        results1 = []
-        final_results =[]
-        # Iterate over the range 3 for c
-        for i in range(6):
-            results1 = []
-            for c in range(2):
-                camera_index = combinations_2[i]
-                d = camera_index[c]
-                
-                # Compute the first part
-                part1 = (P[d][0] - prep_2[:, :, i, c, 0:1] * P[d][2]) * prep_2[:, :, i, c, 2:3]
-                # Compute the second part
-                part2 = (P[d][1] - prep_2[:, :, i, c, 1:2] * P[d][2]) * prep_2[:, :, i, c, 2:3]
-                # Append the results along the last axis
-                results1.append(part1)           
-                results1.append(part2)
-            inner_results_stacked = cp.stack(results1, axis=2) 
-            final_results.append(inner_results_stacked)
-            
-        A2 = cp.stack(final_results, axis=2)
-
-        return A4,A3,A2
-    def find_real_dist_error(self, cam_coord, prep_4, Q4, prep_3, Q3, prep_2, Q2, Q3_bug, Q2_bug, P_cam_comb4, P_cam_comb3, comb_3, P_cam_comb2, comb_2):
-    
-        result_c4 = cp.einsum('cik,btk->cit', P_cam_comb4, Q4[:,:,0,:])
-        
-        x_c4 = result_c4[0] / result_c4[2]
-        y_c4 = result_c4[1] / result_c4[2]
-        dist_c4 = cp.sqrt(cp.sum((Q4[:, :, 0, 0:3] - cp.stack(cam_coord, axis=0)[:, None, :]) ** 2, axis=-1))
-        
-        X_c4 = cp.expand_dims(x_c4.T, axis=(0, 2))
-        Y_c4 = cp.expand_dims(y_c4.T, axis=(0, 2))
-        final_dist_c4 = cp.expand_dims(dist_c4.T, axis=(0, 2))
-
-        rpj_coor_4 = cp.stack((X_c4,Y_c4), axis = -1)
-        
-        x1, y1 = prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]
-        x2, y2 = rpj_coor_4[:, :, :, :, 0], rpj_coor_4[:, :, :, :, 1]
-        # Compute the Euclidean distance
-        rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        real_dist  = final_dist_c4*rpj
-        real_dist4 = cp.max(real_dist, axis=-1)
-
-        # real_dist3
-        
-
-        result_c3 = cp.einsum('ncik,nbtk->ncit', P_cam_comb3, Q3.transpose(2, 0, 1, 3))
-        x_c3 = result_c3[:, 0] / result_c3[:, 2]
-        y_c3 = result_c3[:, 1] / result_c3[:, 2]
-
-        dist_c3 = cp.sqrt(cp.sum((Q3_bug.transpose(2, 0, 1, 3)[:, :, :, 0:3] - cam_coord[comb_3][:, :, None, :]) ** 2, axis=-1))
-        X_c3 = cp.expand_dims(x_c3.transpose(2, 0, 1), axis=0)
-        Y_c3 = cp.expand_dims(y_c3.transpose(2, 0, 1), axis=0)
-        final_dist_c3 = cp.expand_dims(dist_c3.transpose(2, 0, 1), axis=0)
-
-        rpj_coor_3 = cp.stack((X_c3,Y_c3),axis = -1)
-        
-        x1, y1 = prep_3[:, :, :, :, 0], prep_3[:, :, :, :, 1]
-        x2, y2 = rpj_coor_3[:, :, :, :, 0], rpj_coor_3[:, :, :, :, 1]
-        # Compute the Euclidean distance
-        rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        real_dist  = final_dist_c3*rpj
-        real_dist3 = cp.max(real_dist, axis=-1)
-        
-        result_c2 = cp.einsum('ncik,nbtk->ncit', P_cam_comb2, Q2.transpose(2, 0, 1, 3))
-
-        x_c2 = result_c2[:, 0] / result_c2[:, 2]
-        y_c2 = result_c2[:, 1] / result_c2[:, 2]
-
-        dist_c2 = cp.sqrt(cp.sum((Q2_bug.transpose(2, 0, 1, 3)[:, :, :, 0:3] - cam_coord[comb_2][:, :, None, :]) ** 2, axis=-1))
-        X_c2 = cp.expand_dims(x_c2.transpose(2, 0, 1), axis=0)
-        Y_c2 = cp.expand_dims(y_c2.transpose(2, 0, 1), axis=0)
-        final_dist_c2 = cp.expand_dims(dist_c2.transpose(2, 0, 1), axis=0)  
-        
-        
-        #[754.2223150392452, 1165.0827450392762]
-        rpj_coor_2 = cp.stack((X_c2,Y_c2),axis = -1)
-        
-        x1, y1 = prep_2[:, :, :, :, 0], prep_2[:, :, :, :, 1]
-        x2, y2 = rpj_coor_2[:, :, :, :, 0], rpj_coor_2[:, :, :, :, 1]
-        # Compute the Euclidean distance
-        rpj = cp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-        real_dist  = final_dist_c2*rpj
-        real_dist2 = cp.max(real_dist, axis=-1)
-
-        return real_dist4, real_dist3, real_dist2    
     def map_to_listdynamic(self, value):
         if value == 4:
             return [1,2,3,4,5,6,7,8,9,10]  # Map 4 to [0]
@@ -433,7 +251,7 @@ class Triangulation(Process):
         elif value == 2:
             return []  # Map 2 to [5, 6, 7, 8, 9, 10]      
             # triangulation
-    def undistort_points_cupy(self, prep_4,prep_3,prep_2):
+    def undistort_points_cupy(self, prep_4, prep_3, prep_2):
         
         x = prep_4[:, :, :, :, 0]  # Shape: (155, 22, 4, 3)
         y = prep_4[:, :, :, :, 1]  # Shape: (155, 22, 4, 3)
@@ -466,7 +284,7 @@ class Triangulation(Process):
         # Perform bilinear interpolation on x and y
         x_undistorted = self.bilinear_interpolate_cupy(self.mappingx, x, y)  # Shape: (155, 22, 4, 3)
         y_undistorted = self.bilinear_interpolate_cupy(self.mappingy, x, y)  # Shape: (155, 22, 4, 3)
-
+        
         # Combine results into a single array
         prep_2 = cp.stack([x_undistorted, y_undistorted, likelihood], axis=-1)  # Shape: (155, 22, 4, 3, 3)
         return prep_4, prep_3, prep_2

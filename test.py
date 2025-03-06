@@ -1,10 +1,11 @@
 import os
-import cv2
-import time
-import numpy as np
 import cupy as cp
 from mmdeploy_runtime import PoseTracker
-from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
+import cv2
+import time
+from GUI_source.DevelopVersion.real_time_testmod import tri
+from multiprocessing import Event, shared_memory, Queue, Array
+import numpy as np
 VISUALIZATION_CFG = dict(
     coco=dict(
         skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
@@ -97,58 +98,76 @@ palette = VISUALIZATION_CFG['halpe26']['palette']
 skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
 link_color = VISUALIZATION_CFG['halpe26']['link_color']
 point_color = VISUALIZATION_CFG['halpe26']['point_color']
-class TrackerProcess(Process):
-    def __init__(self, start_evt, cam_id, stop_evt, queue_cam, queue_kp, shm, shm_kp, *args, **kwargs):
-        super().__init__()
-        self.start_evt = start_evt
-        self.cam_id = cam_id
-        self.stop_evt = stop_evt
-        self.queue_cam = queue_cam
-        self.queue_kp = queue_kp
-        self.shm = shm
-        self.buffer_length = 4
-        self.shm_kp = shm_kp
-        self.recording = False
-        self.frame_width = 1920
-        self.frame_height = 1080
-        
-    def run(self):
-        shape = (1080, 1920, 3)
-        existing_shm = shared_memory.SharedMemory(name=self.shm)
-        shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
-        
-        tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
-        
-        existing_shm_kp = shared_memory.SharedMemory(name=self.shm_kp)
-        shared_array_kp = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm_kp.buf)
-        idx = 0
-        while self.start_evt.is_set():
-            try:
-                idx_get = self.queue_cam.get(timeout=1)
-            except:
-                time.sleep(0.01)
-                continue
-            frame = shared_array[idx_get, : ]
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
-            
-            scores = keypoints[..., 2]
-            keypoints = np.round(keypoints[..., :2], 3)
-            
-            self.draw_frame(frame, keypoints, scores, palette, skeleton, link_color, point_color)
-            np.copyto(shared_array_kp[idx,:], frame)
-            self.queue_kp.put(idx) # !!!!idx?
-            idx = (idx+1) % self.buffer_length
-    def draw_frame(self, frame, keypoints, scores, palette, skeleton, link_color, point_color):
-        keypoints = keypoints.astype(int)
-        # cv2.putText(frame, (10, 250), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
-        for kpts, score in zip(keypoints, scores):
-            show = [1] * len(kpts)
-            for (u, v), color in zip(skeleton, link_color):
-                if score[u] > 0.5 and score[v] > 0.5:
-                    cv2.line(frame, kpts[u], tuple(kpts[v]), palette[color], 2, cv2.LINE_AA)
-                else:
-                    show[u] = show[v] = 0
-            for kpt, show, color in zip(kpts, show, point_color):
-                if show:
-                    cv2.circle(frame, kpt, 1, palette[color], 2, cv2.LINE_AA)
+# camera_shm_shape = (1080, 1920, 3)
+# buffer_length = 10
+# camera_shmtest = shared_memory.SharedMemory(create=True, size=int(np.prod(camera_shm_shape) * np.dtype(np.uint8).itemsize * buffer_length))
+# camera_queue = Queue()
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+ret, frame = cap.read()
+# idx = 0
+# existing_shm_frame = shared_memory.SharedMemory(name=camera_shmtest.name)
+# shared_array_frame = np.ndarray((buffer_length,) + camera_shm_shape, dtype=np.uint8, buffer=existing_shm_frame.buf)
+# import pdb; pdb.set_trace()
+# np.copyto(shared_array_frame[idx,:], frame)
+# camera_queue.put(idx)
+# idx += 1
+# np.copyto(shared_array_frame[idx,:], frame)
+# camera_queue.put(idx)
+# idx += 1
+# np.copyto(shared_array_frame[idx,:], frame)
+# camera_queue.put(idx)
+# idx += 1
+# np.copyto(shared_array_frame[idx,:], frame)
+# camera_queue.put(idx)
+# idx += 1
+# np.copyto(shared_array_frame[idx,:], frame)
+# camera_queue.put(idx)
+# count = 0
+# while True:
+#     t1 = time.time()
+#     try:
+#         idx_get = camera_queue.get(timeout=0.01)
+#     except:
+#         continue
+#     frame = shared_array_frame[idx_get, : ]
+#     print(t1)
+    
+#     count += 1
+#     if count > 4:
+#         break
+# camera_shmtest.close()
+# camera_shmtest.unlink()
+# camera_queue.close()
+tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
+state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+stream_4 = cp.cuda.Stream()
+stream_3 = cp.cuda.Stream()
+stream_2 = cp.cuda.Stream()
+stream_1 = cp.cuda.Stream()
+stream_0 = cp.cuda.Stream()
+
+while True:
+    t1 = time.time()
+    with stream_0:
+        keypoints, _ = tracker(state, frame, detect=-1)[:2]
+    with stream_1:
+        keypoints, _ = tracker(state, frame, detect=-1)[:2]
+    with stream_2:
+        keypoints, _ = tracker(state, frame, detect=-1)[:2]
+    with stream_3:
+        keypoints, _ = tracker(state, frame, detect=-1)[:2]
+    stream_0.synchronize()
+    stream_1.synchronize()
+    stream_2.synchronize()
+    stream_3.synchronize()
+    
+    
+    
+    print("tracker", time.time()-t1)
+    t2 = time.time()
+    with stream_4:
+        tri()
+    stream_4.synchronize()
+    print("tri", time.time()-t2)

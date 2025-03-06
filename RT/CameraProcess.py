@@ -33,21 +33,16 @@ class CameraProcess(Process):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height)
         self.start_evt.wait()
-        count = 0
         _, _ = cap.read()
         _, _ = cap.read()
-        _, _ = cap.read()
-        _, _ = cap.read()
-        _, _ = cap.read()
+
         while self.start_evt.is_set():
             cap_s = time.time() - self.start_time
-            ret, frame = cap.read()
+            _, frame = cap.read()
             cap_e = time.time() - self.start_time
-            cal_time = (cap_e+cap_s)*500
-        
+            cal_time = (cap_e + cap_s) * 500
+
             np.copyto(shared_array_frame[idx,:], frame)
             self.time_stamp_array[idx] = cal_time
-            # print("camera", self.cam_id, count, cal_time)
-            count += 1
             self.cam_q.put(idx)
             idx = (idx+1) % self.buffer_length

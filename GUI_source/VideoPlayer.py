@@ -344,7 +344,7 @@ class VideoPlayer(QThread):
         port = 8000
         if self.is_port_in_use(port):
             self.kill_process_using_port(port)
-        print("Starting local server...")
+        # print("Starting local server...")
         self.server_process = subprocess.Popen(["python", "-m", "http.server", str(port)],
                                                 cwd=".", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     def is_port_in_use(self, port):

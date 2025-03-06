@@ -26,7 +26,7 @@ class UpdateThread(QThread):
         self.RecordActive = False
 
     def run(self):
-        
+        count = 0
         existing_shm = shared_memory.SharedMemory(name=self.sync_frame_show_shm_name)
         shared_array = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm.buf)
         self.start_evt.wait()
@@ -39,7 +39,8 @@ class UpdateThread(QThread):
                 continue
             frame = shared_array[idx_get, : ]
             self.update_signal.emit(self.convert_to_qimage(frame))
-    
+            
+            count += 1
     def stop(self):
         if self.stop_evt.is_set():
             self.ThreadActive = False
