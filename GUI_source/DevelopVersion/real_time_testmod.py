@@ -716,4 +716,4 @@ def tri():
             
     # plt.ioff()
 # if __name__ == "__main__":
-tri()
+# tri()
