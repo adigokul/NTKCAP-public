@@ -4,7 +4,6 @@ import os
 import cv2
 import time
 import numpy as np
-import cupy as cp
 VISUALIZATION_CFG = dict(
     halpe26=dict(
         skeleton=[(15,13), (13,11), (11,19),(16,14), (14,12), (12,19),
@@ -26,7 +25,7 @@ VISUALIZATION_CFG = dict(
         ]))
 
 det_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-nano")
-pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-t")
+pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
 device ="cuda"
 
 sigmas = VISUALIZATION_CFG['halpe26']['sigmas']
@@ -95,17 +94,20 @@ class Tracker_Process(Process):
             self.tracker_queue.put(idx)
             
             idx = (idx+1) % self.buffer_length
+            
+            t2 = time.time()
             # print("tracker", self.cam_id, count)
             scores1 = keypoints1[..., 2]
             keypoints1 = np.round(keypoints1[..., :2], 3)
-            self.draw_frame(frame1, keypoints1, scores1, palette, skeleton, link_color, point_color)
+            # self.draw_frame(frame1, keypoints1, scores1, palette, skeleton, link_color, point_color)
             np.copyto(shared_array_draw_frame1[idx_show,:], frame1)
             self.draw_frame_queue1.put(idx_show)
             scores2 = keypoints2[..., 2]
             keypoints2 = np.round(keypoints2[..., :2], 3)
-            self.draw_frame(frame2, keypoints2, scores2, palette, skeleton, link_color, point_color)
+            # self.draw_frame(frame2, keypoints2, scores2, palette, skeleton, link_color, point_color)
             np.copyto(shared_array_draw_frame2[idx_show,:], frame2)
             self.draw_frame_queue2.put(idx_show)
+            
             # scores3 = keypoints3[..., 2]
             # keypoints3 = np.round(keypoints3[..., :2], 3)
             # self.draw_frame(frame3, keypoints3, scores3, palette, skeleton, link_color, point_color)

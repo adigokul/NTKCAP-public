@@ -67,7 +67,7 @@ class SyncProcess(Process):
         check = 0
         idx = 0
         count = 0
-        time.sleep(1)
+        time.sleep(2)
         while True:
             
             not_get = [0, 1, 2, 3]
