@@ -1,5 +1,4 @@
 import os
-import cv2
 import time
 import json
 import copy
@@ -11,20 +10,20 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
+from multiprocessing import Event, shared_memory, Manager, Queue, Process
 from check_extrinsic import *
 from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-from GUI_source.DevelopVersion.real_time_testmod import tri
-os.environ["CUDA_DEVICE_MAX_CONNECTIONS"] = "64"
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         uic.loadUi('GUI_source/NTKCAP_GUI_dec.ui', self)
         self.showMaximized()
+        self.setWindowTitle("NTKCAP")
         # Initialization
         self.current_directory = os.getcwd()
         self.config_path = os.path.join(self.current_directory, "config")                
@@ -60,7 +59,6 @@ class MainWindow(QMainWindow):
         self.btn_new_patient.clicked.connect(self.button_create_new_patient)
         # calibration
         self.calib_save_path = os.path.join(self.extrinsic_path, "videos")
-        
         # Open cameras
         self.camera_proc_lst = []
         self.tracker_proc_lst = []
@@ -187,6 +185,7 @@ class MainWindow(QMainWindow):
         self.marker_calculate_process = None
         self.timer_marker_calculate = QTimer()
         self.timer_marker_calculate.timeout.connect(self.check_cal_finish)
+    # Main page shortcut
     def button_shortcut_calculation(self):
         self.left_tab_changed(1)
         self.tabWidgetRight.setCurrentIndex(1)
@@ -365,16 +364,16 @@ class MainWindow(QMainWindow):
         os.makedirs(save_path_videos)
         if os.path.exists(self.time_file_path):
             shutil.copy(self.time_file_path, save_path_date)
-            self.label_log.setText("已成功複製 cali_time.txt")
+            self.label_log.setText("Successfully copied cali_time.txt")
         else:
-            self.label_log.setText("cali_time.txt 不存在")
+            self.label_log.setText("cali_time.txt doesn't exist")
         if os.path.exists(cali_file_path):
             if os.path.exists(os.path.join(save_path_date, "raw_data", "calibration")):
                 shutil.rmtree(os.path.join(save_path_date, "raw_data", "calibration"))
             shutil.copytree(cali_file_path, os.path.join(save_path_date, "raw_data", "calibration"))
-            self.label_log.setText("已成功複製 calibration資料夾")
+            self.label_log.setText("Successfully copied calibration folder")
         else:
-            self.label_log.setText("calibration 資料夾 不存在")
+            self.label_log.setText("Calibration folder doesn't exist")
         if os.path.exists(time_file_path):
             with open(time_file_path, "r") as file:
                 formatted_datetime = file.read().strip()
@@ -492,7 +491,6 @@ class MainWindow(QMainWindow):
         for i in range(4):
             shm = shared_memory.SharedMemory(create=True, size=int(np.prod(self.shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.shm_lst.append(shm)
-            
             shm1 = shared_memory.SharedMemory(create=True, size=int(np.prod(self.shape) * np.dtype(np.uint8).itemsize * self.buffer_length))
             self.shm_kp_lst.append(shm1)
             p1 = TrackerProcess(
@@ -574,8 +572,8 @@ class MainWindow(QMainWindow):
         )
         self.camera_proc_lst.append(p4)
         self.update()
-        self.tri = Process(target=tri, args=())
-        self.tri.start()
+        # self.tri = Process(target=tri, args=())
+        # self.tri.start()
         for i in range(4):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
@@ -608,12 +606,10 @@ class MainWindow(QMainWindow):
         self.shm_lst.clear()
         self.shm_kp_lst.clear()
         self.shared_dict_record_name.clear()
-
         for thread in self.threads:
             thread.stop()
         for thread in self.threads:
             thread.wait()
-        
         for process in self.camera_proc_lst:
             if process.is_alive():
                 process.terminate()
@@ -622,30 +618,27 @@ class MainWindow(QMainWindow):
             if process.is_alive():
                 process.terminate()
                 process.join()
-
         self.camera_proc_lst.clear()
         self.tracker_proc_lst.clear()
         self.camera_opened = False
-        
         self.start_evt.clear()
         self.stop_evt.clear()
         self.task_rec_evt.clear()
         self.task_stop_rec_evt.clear()
-
         if hasattr(self, 'manager'):
             self.manager.shutdown()
-
         for i in range(self.cam_num):
             label = self.label_cam[i]
             black_pixmap = QPixmap(label.width(), label.height())
             black_pixmap.fill(QColor(0, 0, 0))
             label.setPixmap(black_pixmap)
+
     def button_config(self, instance):
-        # self.label_log.text = "檢測Webcam ID並更新config"
         self.label_log.setText("detect Webcam ID and update config")
         camera_config_create(self.config_path)
         detect_camera_list = camera_config_update(self.config_path, 10, new_gui=True)
         self.label_log.setText(f"detect Webcam ID : {str(detect_camera_list)} and update config")
+
     def getcamerainfo(self, config_path):
         camera_config_path = os.path.join(config_path, 'config.json')
         with open(camera_config_path, 'r') as camconf:
@@ -668,7 +661,6 @@ class MainWindow(QMainWindow):
             time_file_path = os.path.join(self.record_path, "calibration", "calib_time.txt")
             with open(config_name, 'r') as f:
                 data = json.load(f)
-            num_cameras = data['cam']['list']
             self.calib_rec_evt1.set()
             self.calib_rec_evt2.set()
             self.calib_rec_evt3.set()
@@ -691,12 +683,13 @@ class MainWindow(QMainWindow):
     def button_extrinsic_calculate(self):
         self.label_log.setText("calculating extrinsic")
         try:
-            err_list = calib_extri(self.current_directory,0)
-            self.label_log.setText('calculate finished')            
-            self.err_calib_extri.text = err_list            
-        except:            
+            err_list = calib_extri(self.current_directory, 0)
+            self.label_log.setText('calculate finished')
+            self.err_calib_extri.text = err_list
+        except:
             self.label_log.setText('check intrinsic and extrinsic exist')
-            self.err_calib_extri.text = 'no calibration file found'          
+            self.err_calib_extri.text = 'no calibration file found'
+
     def button_extrinsic_manual_calculate(self, instance):
         try:
             def remove_folder_with_contents(path):
@@ -707,15 +700,14 @@ class MainWindow(QMainWindow):
             remove_folder_with_contents(os.path.join(self.extrinsic_path,'images'))
             remove_folder_with_contents(os.path.join(self.extrinsic_path,'yolo_backup'))
             remove_folder_with_contents(os.path.join(self.extrinsic_path,'chessboard'))
-            
-            err_list =calib_extri(self.current_directory,1)
+            err_list = calib_extri(self.current_directory,1)
             self.label_log.text = 'calculate finished'
-            self.err_calib_extri.text = err_list     
-            self.err_calib_extri.setText(read_err_calib_extri(self.current_directory)) 
+            self.err_calib_extri.text = err_list
+            self.err_calib_extri.setText(read_err_calib_extri(self.current_directory))
         except:
-            # self.label_log.text = '檢查是否有拍攝以及計算內參，以及是否有拍攝外參'
             self.label_log.text = 'check intrinsic and extrinsic exist'
             self.err_calib_extri.text = 'no calibration file found'
+
     def check_cal_finish(self):
         if self.marker_calculate_process:
             if not self.marker_calculate_process.is_alive():
@@ -732,27 +724,27 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            
             self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal))
             self.marker_calculate_process.start()
-            
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
             self.timer_marker_calculate.start(1000)
+
     # Calculation tab
     def on_fast_calculation(self, checked):
         if checked:
             self.fast_cal = True
         else:
             self.fast_cal = False
+
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
             self.cal_select_depth -= 1
             self.cal_select_patient_id = None
             self.btn_cal_back_path.setEnabled(False)
-        
         self.cal_load_folders()
+
     def cal_load_folders(self):
         if self.cal_select_depth == 0:
             self.listwidget_select_cal_date.clear()
@@ -764,10 +756,12 @@ class MainWindow(QMainWindow):
             items = [item for item in os.listdir(os.path.join(self.patient_path, self.cal_select_patient_id))]
             for item in items:
                 self.listwidget_select_cal_date.addItem(item)
+
     def cal_show_selected_folder(self):
         self.listwidget_selected_cal_date.clear()        
         for item in self.cal_select_list:
             self.listwidget_selected_cal_date.addItem(item)
+
     def cal_select_folder_clicked(self, item):
         if self.cal_select_depth == 0:
             self.cal_select_patient_id = item.text()
@@ -787,9 +781,11 @@ class MainWindow(QMainWindow):
             
     def cal_selected_folder_selcted(self, item):
         self.listwidget_selected_cal_date_item_selected = item.text()
+
     def cal_selected_folder_selcted_delete(self):
         self.cal_select_list.remove(self.listwidget_selected_cal_date_item_selected)
         self.cal_show_selected_folder()
+
     # Show result tab 
     def select_back_path(self):
         if self.result_select_depth == 1:
@@ -806,8 +802,10 @@ class MainWindow(QMainWindow):
             self.result_select_depth -= 1
             self.result_select_task = None
         self.result_load_folders()
+
     def folder_selected(self, item):
         pass
+
     def result_load_folders(self):        
         if self.result_select_depth == 0:   
             self.result_cal_task.clear()   
@@ -862,6 +860,7 @@ class MainWindow(QMainWindow):
     def update_slider(self):
         self.result_video_slider.setValue(int(self.video_player.progress * 100))
         self.frame_label.setText(str(int(self.video_player.progress * 100)))
+
     def select_result_cal_task(self, patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task):
         self.show_result_path = os.path.join(patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task)
         self.video_player.load_video(self.show_result_path)
@@ -870,6 +869,7 @@ class MainWindow(QMainWindow):
         self.video_player.load_gltf_file_in_viewer(f"./Patient_data/{result_select_patient_id}/{result_select_date}/{result_select_cal_time}/{result_select_task}/model.gltf")
         self.playButton.setEnabled(True)
         self.result_video_slider.setEnabled(True)
+
     def result_disconnet_gait_figures(self):
         if self.result_current_gait_figures_index == 1:#knee flexion
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_hip_flexion)
@@ -881,6 +881,7 @@ class MainWindow(QMainWindow):
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_speed)
         elif self.result_current_gait_figures_index ==5:
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_stride)
+
     def result_select_gait_figures(self, index):
 
         # self.result_disconnet_gait_figures()
@@ -904,6 +905,7 @@ class MainWindow(QMainWindow):
             self.video_player.stride_plot()
             self.result_video_slider.valueChanged.connect(self.video_player.update_stride)
             self.result_current_gait_figures_index = 5
+
     def play_stop(self):
         if self.is_playing:
             self.result_web_view_widget.page().runJavaScript("stopAnimation();")
@@ -913,7 +915,7 @@ class MainWindow(QMainWindow):
             self.result_web_view_widget.page().runJavaScript("startAnimation();")
             self.video_player.timer.start(15)
             self.is_playing = True
-    
+
     def slider_changed(self, value):
         if self.is_playing:
             self.play_stop()
@@ -921,16 +923,16 @@ class MainWindow(QMainWindow):
         self.video_player.slider_changed()
         self.result_video_slider.setValue(value)
         self.frame_label.setText(str(value))
-        
+
     def closeEvent(self, event):
         self.closeCamera()
         if self.marker_calculate_process and self.marker_calculate_process.is_alive():
             self.marker_calculate_process.terminate()
             self.marker_calculate_process.join()
-        
+
 if __name__ == "__main__":
     App = QApplication(sys.argv)
+    App.setWindowIcon(QIcon("GUI_source/Team_logo.jpg"))
     window = MainWindow()
     window.show()
-    multiprocessing.set_start_method("spawn")
     sys.exit(App.exec())

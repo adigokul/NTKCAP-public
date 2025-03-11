@@ -4,153 +4,17 @@ import json
 import toml
 import numpy as np
 import cupy as cp
-from anytree import Node, RenderTree
-from mmdeploy_runtime import PoseTracker
+
 import pdb
 import time
-from Pose2Sim.skeletons import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import torch
-from multiprocessing import Event, shared_memory, Queue, Array, Manager
-import sys
-VISUALIZATION_CFG = dict(
-    coco=dict(
-        skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
-                  (6, 12), (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2),
-                  (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6)],
-        palette=[(255, 128, 0), (255, 153, 51), (255, 178, 102), (230, 230, 0),
-                 (255, 153, 255), (153, 204, 255), (255, 102, 255),
-                 (255, 51, 255), (102, 178, 255), (51, 153, 255),
-                 (255, 153, 153), (255, 102, 102), (255, 51, 51),
-                 (153, 255, 153), (102, 255, 102), (51, 255, 51), (0, 255, 0),
-                 (0, 0, 255), (255, 0, 0), (255, 255, 255)],
-        link_color=[
-            0, 0, 0, 0, 7, 7, 7, 9, 9, 9, 9, 9, 16, 16, 16, 16, 16, 16, 16
-        ],
-        point_color=[16, 16, 16, 16, 16, 9, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0],
-        sigmas=[
-            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
-            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089
-        ]),
-    coco_wholebody=dict(
-        skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
-                  (6, 12), (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2),
-                  (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6), (15, 17),
-                  (15, 18), (15, 19), (16, 20), (16, 21), (16, 22), (91, 92),
-                  (92, 93), (93, 94), (94, 95), (91, 96), (96, 97), (97, 98),
-                  (98, 99), (91, 100), (100, 101), (101, 102), (102, 103),
-                  (91, 104), (104, 105), (105, 106), (106, 107), (91, 108),
-                  (108, 109), (109, 110), (110, 111), (112, 113), (113, 114),
-                  (114, 115), (115, 116), (112, 117), (117, 118), (118, 119),
-                  (119, 120), (112, 121), (121, 122), (122, 123), (123, 124),
-                  (112, 125), (125, 126), (126, 127), (127, 128), (112, 129),
-                  (129, 130), (130, 131), (131, 132)],
-        palette=[(51, 153, 255), (0, 255, 0), (255, 128, 0), (255, 255, 255),
-                 (255, 153, 255), (102, 178, 255), (255, 51, 51)],
-        link_color=[
-            1, 1, 2, 2, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1,
-            1, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1, 1
-        ],
-        point_color=[
-            0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2,
-            2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-            3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1,
-            1, 1, 3, 2, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 1, 1, 1, 1
-        ],
-        sigmas=[
-            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
-            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.068,
-            0.066, 0.066, 0.092, 0.094, 0.094, 0.042, 0.043, 0.044, 0.043,
-            0.040, 0.035, 0.031, 0.025, 0.020, 0.023, 0.029, 0.032, 0.037,
-            0.038, 0.043, 0.041, 0.045, 0.013, 0.012, 0.011, 0.011, 0.012,
-            0.012, 0.011, 0.011, 0.013, 0.015, 0.009, 0.007, 0.007, 0.007,
-            0.012, 0.009, 0.008, 0.016, 0.010, 0.017, 0.011, 0.009, 0.011,
-            0.009, 0.007, 0.013, 0.008, 0.011, 0.012, 0.010, 0.034, 0.008,
-            0.008, 0.009, 0.008, 0.008, 0.007, 0.010, 0.008, 0.009, 0.009,
-            0.009, 0.007, 0.007, 0.008, 0.011, 0.008, 0.008, 0.008, 0.01,
-            0.008, 0.029, 0.022, 0.035, 0.037, 0.047, 0.026, 0.025, 0.024,
-            0.035, 0.018, 0.024, 0.022, 0.026, 0.017, 0.021, 0.021, 0.032,
-            0.02, 0.019, 0.022, 0.031, 0.029, 0.022, 0.035, 0.037, 0.047,
-            0.026, 0.025, 0.024, 0.035, 0.018, 0.024, 0.022, 0.026, 0.017,
-            0.021, 0.021, 0.032, 0.02, 0.019, 0.022, 0.031
-        ]),
-    halpe26=dict(
-        skeleton=[(15, 13), (13, 11), (11,19),(16, 14), (14, 12), (12,19),
-                  (17,18), (18,19), (18,5), (5,7), (7,9), (18,6), (6,8),
-                  (8,10), (1,2), (0,1), (0,2), (1,3), (2,4), (3,5), (4,6),
-                  (15,20), (15,22), (15,24),(16,21),(16,23), (16,25)],
-        palette=[(51, 153, 255), (0, 255, 0), (255, 128, 0)],
-        link_color=[
-            1, 1, 1, 2, 2, 2, 0, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 2, 2
-        ],
-        point_color=[
-            0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
-        ],
-        sigmas=[
-            0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072,
-            0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
-            0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
-        ]
-    )
-)
-det_model_path = os.path.join(r"C:\Users\MyUser\Desktop\NTKCAP\NTK_CAP\ThirdParty\mmdeploy\rtmpose-trt\rtmdet-nano")
-pose_model_path = os.path.join(r"C:\Users\MyUser\Desktop\NTKCAP\NTK_CAP\ThirdParty\mmdeploy\rtmpose-trt\rtmpose-t")
-device ="cuda"
+# from multiprocessing import Event, shared_memory, Queue, Array, Manager, Process
+# from CameraProcess import CameraProcess
+# from Tracker_Process import Tracker_Process
+# from SyncProcess import SyncProcess
+# from PreTri_Process import PreTri_Process
 
-sigmas = VISUALIZATION_CFG['halpe26']['sigmas']
-palette = VISUALIZATION_CFG['halpe26']['palette']
-skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
-link_color = VISUALIZATION_CFG['halpe26']['link_color']
-point_color = VISUALIZATION_CFG['halpe26']['point_color']
-cap = cv2.VideoCapture(1)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-# ##############ret, frame = cap.read()
-# tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-# state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
-
-def extract_files_frame_f_fast(f,coord, keypoints_ids):
-    '''
-    Extract data from json files for frame f, 
-    in the order of the body model hierarchy.
-
-    INPUTS:
-    - json_tracked_files_f: list of str. Paths of json_files for frame f.
-    - keypoints_ids: list of int. Keypoints IDs in the order of the hierarchy.
-
-    OUTPUTS:
-    - x_files, y_files, likelihood_files: array: 
-      n_cams lists of n_keypoints lists of coordinates.
-    '''
-
-    n_cams = 4
-    
-    x_files, y_files, likelihood_files = [], [], []
-    for cam_nb in range(n_cams):
-        x_files_cam, y_files_cam, likelihood_files_cam = [], [], []
-        js = coord[cam_nb][f]
-        for keypoint_id in keypoints_ids:
-            try:
-                x_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3] )
-                y_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+1] )
-                likelihood_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+2] )
-            except:
-                x_files_cam.append( np.array(0) )
-                y_files_cam.append( np.array(0))
-                likelihood_files_cam.append( np.array(0))
-
-        x_files.append(x_files_cam)
-        y_files.append(y_files_cam)
-        likelihood_files.append(likelihood_files_cam)
-        
-    x_files = np.array(x_files)
-    y_files = np.array(y_files)
-    likelihood_files = np.array(likelihood_files)
-    return x_files, y_files, likelihood_files
 def read_config_file(config):
     config_dict = toml.load(config)
     return config_dict
@@ -441,7 +305,8 @@ def tri():
     cal_path = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_18_00_02_calculated\1005_1\pose-2d-tracked"
     template = ["pose_cam1_json", "pose_cam2_json", "pose_cam3_json", "pose_cam4_json"]
     config=r"C:\Users\MyUser\Desktop\NTKCAP\NTK_CAP\template\Empty_project\User\Config.toml"
-    
+    # existing_keypoints_shm = shared_memory.SharedMemory(name=existing_keypoints_shm_name)
+    # shared_array_keypoints_shm = np.ndarray((20,) + (4, 1, 26, 3), dtype=np.float32, buffer=existing_keypoints_shm.buf)
     config_dict = read_config_file(config)
     calib_file = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_18_00_02_calculated\1005_1\calib-2d\Calib_easymocap.toml"
     likelihood_threshold = config_dict.get('triangulation').get('likelihood_threshold')
@@ -529,13 +394,7 @@ def tri():
     stream_4 = cp.cuda.Stream()
     stream_3 = cp.cuda.Stream()
     stream_2 = cp.cuda.Stream()
-    stream_41 = cp.cuda.Stream()
-    stream_31 = cp.cuda.Stream()
-    stream_21 = cp.cuda.Stream()
-    stream_t1 = cp.cuda.Stream()
-    stream_t2 = cp.cuda.Stream()
-    stream_t3 = cp.cuda.Stream()
-    stream_t4 = cp.cuda.Stream()
+    
     result = cp.empty((22, 4, 3), dtype=cp.float32)
     prep_4 = cp.empty((1, 22, 1, 4, 3), dtype=cp.float32)
     prep_3 = cp.empty((1, 22, 4, 3, 3), dtype=cp.float32)
@@ -559,30 +418,18 @@ def tri():
     # queue = Manager().Queue()
     # shm = shared_memory.SharedMemory(name="test_shm")
     # shared_array = np.ndarray((30, *IMG_SHAPE), dtype=DTYPE, buffer=shm.buf)
+    count = 0
     while True:
-    # for f in range(133):
         
-        t4 = time.time()
-        # with torch.inference_mode():
-        with stream_t1:
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
         
-        with stream_t2:
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
-        with stream_t3:
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
-        with stream_t4:
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
-        
-        stream_t1.synchronize()
-        stream_t2.synchronize()
-        stream_t3.synchronize()
-        stream_t4.synchronize()
-        
+        # try:
+        #     idx_get = sync_keypoints_queue.get(timeout=0.01)
+        # except:
+        #     continue
+        print(count)
         prep = None
-        t5 = time.time()
-        prep = cp.array(stacked[:, keypoints_ids, :])
-        # print(time.time()-t5)
+        stacked = cp.asarray(stacked.copy())
+        prep = stacked[:, keypoints_ids, :]
         
         result[:] = cp.transpose(prep, (1, 0, 2)) # (22, 4, 3)
         prep_4[:] = result[None, :, None, :] # (1, 22, 1, 4, 3)
@@ -591,7 +438,6 @@ def tri():
         prep_2[:] = result[:, combinations_2, :][None, :] # (1, 22, 6, 2, 3)
         
         with stream_4:
-            t1 = time.time()
             prep_4[:] = cp.stack([bilinear_interpolate_cupy(mappingx, prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]), bilinear_interpolate_cupy(mappingy, prep_4[:, :, :, :, 0], prep_4[:, :, :, :, 1]), prep_4[:, :, :, :, 2]], axis=-1)  # Shape: (155, 22, 4, 3, 3)
         
             prep_4like[:] = cp.min(prep_4[:,:,:,:,2],axis=3) # (1, 22, 1)
@@ -599,8 +445,7 @@ def tri():
             A4[:] = cp.stack([((P0 - prep_4[..., 0:1] * P2) * prep_4[..., 2:3]), ((P1 - prep_4[..., 1:2] * P2) * prep_4[..., 2:3])], axis=-2).reshape(1, 22, 1, 8, 4) # (1, 22, 1, 8, 4)
             f4 = cp.shape(A4)
             A4_flat = A4.reshape(-1, 8, 4)
-        stream_4.synchronize()
-        with stream_41:
+        
             _, _, Vt4 = cp.linalg.svd(A4_flat, full_matrices=False)
             
             V4 = Vt4.transpose(0, 2, 1)
@@ -623,8 +468,6 @@ def tri():
             f3 = cp.shape(A3)
             A3_flat = A3.reshape(-1, 6, 4)
         
-        stream_3.synchronize()
-        with stream_31:
             _, _, Vt3 = cp.linalg.svd(A3_flat, full_matrices=False)
             
             V3 = Vt3.transpose(0, 2, 1)
@@ -646,8 +489,6 @@ def tri():
             f2 = cp.shape(A2)
             A2_flat = A2.reshape(-1, 4, 4)
         
-        stream_2.synchronize()
-        with stream_21:
             _, _, Vt2 = cp.linalg.svd(A2_flat, full_matrices=False)
             
             V2 = Vt2.transpose(0, 2, 1)
@@ -661,9 +502,9 @@ def tri():
             rpj_coor_2 = cp.stack((cp.expand_dims((result_c2[:, 0] / result_c2[:, 2]).transpose(2, 0, 1), axis=0), cp.expand_dims((result_c2[:, 1] / result_c2[:, 2]).transpose(2, 0, 1), axis=0)),axis = -1)
             rpj = cp.sqrt((rpj_coor_2[:, :, :, :, 0] - prep_2[:, :, :, :, 0]) ** 2 + (rpj_coor_2[:, :, :, :, 1] - prep_2[:, :, :, :, 1]) ** 2)
             real_dist2[:] = cp.max(cp.expand_dims(cp.sqrt(cp.sum((Q2_bug.transpose(2, 0, 1, 3)[:, :, :, 0:3] - cam_coord[comb_2][:, :, None, :]) ** 2, axis=-1)).transpose(2, 0, 1), axis=0) * rpj, axis=-1) # (1, 22, 6)
-        stream_41.synchronize()
-        stream_31.synchronize()
-        stream_21.synchronize()
+        stream_4.synchronize()
+        stream_3.synchronize()
+        stream_2.synchronize()
         
         # delete the liklelihoood vlue which is too low
         prep_like = cp.concatenate((prep_4like, prep_3like, prep_2like),axis =2)
@@ -692,28 +533,120 @@ def tri():
         
         Q_selected = Q[batch_indices, time_indices, min_locations][:,:,0:3]
         Q_tot_gpu = Q_selected.reshape(Q_selected.shape[0], -1)
-        if keypoints.shape!=(0, 0, 3): print(time.time()-t4)
-    #         ax.cla()  # 清除當前圖表
-    #         points = Q_tot_gpu[0].reshape(22, 3)
-    #         x, y, z = points[:, 0], points[:, 1], points[:, 2]
+        count += 1
+        cp.cuda.Device(0).synchronize()
 
 
-    #         ax.scatter(x, y, z, c='blue', marker='o')
-            
- 
-    #         ax.set_xlabel('X')
-    #         ax.set_ylabel('Y')
-    #         ax.set_zlabel('Z')
-    #         ax.set_title(f'3D Scatter Plot - Frame {i+1}')
-           
-    #         ax.set_xlim(-2, 2)
-    #         ax.set_ylim(-2, 2)
-    #         ax.set_zlim(-2, 2)
-
-            
-    #         plt.draw()
-    #         fig.canvas.flush_events()
-            
-    # plt.ioff()
-# if __name__ == "__main__":
-# tri()
+if __name__ == "__main__":
+    # camera_queue = [Queue() for _ in range(4)]
+    # sync_frame_queue = [Queue() for _ in range(4)]
+    # tracker_queue = [Queue() for _ in range(4)]
+    # sync_tracker_queue = Queue()
+    # start_time = time.time()
+    # time_stamp_array_lst = []
+    # camera_proc_lst = []
+    # camera_shm_lst = []
+    # tracker_sync_proc_lst = []
+    # tracker_sync_shm_lst = []
+    # sync_frame_shm_lst = []
+    # camera_shm_shape = (1080, 1920, 3)
+    # tracker_sync_shm_shape = (1, 26, 3)
+    # buffer_length = 20
+    # keypoints_sync_shm = shared_memory.SharedMemory(create=True, size=int(np.prod((4, 1, 26, 3)) * np.dtype(np.float32).itemsize * buffer_length))
+    # for i in range(4):
+    #     camera_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(camera_shm_shape) * np.dtype(np.uint8).itemsize * buffer_length))
+    #     camera_shm_lst.append(camera_shm)
+    #     time_stamp_array = Array('d', [0.0] * 20)
+    #     time_stamp_array_lst.append(time_stamp_array)
+    #     tracker_sync_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(tracker_sync_shm_shape) * np.dtype(np.float32).itemsize * buffer_length))
+    #     tracker_sync_shm_lst.append(tracker_sync_shm)
+    #     sync_frame_shm = shared_memory.SharedMemory(create=True, size=int(np.prod(camera_shm_shape) * np.dtype(np.uint8).itemsize * buffer_length))
+    #     sync_frame_shm_lst.append(sync_frame_shm)
+    #     p_camera = CameraProcess(
+    #         i,
+    #         camera_shm_lst[i].name,
+    #         time_stamp_array_lst[i],
+    #         camera_queue[i],
+    #         start_time,
+    #     )
+    #     camera_proc_lst.append(p_camera)
+    #     tracker = Tracker_Process(
+    #         i,
+    #         sync_frame_shm_lst[i].name,
+    #         sync_frame_queue[i],
+    #         tracker_sync_shm_lst[i].name,
+    #         tracker_queue[i]
+    #     )
+    #     tracker_sync_proc_lst.append(tracker)
+    # sync_proc = SyncProcess(
+    #     camera_shm_lst[0].name,
+    #     camera_shm_lst[1].name,
+    #     camera_shm_lst[2].name,
+    #     camera_shm_lst[3].name,        
+    #     sync_frame_shm_lst[0].name,
+    #     sync_frame_shm_lst[1].name,
+    #     sync_frame_shm_lst[2].name,
+    #     sync_frame_shm_lst[3].name,
+    #     time_stamp_array_lst,
+    #     camera_queue,
+    #     sync_frame_queue
+        
+    # )
+    # pre_tri_proc = PreTri_Process(
+    #     tracker_sync_shm_lst[0].name,
+    #     tracker_sync_shm_lst[1].name,
+    #     tracker_sync_shm_lst[2].name,
+    #     tracker_sync_shm_lst[3].name,
+    #     tracker_queue,
+    #     keypoints_sync_shm.name,
+    #     sync_tracker_queue
+    # )
+    # for process in camera_proc_lst:
+    #     process.start()
+    # sync_proc.start()
+    # for process in tracker_sync_proc_lst:
+    #     process.start()
+    # pre_tri_proc.start()
+    # tri(keypoints_sync_shm.name, sync_tracker_queue)
+    # keypoints_sync_shm.close()
+    # keypoints_sync_shm.unlink()
+    # for shm in camera_shm_lst:
+    #     shm.close()
+    #     shm.unlink()
+    # for shm in tracker_sync_shm_lst:
+    #     shm.close()
+    #     shm.unlink()
+    # for shm in sync_frame_shm_lst:
+    #     shm.close()
+    #     shm.unlink()
+    # for array in time_stamp_array_lst:
+    #     del array
+    # for queue in camera_queue: # 4 camera cap.read() to sync queue
+    #     while not queue.empty():
+    #         queue.get()
+    #     queue.close()
+    # for queue in sync_frame_queue: # 4 synced to tracker queue
+    #     while not queue.empty():
+    #         queue.get()
+    #     queue.close()
+    # for queue in tracker_queue: # 4 tracker to preparation for triangulation queue
+    #     while not queue.empty():
+    #         queue.get()
+    #     queue.close()
+    # while not sync_tracker_queue.empty():
+    #     queue.get()
+    # sync_tracker_queue.close()
+    # for process in camera_proc_lst:
+        
+    #     process.join()
+    #     process.close()
+    # for process in tracker_sync_proc_lst:
+        
+    #     process.join()
+    #     process.close()
+    # sync_proc.join()
+    # sync_proc.close()
+    
+    # pre_tri_proc.join()
+    # pre_tri_proc.close()
+    tri()

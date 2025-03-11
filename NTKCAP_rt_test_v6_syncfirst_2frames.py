@@ -61,10 +61,10 @@ class MainWindow(QMainWindow):
         self.tracker_sync_proc_lst = []
         self.tracker_sync_shm_lst = []
         self.camera_queue = [Queue() for _ in range(4)]
-        self.sync_frame_queue = [Queue() for _ in range(4)]
+        self.sync_frame_queue = [Queue() for _ in range(2)]
         self.tracker_queue = [Queue() for _ in range(4)]
         self.draw_frame_queue = [Queue() for _ in range(4)]
-        self.sync_tracker_queue = Queue()
+        self.sync_tracker_queue = [Queue() for _ in range(2)]
         self.start_camera_evt = Event()
         self.stop_camera_evt = Event()
         self.time_stamp_array_lst = []
@@ -111,35 +111,30 @@ class MainWindow(QMainWindow):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
             self.threads[i].update_signal.connect(lambda image, label=label: self.image_update_slot(image, label))
-        
-        self.tracker1 = Tracker_Process(
-            0,
-            self.sync_frame_shm_lst[0].name,
-            self.sync_frame_queue[0],
-            self.sync_frame_shm_lst[1].name,
-            self.sync_frame_queue[1],
-            self.tracker_sync_shm_lst[0].name,
-            self.tracker_queue[0],
-            self.tracker_sync_shm_lst[1].name,
 
+        tracker1 = Tracker_Process(
+            0,
+            self.sync_frame_shm_lst[0].name,            
+            self.sync_frame_shm_lst[1].name,
+            self.sync_frame_queue[0],
+            self.tracker_sync_shm_lst[0].name,
+            self.tracker_sync_shm_lst[1].name,
+            self.tracker_queue[0],
             self.sync_frame_show_shm_lst[0].name,
             self.draw_frame_queue[0],
             self.sync_frame_show_shm_lst[1].name,
             self.draw_frame_queue[1],
-
             self.start_camera_evt,
             self.stop_camera_evt
         )
-        self.tracker2 = Tracker_Process(
+        tracker2 = Tracker_Process(
             1,
-            self.sync_frame_shm_lst[2].name,
-            self.sync_frame_queue[2],
+            self.sync_frame_shm_lst[2].name,            
             self.sync_frame_shm_lst[3].name,
-            self.sync_frame_queue[3],            
+            self.sync_frame_queue[1],
             self.tracker_sync_shm_lst[2].name,
-            self.tracker_queue[1],
             self.tracker_sync_shm_lst[3].name,
-            
+            self.tracker_queue[1],
             self.sync_frame_show_shm_lst[2].name,
             self.draw_frame_queue[2],
             self.sync_frame_show_shm_lst[3].name,
@@ -147,19 +142,21 @@ class MainWindow(QMainWindow):
             self.start_camera_evt,
             self.stop_camera_evt
         )
-        
+        self.tracker_sync_proc_lst.append(tracker1)
+        self.tracker_sync_proc_lst.append(tracker2)
+
         self.pre_tri_process = PreTri_Process(
             self.tracker_sync_shm_lst[0].name,
             self.tracker_sync_shm_lst[1].name,
             self.tracker_sync_shm_lst[2].name,
             self.tracker_sync_shm_lst[3].name,
             self.tracker_queue,
-            # self.keypoints_sync_shm.name,
-            # self.sync_tracker_queue,
+            self.keypoints_sync_shm.name,
+            self.sync_tracker_queue,
             self.start_camera_evt,
             self.stop_camera_evt
         )
-        
+
         self.time_sync_process = SyncProcess(
             self.camera_shm_lst[0].name, # shm for receiving frames from four camera processes
             self.camera_shm_lst[1].name,
@@ -175,12 +172,13 @@ class MainWindow(QMainWindow):
             self.start_camera_evt,
             self.stop_camera_evt
         )
+
         # start processes
         for process in self.camera_proc_lst:
             process.start()
         self.time_sync_process.start()
-        self.tracker1.start()
-        self.tracker2.start()
+        for process in self.tracker_sync_proc_lst:
+            process.start()
         self.pre_tri_process.start()
         for thread in self.threads:
             thread.start()
@@ -216,7 +214,8 @@ class MainWindow(QMainWindow):
             queue.close()
         for queue in self.draw_frame_queue: # 4 send to Qthread for update label queue
             queue.close()
-        self.sync_tracker_queue.close() # 1 send to triangulation queue
+        for queue in self.sync_tracker_queue:
+            queue.close() # 1 send to triangulation queue
         # release Qthread for updating GUI labels
         for thread in self.threads:
             thread.stop()
@@ -235,12 +234,11 @@ class MainWindow(QMainWindow):
             if process.is_alive():
                 process.terminate()
                 process.join()
-        if self.tracker1.is_alive(): # 1 tracker process
-            self.tracker1.terminate()
-            self.tracker1.join()
-        if self.tracker2.is_alive(): # 1 tracker process
-            self.tracker2.terminate()
-            self.tracker2.join()
+        for process in self.tracker_sync_proc_lst:
+            if process.is_alive():
+                process.terminate()
+                process.join()
+        
         self.time_sync_process.terminate() # 1 time stamp sync process
         self.pre_tri_process.terminate() # 1 preparation for triangulation process
         # self.trangulation.terminate()

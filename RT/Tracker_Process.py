@@ -1,4 +1,3 @@
-from check_extrinsic import *
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
 from mmdeploy_runtime import PoseTracker
 import os
@@ -36,28 +35,20 @@ skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
 link_color = VISUALIZATION_CFG['halpe26']['link_color']
 point_color = VISUALIZATION_CFG['halpe26']['point_color']
 class Tracker_Process(Process):
-    def __init__(self, group_id, sync_frame_shm_name1, sync_frame_queue1, sync_frame_shm_name2, sync_frame_queue2, sync_tracker_shm_name1, sync_tracker_queue, sync_tracker_shm_name2, sync_frame_show_shm_name1, draw_frame_queue1, sync_frame_show_shm_name2, draw_frame_queue2, start_evt, stop_evt, *args, **kwargs):
+    def __init__(self, cam_id, sync_frame_shm_name1, sync_frame_shm_name2, sync_frame_queue, tracker_sync_shm_name1, tracker_sync_shm_name2, tracker_queue, sync_frame_show_shm_name1, draw_frame_queue1, sync_frame_show_shm_name2, draw_frame_queue2, start_camera_evt, stop_camera_evt, *args, **kwargs):
         super().__init__()
-        self.group_id = group_id
+        self.cam_id = cam_id
 
         self.sync_frame_shm_name1 = sync_frame_shm_name1
-        self.sync_frame_queue1 = sync_frame_queue1
         self.sync_frame_shm_name2 = sync_frame_shm_name2
-        self.sync_frame_queue2 = sync_frame_queue2
-
-        self.sync_tracker_shm_name1 = sync_tracker_shm_name1
-        self.sync_tracker_shm_name2 = sync_tracker_shm_name2
-        self.sync_tracker_queue = sync_tracker_queue
-        
-
+        self.sync_frame_queue = sync_frame_queue
+        self.tracker_sync_shm_name1 = tracker_sync_shm_name1
+        self.tracker_sync_shm_name2 = tracker_sync_shm_name2
+        self.tracker_queue = tracker_queue
         self.sync_frame_show_shm_name1 = sync_frame_show_shm_name1
         self.draw_frame_queue1 = draw_frame_queue1
         self.sync_frame_show_shm_name2 = sync_frame_show_shm_name2
         self.draw_frame_queue2 = draw_frame_queue2
-
-        self.start_evt = start_evt
-        self.stop_evt = stop_evt
-
         self.frame_shm_shape = (1080, 1920, 3)
         self.buffer_length = 20
         self.tracker_shm_shape = (1, 26, 3)
@@ -70,65 +61,50 @@ class Tracker_Process(Process):
         shared_array_frame1 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame1.buf)
         existing_shm_frame2 = shared_memory.SharedMemory(name=self.sync_frame_shm_name2)
         shared_array_frame2 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame2.buf)
-        
-
-        existing_shm_tracker1 = shared_memory.SharedMemory(name=self.sync_tracker_shm_name1)
+        existing_shm_tracker1 = shared_memory.SharedMemory(name=self.tracker_sync_shm_name1)
         shared_array_tracker1 = np.ndarray((self.buffer_length,) + self.tracker_shm_shape, dtype=np.float32, buffer=existing_shm_tracker1.buf)
-        existing_shm_tracker2 = shared_memory.SharedMemory(name=self.sync_tracker_shm_name2)
+        existing_shm_tracker2 = shared_memory.SharedMemory(name=self.tracker_sync_shm_name2)
         shared_array_tracker2 = np.ndarray((self.buffer_length,) + self.tracker_shm_shape, dtype=np.float32, buffer=existing_shm_tracker2.buf)
-        
-
-        existing_shm_frame_show1 = shared_memory.SharedMemory(name=self.sync_frame_show_shm_name1)
-        shared_array_frame_show1 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame_show1.buf)
-        existing_shm_frame_show2 = shared_memory.SharedMemory(name=self.sync_frame_show_shm_name2)
-        shared_array_frame_show2 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame_show2.buf)
-        
         keypoints_template = np.full((1, 26, 3), np.nan, dtype=np.float32)
-        
+        existing_shm_draw_frame1 = shared_memory.SharedMemory(name=self.sync_frame_show_shm_name1)
+        shared_array_draw_frame1 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_draw_frame1.buf)
+        existing_shm_draw_frame2 = shared_memory.SharedMemory(name=self.sync_frame_show_shm_name2)
+        shared_array_draw_frame2 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_draw_frame2.buf)
         count = 0
         idx, idx_show = 0, 0
-        self.start_evt.wait()
-        stream_1 = cp.cuda.Stream(non_blocking=True)
-        stream_2 = cp.cuda.Stream(non_blocking=True)
-        while self.start_evt.is_set():
+
+        while True:
             t1 = time.time()
             try:
-                idx_get = self.sync_frame_queue1.get(timeout=0.01)
+                idx_get = self.sync_frame_queue.get(timeout=0.01)
             except:
                 continue
             
             frame1 = shared_array_frame1[idx_get, : ]
             frame2 = shared_array_frame2[idx_get, : ]
-            with stream_1:
-                keypoints1, _ = tracker(state, frame1, detect=-1)[:2]
-            with stream_2:
-                keypoints2, _ = tracker(state, frame2, detect=-1)[:2]
-            
-            stream_1.synchronize()
-            stream_2.synchronize()
-            if keypoints1.shape == (0, 0, 3): 
-                np.copyto(shared_array_tracker1[idx, :], keypoints_template)
+            keypoints1, _ = tracker(state, frame1, detect=-1)[:2]
+            keypoints2, _ = tracker(state, frame2, detect=-1)[:2]
+            if keypoints1.shape == (0, 0, 3):
+                np.copyto(shared_array_tracker1[idx,:], keypoints_template)
             else:
-                np.copyto(shared_array_tracker1[idx, :], keypoints1)
-            # np.copyto(shared_array_frame_show1[idx, :], frame1)
+                np.copyto(shared_array_tracker1[idx,:], keypoints1)
             if keypoints2.shape == (0, 0, 3):
-                np.copyto(shared_array_tracker2[idx, :], keypoints_template)
+                np.copyto(shared_array_tracker2[idx,:], keypoints_template)
             else:
-                np.copyto(shared_array_tracker2[idx, :], keypoints2)
-            
-            self.sync_tracker_queue.put(idx)
+                np.copyto(shared_array_tracker2[idx,:], keypoints2)
+            self.tracker_queue.put(idx)
             
             idx = (idx+1) % self.buffer_length
-            
+            # print("tracker", self.cam_id, count)
             scores1 = keypoints1[..., 2]
             keypoints1 = np.round(keypoints1[..., :2], 3)
             self.draw_frame(frame1, keypoints1, scores1, palette, skeleton, link_color, point_color)
-            np.copyto(shared_array_frame_show1[idx_show,:], frame1)
+            np.copyto(shared_array_draw_frame1[idx_show,:], frame1)
             self.draw_frame_queue1.put(idx_show)
             scores2 = keypoints2[..., 2]
             keypoints2 = np.round(keypoints2[..., :2], 3)
             self.draw_frame(frame2, keypoints2, scores2, palette, skeleton, link_color, point_color)
-            np.copyto(shared_array_frame_show2[idx_show,:], frame2)
+            np.copyto(shared_array_draw_frame2[idx_show,:], frame2)
             self.draw_frame_queue2.put(idx_show)
             # scores3 = keypoints3[..., 2]
             # keypoints3 = np.round(keypoints3[..., :2], 3)
@@ -146,9 +122,11 @@ class Tracker_Process(Process):
             # self.draw_frame_queue4.put(idx_show)
             
             idx_show = (idx_show+1) % self.buffer_length
-            
+            # if keypoints1.shape != (0, 0, 3) and keypoints2.shape != (0, 0, 3) and keypoints3.shape != (0, 0, 3) and keypoints4.shape != (0, 0, 3):
+            #     print(time.time()-t1)
             
             count += 1
+    
     def draw_frame(self, frame, keypoints, scores, palette, skeleton, link_color, point_color):
         keypoints = keypoints.astype(int)
         # cv2.putText(frame, (10, 250), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)

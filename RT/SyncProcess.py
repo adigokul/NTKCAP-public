@@ -4,7 +4,7 @@ import numpy as np
 from collections import deque
 
 class SyncProcess(Process):
-    def __init__(self, raw_frame_shm_name0, raw_frame_shm_name1, raw_frame_shm_name2, raw_frame_shm_name3, sync_frame_shm_name0, sync_frame_shm_name1, sync_frame_shm_name2, sync_frame_shm_name3, time_stamp_array_lst, camera_queue_lst, sync_frame_queue_lst, start_evt, stop_evt, *args, **kwargs):
+    def __init__(self, raw_frame_shm_name0, raw_frame_shm_name1, raw_frame_shm_name2, raw_frame_shm_name3, sync_frame_shm_name0, sync_frame_shm_name1, sync_frame_shm_name2, sync_frame_shm_name3, time_stamp_array_lst, camera_queue_lst, sync_frame_queue_lst, *args, **kwargs):
         super().__init__()
         self.raw_frame_shm_name0 = raw_frame_shm_name0
         self.raw_frame_shm_name1 = raw_frame_shm_name1
@@ -18,8 +18,8 @@ class SyncProcess(Process):
         self.time_stamp_array_lst = time_stamp_array_lst
         self.camera_queue_lst = camera_queue_lst
         self.sync_frame_queue_lst = sync_frame_queue_lst
-        self.start_evt = start_evt
-        self.stop_evt = stop_evt
+        # self.start_evt = start_evt
+        # self.stop_evt = stop_evt
         self.buffer_length = 20
         self.frame_shm_shape = (1080, 1920, 3)
         self.shm_raw_frame_lst = []
@@ -58,7 +58,7 @@ class SyncProcess(Process):
         existing_shm_sync_frame3 = shared_memory.SharedMemory(name=self.sync_frame_shm_name3)
         shared_array_sync_frame3 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_sync_frame3.buf)
 
-        self.start_evt.wait()
+        # self.start_evt.wait()
         time_stamp_frame = [None] * 4
         raw_frame_all = [None] * 4
         time_stamp_frame_sync = []
@@ -68,8 +68,8 @@ class SyncProcess(Process):
         idx = 0
         count = 0
         time.sleep(1)
-        while self.start_evt.is_set():
-            t1 = time.time()
+        while True:
+            
             not_get = [0, 1, 2, 3]
             time_stamp_frame = [None] * 4
             raw_frame_all = [None] * 4
@@ -87,19 +87,17 @@ class SyncProcess(Process):
                     raw_frame_all[i] = raw_frame
                 except Exception as e:
                     not_get.append(not_get.pop(0))
-            # print(f"SyncProcess: {count}")
             if self.check_follow_up(time_stamp_frame):
                 self.frame_sync_buffer.clear()
                 self.time_stamp_sync_buffer.clear()
                 next_queue = [0, 0, 0, 0]
                 np.copyto(shared_array_sync_frame0[idx, :], raw_frame_all[0])
                 np.copyto(shared_array_sync_frame1[idx, :], raw_frame_all[1])
-                np.copyto(shared_array_sync_frame2[idx, :], raw_frame_all[2])
-                np.copyto(shared_array_sync_frame3[idx, :], raw_frame_all[3])
                 self.sync_frame_queue_lst[0].put(idx)
+                np.copyto(shared_array_sync_frame2[idx, :], raw_frame_all[2])
+                np.copyto(shared_array_sync_frame3[idx, :], raw_frame_all[3])                
                 self.sync_frame_queue_lst[1].put(idx)
-                self.sync_frame_queue_lst[2].put(idx)
-                self.sync_frame_queue_lst[3].put(idx)
+                
                 
             else:
                 self.frame_sync_buffer.append(raw_frame_all.copy())
@@ -109,12 +107,10 @@ class SyncProcess(Process):
                     raw_frame_sync.append(self.frame_sync_buffer[pos][pos_idx])
                 np.copyto(shared_array_sync_frame0[idx, :], raw_frame_sync[0])
                 np.copyto(shared_array_sync_frame1[idx, :], raw_frame_sync[1])
-                np.copyto(shared_array_sync_frame2[idx, :], raw_frame_sync[2])
-                np.copyto(shared_array_sync_frame3[idx, :], raw_frame_sync[3])
                 self.sync_frame_queue_lst[0].put(idx)
+                np.copyto(shared_array_sync_frame2[idx, :], raw_frame_sync[2])
+                np.copyto(shared_array_sync_frame3[idx, :], raw_frame_sync[3])                
                 self.sync_frame_queue_lst[1].put(idx)
-                self.sync_frame_queue_lst[2].put(idx)
-                self.sync_frame_queue_lst[3].put(idx)
                 
                 for i in range(4):
                     if max(time_stamp_frame_sync)-time_stamp_frame_sync[i] > self.TR:
@@ -131,8 +127,8 @@ class SyncProcess(Process):
                     except:
                         continue
             idx = (idx+1) % self.buffer_length
-            
-            print(count, time.time()-t1)
+            print("sync", count)
             count += 1
+            
     def check_follow_up(self, time_stamp_frame):
         return all(max(time_stamp_frame) - ts <= self.TR for ts in time_stamp_frame)  
