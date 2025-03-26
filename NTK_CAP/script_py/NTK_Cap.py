@@ -18,11 +18,20 @@ except:
 import sys
 sys.path.insert(0, r'd:\NTKCAP')
 from Pose2Sim import Pose2Sim
-from .gait_analysis import gait1
+try:
+    from .gait_analysis import gait1
+except:
+    from gait_analysis import gait1
+
 import serial
-from .osimConverters.convertOsim2Gltf import convertOsim2Gltf
+
 from pathlib import Path
-from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
+try:
+    from .osimConverters.convertOsim2Gltf import convertOsim2Gltf
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
+except:
+    from osimConverters.convertOsim2Gltf import convertOsim2Gltf
+    from full_process import rtm2json,rtm2json_rpjerror,timesync_video
 ######################################################
 ######################################################
 # create calibration folder
@@ -931,10 +940,11 @@ def read_err_calib_extri(PWD):
 def mp_marker_calculate(PWD, calculate_path_list, fast_cal):
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
-        if fast_cal:
-            folder_calculated =marker_caculate_fast(PWD, cal_folder_path)
-        else:
+        if (not fast_cal) or ('multi_person' in cal_folder_path):  
             folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
+        else:
+            folder_calculated = marker_caculate_fast(PWD, cal_folder_path)
+            
 def marker_caculate(PWD, cal_data_path, gait_token=None):
     
     ori_path = PWD
@@ -979,9 +989,10 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
     date = data_path.split('\\')[-1]
     Patient_data_path = os.path.join(PWD, 'Patient_data')
     empty_project_path = os.path.join(PWD, "NTK_CAP", "template", "Empty_project")
+
     if data_path.split('\\')[-2] == 'multi_person':
         raw_data_path = os.path.join(data_path, 'raw_data')
-        task_caculate_finshed_path = os.path.join(data_path, folder_name)        
+        task_caculate_finshed_path = os.path.join(data_path, folder_name)
         for task in os.listdir(raw_data_path):
             if task == 'calibration' or task == 'Apose': continue # There shouldn't be Apose folder in multi_person task raw_data folder
             task_folder_path = os.path.join(raw_data_path, task)
@@ -1003,10 +1014,11 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                 else:
                     print(f'Calculating {name}/{date} Apose')
                     raw_data_p_path = os.path.join(Patient_data_path, name, date, 'raw_data')
+                    
                     if not os.path.exists(os.path.join(raw_data_path, 'calibration')):
                         calibration_path = os.path.join(raw_data_p_path, 'calibration')
                         shutil.copytree(calibration_path, os.path.join(raw_data_path, 'calibration'))
-                    
+                    import pdb; pdb.set_trace()
                     calculate_finished_path = os.path.join(Patient_data_path, name, date, folder_name)
                     old_apose_path = os.path.join(calculate_finished_path, 'Apose')
                     Apose_p_path.append(old_apose_path)
@@ -1060,7 +1072,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                             now_pose =  os.path.join(now_pose_videos, str(l) + ".mp4")
                             now_json = os.path.join(now_project, "pose-2d")
                             now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
-                            # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
+                            
                             rtm2json(now_videos, now_json+'.json',now_pose)
                             print(now_pose)
                         os.chdir(ori_path)
@@ -1711,8 +1723,9 @@ def marker_caculate_fast(PWD,cal_data_path):
 # import time
 # s = time.time()
 # dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_21_16_13_calculated\path1_04'        
-# os.chdir(dir_task)
+os.chdir(r"C:\Users\MyUser\Desktop\NTKCAP")
 # import inspect
 # print(inspect.getfile(Pose2Sim))
 # Pose2Sim.triangulation()
 # print(time.time()-s)       
+mp_marker_calculate('C:\\Users\\MyUser\\Desktop\\NTKCAP', ['C:\\Users\\MyUser\\Desktop\\NTKCAP\\Patient_data\\multi_person\\2025_02_24'], False)

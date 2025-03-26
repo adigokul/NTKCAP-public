@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
         self.record_path = self.current_directory
         self.calibra_path = os.path.join(self.current_directory, "calibration")
         self.patient_path = os.path.join(self.current_directory, "Patient_data")
+        self.multi_person_path = os.path.join(self.patient_path, "multi_person")
         self.calib_toml_path = os.path.join(self.calibra_path, "Calib.toml")
         self.extrinsic_path = os.path.join(self.calibra_path,"ExtrinsicCalibration")
         
@@ -81,10 +82,12 @@ class MainWindow(QMainWindow):
         self.multi_person_record_list = []
         self.list_widget_multi_record_list = self.findChild(QListWidget, "list_widget_multi_record_list")
         self.list_widget_multi_record_list.itemDoubleClicked.connect(self.lw_multi_subjects_selected_del_select)
+        self.list_widget_multi_record_list.setVisible(False)
         self.lw_select_del = None
         self.btn_multi_subjects_selected_del = self.findChild(QPushButton, "btn_multi_subjects_selected_del")
         self.btn_multi_subjects_selected_del.clicked.connect(self.lw_multi_subjects_selected_del)
         self.btn_multi_subjects_selected_del.setEnabled(False)
+        self.btn_multi_subjects_selected_del.setVisible(False)
         self.record_list_widget_patient_id: QListWidget = self.findChild(QListWidget, "list_widget_patient_id_record")
         self.record_list_widget_patient_id.itemDoubleClicked.connect(self.lw_record_select_patientID)
         self.record_select_patientID = None
@@ -101,7 +104,12 @@ class MainWindow(QMainWindow):
         self.record_enter_task_name.focusInEvent = self.record_enter_task_name_infocus
         self.record_enter_task_name.focusOutEvent = self.record_enter_task_name_outfocus
         self.list_widget_patient_task_record = self.findChild(QListWidget, "list_widget_patient_task_record")
-        
+        self.btn_multi_match_gui = self.findChild(QPushButton, "btn_multi_match_gui")
+        self.btn_multi_match_gui.clicked.connect(self.multi_match_gui)
+        self.btn_multi_match_gui.setEnabled(True)
+        self.logview = self.findChild(QPlainTextEdit, "logview")
+        self.logview.setReadOnly(True)
+        self.logview.setVisible(False)
         # record Apose
         self.btn_Apose_record: QPushButton = self.findChild(QPushButton, "btn_Apose_record")
         self.btn_Apose_record.clicked.connect(self.Apose_record_ask)
@@ -202,6 +210,8 @@ class MainWindow(QMainWindow):
         else:
             self.tabWidgetRight.hide()
     def reset_setup_tab(self):
+        self.multi_person_record_list.clear()
+        self.lw_multi_subjects_selected_show()
         self.record_select_patientID = None
         self.record_task_name = None
         self.list_widget_patient_id_record.clearSelection()
@@ -214,7 +224,10 @@ class MainWindow(QMainWindow):
         self.label_log.setText("Please select a patient ID")
         self.result_load_folders()
         self.list_widget_patient_task_record.clear()
-                
+    
+    def multi_match_gui(self):
+        subprocess.run(["python", os.path.join(self.current_directory, 'match_multi_GUI.py'), self.multi_person_path])
+
     def on_multi_person_toggled(self, checked): # mp func is checked or not
         if self.multi_person:
             reply = QMessageBox.question(
@@ -224,6 +237,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
+                self.list_widget_multi_record_list.setVisible(False)
+                self.btn_multi_subjects_selected_del.setVisible(False)
                 self.record_select_patientID = None
                 self.label_selected_patient.setText(f"Selected patient :")
                 self.record_enter_task_name.setEnabled(False)
@@ -235,6 +250,8 @@ class MainWindow(QMainWindow):
                 self.btn_multi_person.setChecked(False)
                 self.btn_multi_person.blockSignals(False)
             else:
+                self.list_widget_multi_record_list.setVisible(True)
+                self.btn_multi_subjects_selected_del.setVisible(True)
                 self.btn_multi_person.blockSignals(True)
                 self.btn_multi_person.setChecked(True)
                 self.btn_multi_person.blockSignals(False)
@@ -246,6 +263,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
+                self.list_widget_multi_record_list.setVisible(True)
+                self.btn_multi_subjects_selected_del.setVisible(True)
                 self.record_select_patientID = "multi_person"
                 self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
                 self.record_enter_task_name.setEnabled(True)
@@ -255,9 +274,11 @@ class MainWindow(QMainWindow):
                 self.btn_multi_person.setChecked(True)
                 self.btn_multi_person.blockSignals(False)
             else:
+                self.list_widget_multi_record_list.setVisible(False)
+                self.btn_multi_subjects_selected_del.setVisible(False)
                 self.btn_multi_person.blockSignals(True)
                 self.btn_multi_person.setChecked(False)
-                self.btn_multi_person.blockSignals(False)
+                self.btn_multi_person.blockSignals(False)   
         
     def lw_multi_subjects_selected_del_select(self, item):
         self.lw_select_del = item.text()
@@ -450,7 +471,7 @@ class MainWindow(QMainWindow):
             self.shared_dict_record_name['task_name'] = self.record_task_name
             self.shared_dict_record_name['start_time'] = time.time()            
             if self.multi_person_record_list is not None:
-                multi_name_folder_path = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos', 'name')
+                multi_name_folder_path = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'name')
                 os.makedirs(multi_name_folder_path)
                 with open(os.path.join(multi_name_folder_path, "name.txt"), "w") as f:
                     for name in self.multi_person_record_list:                
@@ -748,12 +769,13 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal))
-            self.marker_calculate_process.start()
+            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal))
+            # self.marker_calculate_process.start()
+            mp_marker_calculate(cur_dir, cal_list, self.fast_cal)
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
-            self.timer_marker_calculate.start(1000)
+            # self.timer_marker_calculate.start(1000)
 
     # Calculation tab
     def on_fast_calculation(self, checked):
