@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         # multi person
         self.btn_multi_person = self.findChild(QPushButton, "btn_multi_person")
         self.btn_multi_person.toggled.connect(self.on_multi_person_toggled)
-        self.btn_multi_person.clicked.connect(self.multi_person_mode)
+        self.btn_multi_person.setCheckable(True)
         self.multi_person = False
         self.multi_person_record_list = []
         self.list_widget_multi_record_list = self.findChild(QListWidget, "list_widget_multi_record_list")
@@ -214,32 +214,51 @@ class MainWindow(QMainWindow):
         self.label_log.setText("Please select a patient ID")
         self.result_load_folders()
         self.list_widget_patient_task_record.clear()
-    def multi_person_mode(self):
-        reply = QMessageBox.question(
-            self, 
-            "Multi person mode",
-            "Have you completed the Apose of all subjects?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self.btn_multi_person.setCheckable(True)
-            self.btn_multi_person.setChecked(True)
+                
+    def on_multi_person_toggled(self, checked): # mp func is checked or not
+        if self.multi_person:
+            reply = QMessageBox.question(
+                self, 
+                "Confirm Action",
+                "Exit multi person mode?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.record_select_patientID = None
+                self.label_selected_patient.setText(f"Selected patient :")
+                self.record_enter_task_name.setEnabled(False)
+                self.list_widget_patient_task_record.clear()
+                self.multi_person = False
+                self.multi_person_record_list = []
+                self.lw_multi_subjects_selected_show()
+                self.btn_multi_person.blockSignals(True)
+                self.btn_multi_person.setChecked(False)
+                self.btn_multi_person.blockSignals(False)
+            else:
+                self.btn_multi_person.blockSignals(True)
+                self.btn_multi_person.setChecked(True)
+                self.btn_multi_person.blockSignals(False)
         else:
-            self.btn_multi_person.setCheckable(False)
-            self.btn_multi_person.setChecked(False)
-    def on_multi_person_toggled(self, checked):
-        if checked:
-            self.record_select_patientID = "multi_person"
-            self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
-            self.record_enter_task_name.setEnabled(True)
-            self.lw_patient_task_record()
-            self.multi_person = True
-        else:
-            self.record_select_patientID = None
-            self.label_selected_patient.setText(f"Selected patient :")
-            self.record_enter_task_name.setEnabled(False)
-            self.list_widget_patient_task_record.clear()
-            self.multi_person = False
+            reply = QMessageBox.question(
+                self, 
+                "Multi person mode",
+                "Have you completed the Apose of all subjects?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.record_select_patientID = "multi_person"
+                self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+                self.record_enter_task_name.setEnabled(True)
+                self.lw_patient_task_record()
+                self.multi_person = True
+                self.btn_multi_person.blockSignals(True)
+                self.btn_multi_person.setChecked(True)
+                self.btn_multi_person.blockSignals(False)
+            else:
+                self.btn_multi_person.blockSignals(True)
+                self.btn_multi_person.setChecked(False)
+                self.btn_multi_person.blockSignals(False)
+        
     def lw_multi_subjects_selected_del_select(self, item):
         self.lw_select_del = item.text()
         self.btn_multi_subjects_selected_del.setEnabled(True)
@@ -253,7 +272,6 @@ class MainWindow(QMainWindow):
         self.list_widget_multi_record_list.clear()
         if self.multi_person_record_list:
             for item in self.multi_person_record_list:
-
                 self.list_widget_multi_record_list.addItem(item)
             
     # start record
@@ -295,7 +313,7 @@ class MainWindow(QMainWindow):
             self.label_log.setText("No tasks recorded today")
     def lw_record_select_patientID(self, item):
         if self.multi_person:
-            if item.text() != 'multi_person':
+            if (item.text() != 'multi_person') and (item.text() not in self.multi_person_record_list):
                 self.multi_person_record_list.append(item.text())
                 self.record_enter_task_name.setEnabled(True)
                 self.lw_multi_subjects_selected_show()
@@ -394,8 +412,7 @@ class MainWindow(QMainWindow):
         self.apose_rec_evt4.set()
         self.timer_apose.start(1500)
         
-    def Apose_record_ask(self):
-        
+    def Apose_record_ask(self):        
         if (not self.camera_opened):
             QMessageBox.information(self, "Cameras are not opened", "Please open cameras first！")
             return
@@ -428,10 +445,17 @@ class MainWindow(QMainWindow):
         if not os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name)):
             os.makedirs(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos'))
         self.btn_pg1_reset.setEnabled(False)
-        if self.multi_person:
+        if self.multi_person:            
             self.shared_dict_record_name['name'] = self.record_select_patientID
             self.shared_dict_record_name['task_name'] = self.record_task_name
-            self.shared_dict_record_name['start_time'] = time.time()
+            self.shared_dict_record_name['start_time'] = time.time()            
+            if self.multi_person_record_list is not None:
+                multi_name_folder_path = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos', 'name')
+                os.makedirs(multi_name_folder_path)
+                with open(os.path.join(multi_name_folder_path, "name.txt"), "w") as f:
+                    for name in self.multi_person_record_list:                
+                        f.write(name + "\n")
+            # continue
         else:
             self.shared_dict_record_name['name'] = self.record_select_patientID
             self.shared_dict_record_name['task_name'] = self.record_task_name
