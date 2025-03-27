@@ -16,8 +16,10 @@ try:
 except:
     from xml_update import *
 import sys
-sys.path.insert(0, r'd:\NTKCAP')
+sys.path.insert(0, os.getcwd())
+
 from Pose2Sim import Pose2Sim
+
 try:
     from .gait_analysis import gait1
 except:
@@ -989,7 +991,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
     date = data_path.split('\\')[-1]
     Patient_data_path = os.path.join(PWD, 'Patient_data')
     empty_project_path = os.path.join(PWD, "NTK_CAP", "template", "Empty_project")
-
+    import pdb; pdb.set_trace()
     if data_path.split('\\')[-2] == 'multi_person':
         raw_data_path = os.path.join(data_path, 'raw_data')
         task_caculate_finshed_path = os.path.join(data_path, folder_name)
@@ -1000,7 +1002,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             if os.path.exists(os.path.join(task_folder_path, 'name', 'name_cal.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name_cal.txt')
             elif os.path.exists(os.path.join(task_folder_path, 'name', 'name.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name.txt')
             else: name_list_file_path = os.path.join(task_folder_path, 'name_checked', 'name.txt')
-                      
             name_list = []
             Apose_p_path = []
             with open(name_list_file_path, 'r') as file: # read the txt file with all person names in this task
@@ -1018,7 +1019,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                     if not os.path.exists(os.path.join(raw_data_path, 'calibration')):
                         calibration_path = os.path.join(raw_data_p_path, 'calibration')
                         shutil.copytree(calibration_path, os.path.join(raw_data_path, 'calibration'))
-                    import pdb; pdb.set_trace()
                     calculate_finished_path = os.path.join(Patient_data_path, name, date, folder_name)
                     old_apose_path = os.path.join(calculate_finished_path, 'Apose')
                     Apose_p_path.append(old_apose_path)
@@ -1078,10 +1078,9 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         os.chdir(ori_path)
                         print("切換至" + os.getcwd())
                         os.chdir(now_project)
-                        print("切換至" + os.getcwd())                        
-                        
-                        Pose2Sim.personAssociation_Apose()
-                        Pose2Sim.triangulation_Apose()
+                        print("切換至" + os.getcwd())
+                        Pose2Sim.personAssociation_multi()
+                        Pose2Sim.triangulation()
                         Pose2Sim.filtering()
                         import inspect
                         print(inspect.getfile(Pose2Sim))
@@ -1166,8 +1165,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         out_video = os.path.join(a_p_pth, task, 'videos_pose_estimation_repj_combine', str(video_rpj_count)+'.mp4')
                         Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
                         rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
-                    
-            
             cv2.destroyAllWindows()
             os.chdir(ori_path)
             print("切換至" + os.getcwd())
@@ -1281,9 +1278,9 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             os.chdir(now_project)
             print("切換至" + os.getcwd())
             
-            Pose2Sim.personAssociation_Apose()
+            Pose2Sim.personAssociation_multi()
             
-            Pose2Sim.triangulation_Apose()
+            Pose2Sim.triangulation()
             
             Pose2Sim.filtering()
             import inspect
@@ -1294,7 +1291,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                 if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
                     os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
                     print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
-                    #import pdb;pdb.set_trace()
+                    
                 for video_rpj_count in range(1,5):
                     # if video_rpj_count == 3:
                     out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
@@ -1304,7 +1301,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             cv2.destroyAllWindows()
             os.chdir(ori_path)
             print("切換至" + os.getcwd())
-            # import ipdb;ipdb.set_trace()
+            
             now_project_3d = os.path.join(now_project, "pose-3d")
             trc_files = os.listdir(now_project_3d)
             for m in trc_files:
@@ -1323,7 +1320,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             os.chdir(now_project_opensim)
             print("切換至" + os.getcwd())
             halpe26_xml_update(now_project)
-            #import pdb;pdb.set_trace()
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             
 
@@ -1340,7 +1336,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             now_project = now_task
             
             shutil.copytree(empty_project_path, now_project)
-            #import pdb;pdb.set_trace()
 
             now_task_videos = os.path.join(cal_data_path,'raw_data', k, "videos")
             now_project_videos = os.path.join(now_project, "videos")
@@ -1368,8 +1363,8 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             print("切換至" + os.getcwd())
             os.chdir(now_project)
             print("切換至" + os.getcwd())         
-            Pose2Sim.personAssociation_Apose()        
-            Pose2Sim.triangulation_Apose()
+            Pose2Sim.personAssociation_multi()        
+            Pose2Sim.triangulation()
             Pose2Sim.filtering()        
             rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
             if os.path.isfile(rpj_all_dir):
@@ -1409,7 +1404,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             print("切換至" + os.getcwd())
             #######################################
             #halpe26_xml_update(now_project)
-            #import pdb;pdb.set_trace()
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             os.chdir(ori_path)
     if gait_token==1: 
@@ -1577,12 +1571,11 @@ def marker_caculate_fast(PWD,cal_data_path):
             if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
                 os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
                 print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
-                #import pdb;pdb.set_trace()
+
             for video_rpj_count in range(1,5):
                     
                 out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
                 Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
-                    #import pdb;pdb.set_trace()
                 rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
         cv2.destroyAllWindows()
         os.chdir(ori_path)
@@ -1605,9 +1598,9 @@ def marker_caculate_fast(PWD,cal_data_path):
         now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml")
         os.chdir(now_project_opensim)
         print("切換至" + os.getcwd())
-        #import pdb; pdb.set_trace()
+
         halpe26_xml_update(now_project)
-        #import pdb;pdb.set_trace()
+      
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
           
 
@@ -1619,13 +1612,11 @@ def marker_caculate_fast(PWD,cal_data_path):
 
         if k.endswith(("Apose","calibration",".json")):
             continue
-        #import pdb;pdb.set_trace()
         
         now_task = os.path.join(caculate_finshed_path, k)
         now_project = now_task
         
         shutil.copytree(empty_project_path, now_project)
-        #import pdb;pdb.set_trace()
 
         now_task_videos = os.path.join(cal_data_path,'raw_data', k, "videos")
         now_project_videos = os.path.join(now_project, "videos")
@@ -1652,13 +1643,10 @@ def marker_caculate_fast(PWD,cal_data_path):
         f = time.time()
         Pose2Sim.filtering()
         g = time.time()
-        #import pdb;pdb.set_trace()
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
-        #import pdb;pdb.set_trace()
 
         os.chdir(ori_path)
-        # import ipdb;ipdb.set_trace()
         now_project_3d = os.path.join(now_project, "pose-3d")
         trc_files = os.listdir(now_project_3d)
         for m in trc_files:
@@ -1696,7 +1684,6 @@ def marker_caculate_fast(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         #######################################
         #halpe26_xml_update(now_project)
-        #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
     

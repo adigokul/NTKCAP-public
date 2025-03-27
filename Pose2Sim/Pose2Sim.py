@@ -200,6 +200,7 @@ def personAssociation_multi_fast(coord,config=os.path.join('User', 'Config.toml'
     end = time.time()
     logging.info(f'Tracking took {end-start:.2f} s.')
     return coord_comb
+
 def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     '''
     Tracking of the person of interest in case of multiple persons detection.
@@ -283,6 +284,35 @@ def triangulation_fast(coord,config=os.path.join('User', 'Config.toml')):
     
     end = time.time()
     logging.info(f'Triangulation took {end-start:.2f} s.') 
+
+def triangulation_multi(project_path, config=os.path.join('User', 'Config.toml')):
+    
+    '''
+    Robust triangulation of 2D points coordinates.
+    
+    config can either be a path or a dictionary (for batch processing)
+    '''
+
+    from Pose2Sim import triangulation_multi
+
+
+    if type(config)==dict:
+        config_dict = config
+    else:
+        #import pdb;pdb.set_trace()
+        config_dict = read_config_file(config)
+    project_dir, seq_name, frames = base_params(config_dict)
+    
+    logging.info("\n\n---------------------------------------------------------------------")
+    logging.info(f"Triangulation of 2D points for {seq_name}, for {frames}.")
+    logging.info("---------------------------------------------------------------------")
+    logging.info(f"\nProject directory: {project_dir}")
+    start = time.time()
+    triangulation_multi.track_2d_all(config_dict, project_path)
+    
+    end = time.time()
+    logging.info(f'Triangulation took {end-start:.2f} s.')
+
 def filtering(config=os.path.join('User', 'Config.toml')):
     '''
     Filter trc 3D coordinates.
