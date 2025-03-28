@@ -991,7 +991,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
     date = data_path.split('\\')[-1]
     Patient_data_path = os.path.join(PWD, 'Patient_data')
     empty_project_path = os.path.join(PWD, "NTK_CAP", "template", "Empty_project")
-    import pdb; pdb.set_trace()
+
     if data_path.split('\\')[-2] == 'multi_person':
         raw_data_path = os.path.join(data_path, 'raw_data')
         task_caculate_finshed_path = os.path.join(data_path, folder_name)

@@ -922,19 +922,10 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
     - Q: array of triangulated point (x,y,z,1.)
     - error_min: float
     - nb_cams_excluded: int
-    '''
-    list_dynamic_mincam_ver6=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':4,'RSmallToe':4,'RHeel':4,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':4,'LSmallToe':4,'LHeel':4,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-
-    list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    
+    '''    
     list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
     list_TR_realdist = {'Hip':np.inf,'RHip':np.inf,'RKnee':100,'RAnkle':np.inf,'RBigToe':np.inf,'RSmallToe':np.inf,'RHeel':np.inf,'LHip':np.inf,'LKnee':100,'LAnkle':np.inf,'LBigToe':np.inf,'LSmallToe':np.inf,'LHeel':np.inf,'Neck':np.inf,'Head':np.inf,'Nose':np.inf,'RShoulder':np.inf,'RElbow':100,'RWrist':np.inf,'LShoulder':np.inf,'LElbow':100,'LWrist':np.inf}
 
-    #list_dynamic_mincam=  {'Hip':2,'RHip':2,'RKnee':2,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':2,'LKnee':2,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':2,'Nose':2,'RShoulder':2,'RElbow':2,'RWrist':2,'LShoulder':2,'LElbow':2,'LWrist':2}
-
-    list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
-    list_dynamic_mincam_ver1 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':4,'LKnee':3,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':2,'RWrist':2,'LShoulder':3,'LElbow':2,'LWrist':2}
     
     # Read config
     error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
@@ -968,14 +959,8 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
         left_combination = np.array(range(n_cams))
         ini_del =False
 
-    error = []
-    all_error = []
-    all_error4 = []
+    error, all_error, all_error4 = [], [], []
     cam_correspond = []
-    id_excluded_cams_temp = []
-    error_min_temp = []
-    nb_cams_excluded_temp = []
-    Q_temp =[]
     exclude_record =[]
     error_record=[]
     error_record1 =[]
@@ -994,12 +979,12 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
             id_cams_off = cam_initially_off
         else:
             id_cams_off = np.append(id_cams_off,np.repeat(np.array(cam_initially_off),np.shape(id_cams_off)[0] ,axis = 0),axis=1)
-        
+
         projection_matrices_filt = [projection_matrices]*len(id_cams_off)
         x_files_filt = np.vstack([list(x_files).copy()]*len(id_cams_off))
         y_files_filt = np.vstack([y_files.copy()]*len(id_cams_off))
         likelihood_files_filt = np.vstack([likelihood_files.copy()]*len(id_cams_off))
-        
+
         if nb_cams_off+nb_cam_initially_off > 0:
             for i in range(len(id_cams_off)):
                 x_files_filt[i][id_cams_off[i]] = np.nan
@@ -1029,7 +1014,7 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
             cam_used4 = np.array(range(n_cams))
             cam_used4 = np.delete(cam_used4,id_cams_off[0])
 
-        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i],likelihood_files_filt[i]) for i in range(len(id_cams_off))]
+        Q_filt = [weighted_triangulation(projection_matrices_filt[i], x_files_filt[i], y_files_filt[i], likelihood_files_filt[i]) for i in range(len(id_cams_off))]
         # Reprojection
         coords_2D_kpt_calc_filt4 = [reprojection(p4, Q_filt[i])  for i in range(len(id_cams_off))]
         coords_2D_kpt_calc_filt4 = np.array(coords_2D_kpt_calc_filt4, dtype=object)
@@ -1050,7 +1035,6 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
             q_calc = [(x_calc_filt[config_id][i], y_calc_filt[config_id][i]) for i in range(len(x_calc_filt[config_id]))]
 
             cam_used = np.array(range(n_cams))
-
            
             cam_used = np.delete(cam_used,id_cams_off[config_id])
             # record the exclusion ones not the whole
@@ -1077,6 +1061,7 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
         first_tri = 0   
     
     # Index of excluded cams for this keypoint
+
     result_voting = []
     for item in voting:
         first_num = item[0]
@@ -1085,7 +1070,6 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
         
     result_voting =[item for sublist in result_voting for item in sublist]
     most_common = max(set(result_voting), key=result_voting.count)
-    
     
     indices_to_remove = np.where(cam_used4 == most_common)
     final_comb = np.delete(cam_used4,indices_to_remove)
@@ -1123,7 +1107,7 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
     return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point,strongness_of_exclusion
     # return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point,strongness_of_exclusion,all_error,all_error_noweight,cam_correspond,residuals_SVD
 
-def track_2d_all(config, c_project_path, pk = False):
+def track_2d_all(config, c_project_path, pk = True):
     '''
     For each frame,
     - Find all possible combinations of detected persons
@@ -1209,7 +1193,7 @@ def track_2d_all(config, c_project_path, pk = False):
         "4": pos[3]
     }
     matrix_not_same_p = []
-    camera_wall = [2, 3]
+    camera_wall = [1, 2]
     camera_coords_with_index = [(int(key), coord) for key, coord in camera_coordinates.items()]
     sorted_coords_with_index = sorted(
         camera_coords_with_index,
@@ -1223,6 +1207,7 @@ def track_2d_all(config, c_project_path, pk = False):
 
     sorted_indices = [item[0] for item in final_sorted_coords]
     sorted_coords = [item[1] for item in final_sorted_coords]
+    
     id1 = sorted_indices.index(camera_wall[0])
     id2 = sorted_indices.index(camera_wall[1])
     if set(camera_wall) == set([sorted_indices[0], sorted_indices[1]]) or set(camera_wall) == set([sorted_indices[2], sorted_indices[3]]):
@@ -1307,9 +1292,13 @@ def track_2d_all(config, c_project_path, pk = False):
                     continue
             Q.append([]), error.append([]), nb_cams_excluded.append([]), id_excluded_cams.append([]), exclude_record.append([]), error_record.append([]), cam_dist.append([]), strongness_exclusion.append([])
             # if the person does than directly do the triangulation
+            
             for keypoint_idx in keypoints_idx:   
                 coords_2D_kpt = (np.array([item[keypoint_idx] for item in X_all]), np.array([item[keypoint_idx] for item in Y_all]), np.array([item[keypoint_idx] for item in L_all]))
-                Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D_kpt, P, keypoints_names[keypoint_idx])
+                try:
+                    Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D_kpt, P, keypoints_names[keypoint_idx])
+                except:
+                    import pdb; pdb.set_trace()
                 # Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, np.array([item[keypoint_idx] for item in X_all]), np.array([item[keypoint_idx] for item in Y_all]), np.array([item[keypoint_idx] for item in L_all]), P, keypoints_names[keypoint_idx])
                 Q[current_num].append(Q_kpt), error[current_num].append(error_kpt), nb_cams_excluded[current_num].append(nb_cams_excluded_kpt), id_excluded_cams[current_num].append(id_excluded_cams_kpt), exclude_record[current_num].append(exclude_record_kpt), error_record[current_num].append(error_record_kpt), cam_dist[current_num].append(cam_dist_kpt), strongness_exclusion[current_num].append(strongness_of_exclusion_kpt)                     
             current_num += 1 
