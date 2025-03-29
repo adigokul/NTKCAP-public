@@ -335,7 +335,27 @@ def filtering(config=os.path.join('User', 'Config.toml')):
     
     filter_all(config_dict)
 
+def filtering_multi(config=os.path.join('User', 'Config.toml')):
+    '''
+    Filter trc 3D coordinates.
+    
+    config can either be a path or a dictionary (for batch processing)
+    '''
 
+    from Pose2Sim.filtering_multi import filter_all
+
+    if type(config)==dict:
+        config_dict = config
+    else:
+        config_dict = read_config_file(config)
+    project_dir, seq_name, frames = base_params(config_dict)
+    
+    logging.info("\n\n---------------------------------------------------------------------")
+    logging.info(f"Filtering 3D coordinates for {seq_name}, for {frames}.")
+    logging.info("---------------------------------------------------------------------")
+    logging.info(f"\nProject directory: {project_dir}")
+    
+    filter_all(config_dict)
 def scalingModel(config=os.path.join('User', 'Config.toml')):
     '''
     Uses OpenSim to scale a model based on a static 3D pose.

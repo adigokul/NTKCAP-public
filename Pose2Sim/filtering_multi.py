@@ -1,26 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
-'''
-###########################################################################
-## FILTER 3D COORDINATES                                                 ##
-###########################################################################
-
-Filter trc 3D coordinates.
-
-Available filters: Butterworth, Butterworth on speed, Gaussian, LOESS, Median
-Set your parameters in Config.toml
-    
-INPUTS: 
-- a trc file
-- filtering parameters in Config.toml
-
-OUTPUT: 
-- a filtered trc file
-'''
-
-
 ## INIT
 import os
 import glob
@@ -33,18 +10,17 @@ import logging
 from scipy import signal
 from scipy.ndimage import gaussian_filter1d
 from statsmodels.nonparametric.smoothers_lowess import lowess
-from filterpy.kalman import KalmanFilter, rts_smoother
+from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
-from Pose2Sim.common import plotWindow
-from Pose2Sim.common import convert_to_c3d
+from Pose2Sim.common_multi import plotWindow
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
 __copyright__ = "Copyright 2021, Pose2Sim"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.8.2"
+__version__ = '0.4'
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -416,8 +392,7 @@ def recap_filter3d(config, trc_path):
     gaussian_filter_sigma_kernel = int(config.get('filtering').get('gaussian').get('sigma_kernel'))
     loess_filter_nb_values = config.get('filtering').get('LOESS').get('nb_values_used')
     median_filter_kernel_size = config.get('filtering').get('median').get('kernel_size')
-    make_c3d = config.get('filtering').get('make_c3d')
-    
+
     # Recap
     filter_mapping_recap = {
         'kalman': f'--> Filter type: Kalman {kalman_filter_smooth_str}. Measurements trusted {kalman_filter_trustratio} times as much as previous data, assuming a constant acceleration process.', 
@@ -428,9 +403,7 @@ def recap_filter3d(config, trc_path):
         'median': f'--> Filter type: Median. Kernel size: {median_filter_kernel_size}'
     }
     logging.info(filter_mapping_recap[filter_type])
-    logging.info(f'Filtered 3D coordinates are stored at {trc_path}.\n')
-    if make_c3d:
-        logging.info('All filtered trc files have been converted to c3d.')
+    logging.info(f'Filtered 3D coordinates are stored at {trc_path}.')
 
 
 def filter_all(config):
@@ -448,31 +421,34 @@ def filter_all(config):
 
     # Read config
     project_dir = config.get('project').get('project_dir')
+    if project_dir == '': project_dir = os.getcwd()
+    pose_tracked_folder_name = config.get('project').get('poseAssociated_folder_name')
+    pose_folder_name = config.get('project').get('pose_folder_name')
     try:
-        pose_tracked_dir = os.path.join(project_dir, 'pose-associated')
+        pose_tracked_dir = os.path.join(project_dir, pose_tracked_folder_name)
         os.listdir(pose_tracked_dir)
         pose_dir = pose_tracked_dir
     except:
-        pose_dir = os.path.join(project_dir, 'pose')
+        pose_dir = os.path.join(project_dir, pose_folder_name)
+    json_folder_extension =  config.get('project').get('pose_json_folder_extension')
     frame_range = config.get('project').get('frame_range')
-    pose3d_dir = os.path.realpath(os.path.join(project_dir, 'pose-3d'))
+    seq_name = os.path.basename(project_dir)
+    pose3d_folder_name = config.get('project').get('pose3d_folder_name')
+    pose3d_dir = os.path.join(project_dir, pose3d_folder_name)
     display_figures = config.get('filtering').get('display_figures')
     filter_type = config.get('filtering').get('type')
-    seq_name = os.path.basename(os.path.realpath(project_dir))
-    make_c3d = config.get('filtering').get('make_c3d')
-    frame_rate = config.get('project').get('frame_rate')
-    
+
     # Frames range
     pose_listdirs_names = next(os.walk(pose_dir))[1]
-    json_dirs_names = [k for k in pose_listdirs_names if 'json' in k]
+    json_dirs_names = [k for k in pose_listdirs_names if json_folder_extension in k]
     json_files_names = [fnmatch.filter(os.listdir(os.path.join(pose_dir, js_dir)), '*.json') for js_dir in json_dirs_names]
+    #import pdb;pdb.set_trace()
     f_range = [[0,min([len(j) for j in json_files_names])] if frame_range==[] else frame_range][0]
     
     # Trc paths
     trc_path_in = [file for file in glob.glob(os.path.join(pose3d_dir, '*.trc')) if 'filt' not in file]
     trc_f_out = [f'{os.path.basename(t).split(".")[0]}_filt_{filter_type}.trc' for t in trc_path_in]
     trc_path_out = [os.path.join(pose3d_dir, t) for t in trc_f_out]
-    
     for t_in, t_out in zip(trc_path_in, trc_path_out):
         # Read trc header
         with open(t_in, 'r') as trc_file:
@@ -498,13 +474,9 @@ def filter_all(config):
             Q_filt.insert(0, 'Frame#', frames_col)
             Q_filt.insert(1, 'Time', time_col)
             # Q_filt = Q_filt.fillna(' ')
-            Q_filt.to_csv(trc_o, sep='\t', index=False, header=None, lineterminator='\n')
-
-        # Save c3d
-        if make_c3d:
-            convert_to_c3d(t_out)
+            Q_filt.to_csv(trc_o, sep='\t', index=False, header=None, line_terminator='\n')
+            
 
         # Recap
         recap_filter3d(config, t_out)
-
-
+    

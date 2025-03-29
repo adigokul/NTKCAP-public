@@ -1007,7 +1007,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             with open(name_list_file_path, 'r') as file: # read the txt file with all person names in this task
                 lines = file.readlines()
                 for line in lines:
-                    name_list.append(line.strip())            
+                    name_list.append(line.strip())
             for name in name_list: # Apose calculation
                 # Prevent repeated calculation
                 if os.path.exists(os.path.join(Patient_data_path, name, date, folder_name, 'Apose')):
@@ -1154,7 +1154,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             os.chdir(now_project)
             print("切換至" + os.getcwd())
             Pose2Sim.triangulation_multi(now_project)
-            Pose2Sim.filtering()
+            Pose2Sim.filtering_multi()
             for apose_p_path in Apose_p_path:
                 a_p_pth = Path(apose_p_path).parent
                 rpj_all_dir = os.path.join(a_p_pth, task, 'User', 'reprojection_record.npz')            

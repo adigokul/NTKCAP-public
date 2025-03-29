@@ -1152,7 +1152,7 @@ def track_2d_all(config, c_project_path, pk = True):
     calib_file = glob.glob(os.path.join(calib_dir, '*.toml'))[0] # .toml in walk1/calib-2d
     pose_dir = os.path.join(project_dir, pose_folder_name) # walk1/pose-2d
     poseTracked_dir = os.path.join(project_dir, poseTracked_folder_name) # walk1/pose-2d-tracked
-    likelihood_threshold = config.get('personAssociation').get('likelihood_threshold_association')
+    likelihood_threshold = config.get('triangulation').get('likelihood_threshold')
     # projection matrix from toml calibration file
     P = computeP(calib_file)
     calib_params = retrieve_calib_params(calib_file) # size, intri_matrix, distortions, optim_K, inv_K, rotation_v, rotation_m, translation_v
@@ -1270,8 +1270,10 @@ def track_2d_all(config, c_project_path, pk = True):
                     Y_all.append(keypoints_2d_template_tri)
                     L_all.append(keypoints_2d_template_tri)  
             X_all, Y_all, L_all = np.array(X_all), np.array(Y_all), np.array(L_all)
+            
             with np.errstate(invalid='ignore'):
-                L_all[L_all<likelihood_threshold] = 0.     
+                L_all[L_all<likelihood_threshold] = 0.
+            
             if pk: # open one wall if needed
                 q = weighted_triangulation(P_all, x_all, y_all, lik_all) 
                 cross1, cross2 = cross_product(sorted_coords[id1], sorted_coords[id2], q[:2]), cross_product(sorted_coords[id1], sorted_coords[id2], center_p)
@@ -1290,15 +1292,15 @@ def track_2d_all(config, c_project_path, pk = True):
                 if not is_point_in_hull(q[:2], delaunay):
                     index_remove.append(p)
                     continue
+            
             Q.append([]), error.append([]), nb_cams_excluded.append([]), id_excluded_cams.append([]), exclude_record.append([]), error_record.append([]), cam_dist.append([]), strongness_exclusion.append([])
             # if the person does than directly do the triangulation
             
             for keypoint_idx in keypoints_idx:   
                 coords_2D_kpt = (np.array([item[keypoint_idx] for item in X_all]), np.array([item[keypoint_idx] for item in Y_all]), np.array([item[keypoint_idx] for item in L_all]))
-                try:
-                    Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D_kpt, P, keypoints_names[keypoint_idx])
-                except:
-                    import pdb; pdb.set_trace()
+                
+                Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D_kpt, P, keypoints_names[keypoint_idx])
+                
                 # Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt, exclude_record_kpt, error_record_kpt, cam_dist_kpt, strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, np.array([item[keypoint_idx] for item in X_all]), np.array([item[keypoint_idx] for item in Y_all]), np.array([item[keypoint_idx] for item in L_all]), P, keypoints_names[keypoint_idx])
                 Q[current_num].append(Q_kpt), error[current_num].append(error_kpt), nb_cams_excluded[current_num].append(nb_cams_excluded_kpt), id_excluded_cams[current_num].append(id_excluded_cams_kpt), exclude_record[current_num].append(exclude_record_kpt), error_record[current_num].append(error_record_kpt), cam_dist[current_num].append(cam_dist_kpt), strongness_exclusion[current_num].append(strongness_of_exclusion_kpt)                     
             current_num += 1 
@@ -1501,7 +1503,7 @@ def track_2d_all(config, c_project_path, pk = True):
             save_data_to_json(Apose_cropped_frame, task_cropped_frame, os.path.join(calculate_project_path, 'cropped_frame.json'))
             # Customize
             subprocess.run(
-                ["C:/Packages/envs/torchreid/python.exe", "C:/NTKCAP/Pose2Sim/reid.py", os.path.join(calculate_project_path, 'cropped_frame.json')]
+                ["C:/Users/MyUser/anaconda3/envs/torchreid/python.exe", "C:/Users/MyUser/Desktop/NTKCAP/Pose2Sim/reid.py", os.path.join(calculate_project_path, 'cropped_frame.json')]
             )
             with open(os.path.join(calculate_project_path, 'cropped_frame.json'), 'r') as file:
                 similarities = json.load(file)
