@@ -36,9 +36,43 @@ __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
+## FUNCTIONS from multi
+def retrieve_calib_params(calib_file):
+    '''
+    Compute projection matrices from toml calibration file.
+    
+    INPUT:
+    - calib_file: calibration .toml file.
+    
+    OUTPUT:
+    - S: (h,w) vectors as list of 2x1 arrays
+    - K: intrinsic matrices as list of 3x3 arrays
+    - dist: distortion vectors as list of 4x1 arrays
+    - inv_K: inverse intrinsic matrices as list of 3x3 arrays
+    - optim_K: intrinsic matrices for undistorting points as list of 3x3 arrays
+    - R: rotation rodrigue vectors as list of 3x1 arrays
+    - T: translation vectors as list of 3x1 arrays
+    '''
+    
+    calib = toml.load(calib_file)
+
+    S, K, dist, optim_K, inv_K, R, R_mat, T = [], [], [], [], [], [], [], []
+    for c, cam in enumerate(calib.keys()):
+        if cam != 'metadata':
+            S.append(np.array(calib[cam]['size']))
+            K.append(np.array(calib[cam]['matrix']))
+            dist.append(np.array(calib[cam]['distortions']))
+            optim_K.append(cv2.getOptimalNewCameraMatrix(K[c], dist[c], [int(s) for s in S[c]], 1, [int(s) for s in S[c]])[0])
+            inv_K.append(np.linalg.inv(K[c]))
+            R.append(np.array(calib[cam]['rotation']))
+            R_mat.append(cv2.Rodrigues(R[c])[0])
+            T.append(np.array(calib[cam]['translation']))
+    calib_params = {'S': S, 'K': K, 'dist': dist, 'inv_K': inv_K, 'optim_K': optim_K, 'R': R, 'R_mat': R_mat, 'T': T}
+            
+    return calib_params
 
 ## FUNCTIONS
-def computeP(calib_file):
+def computeP(calib_file, undistort=False):
     '''
     Compute projection matrices from toml calibration file.
     
@@ -54,18 +88,23 @@ def computeP(calib_file):
     
     calib = toml.load(calib_file)
     for cam in list(calib.keys()):
-        #import pdb;pdb.set_trace()
         if cam != 'metadata':
             K = np.array(calib[cam]['matrix'])
-            Kh = np.block([K, np.zeros(3).reshape(3,1)])
-            R, _ = cv2.Rodrigues(np.array(calib[cam]['rotation']))
-            T = np.array(calib[cam]['translation'])
-            H = np.block([[R,T.reshape(3,1)], [np.zeros(3), 1 ]])
+            if undistort:
+                S = np.array(calib[cam]['size'])
+                dist = np.array(calib[cam]['distortions'])
+                optim_K = cv2.getOptimalNewCameraMatrix(K, dist, [int(s) for s in S], 1, [int(s) for s in S])[0]
+                Kh = np.block([optim_K, np.zeros(3).reshape(3,1)])
+            else:
+                Kh = np.block([K, np.zeros(3).reshape(3,1)])
             
-            P.append(Kh.dot(H))
-            #import pdb;pdb.set_trace()
+            R, _ = cv2.Rodrigues(np.array(calib[cam]['rotation'])) # 旋轉向量轉成旋轉矩陣
+            T = np.array(calib[cam]['translation'])
+            H = np.block([[R,T.reshape(3,1)], [np.zeros(3), 1 ]]) # 把旋轉矩陣跟平移矩陣合併
+            
+            P.append(Kh.dot(H)) # 相機變換矩陣，空間中的3D座標會在2D畫面的哪個位置
    
-    return P
+    return P # 長度為相機數，一個相機有一組相機變換矩陣
 
 
 def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
@@ -84,7 +123,6 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
     
     A = np.empty((0,4))
     for c in range(len(x_all)):
-        ch = c
         P_cam = P_all[c]
         A = np.vstack((A, (P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
         #print(np.shape((P_cam[0] - x_all[c]*P_cam[2]) * likelihood_all[c] ))
@@ -179,15 +217,14 @@ def bilinear_interpolate(map, x, y):
 def undistort_points1(mappingx,mappingy,coords_2D_kpt):
     x_undistorted = []
     y_undistorted = []
-    coords_2D_kpt_undistort =[]
     
     for x_coor,y_coor,liklihood in list(zip(coords_2D_kpt[0],coords_2D_kpt[1],coords_2D_kpt[2])):
         
         x_undistorted.append(bilinear_interpolate(mappingx,x_coor,y_coor))
         y_undistorted.append(bilinear_interpolate(mappingy,x_coor,y_coor))
         
-    coords_2D_kpt_undistorted=np.array([np.array(x_undistorted),np.array(y_undistorted),np.array(coords_2D_kpt[2])])
-    #import pdb;pdb.set_trace()
+    coords_2D_kpt_undistorted = np.array([np.array(x_undistorted),np.array(y_undistorted),np.array(coords_2D_kpt[2])])
+
     return coords_2D_kpt_undistorted
 def reprojection(P_all, Q):
     '''
@@ -251,7 +288,6 @@ def euclidean_dist_with_multiplication(q1,q2,Q,calib_file):
     C = find_camera_coordinate(calib_file)
     D = euclidean_distance(C, Q)
 
-    fm = calib_file['matrix'][0][0]
     index = D
     euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
     euc_dist = euc_dist*index
@@ -259,18 +295,14 @@ def euclidean_dist_with_multiplication(q1,q2,Q,calib_file):
 def camera2point_dist(Q,calib_file):
 
     C = find_camera_coordinate(calib_file)
-    C_new = [C[1],C[0],C[2]]
     D = euclidean_distance(C, Q)
-    #import pdb;pdb.set_trace()
     return D
 def find_camera_coordinate(calib_file):
     calib_file['rotation']
     R, _ = cv2.Rodrigues(np.array(calib_file['rotation']))
-    T = np.array(calib_file['translation'])
-    H = np.block([[R,T.reshape(3,1)], [np.zeros(3), 1 ]])
+    T = np.array(calib_file['translation'])    
     R_t = np.transpose(R)
-    C = -R_t.dot(T)
-    A = R_t.dot(np.array([[0],[0],[1]]))
+    C = -R_t.dot(T)    
     return C
 
 def RT_qca2cv(r, t):

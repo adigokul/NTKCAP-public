@@ -965,18 +965,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
 
 
     data_path = cal_data_path
-
-    # time_file_path = os.path.join(data_path, "cac_time.txt")
-    # if os.path.exists(time_file_path):
-    #     with open(time_file_path, "r") as file:
-    #         formatted_datetime = file.read().strip()
-    # else:
-    #     print("the cac_time.txt did not exist, creatred new one")
-    #     now = datetime.now()
-    #     formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
-    #     with open(time_file_path, "w") as file:
-    #         file.write(formatted_datetime)
-
     calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
 
     empty_project_path = os.path.join(PWD, "NTK_CAP")
@@ -1061,7 +1049,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         now_project_calib = os.path.join(now_project_calib, "Calib.toml")
                         
                         shutil.copytree(apose_file_videos, now_project_videos)
-                        # subprocess.run(["rmdir", "/s", "/q", apose_file], check=True, shell=True)
                         calib_ori_path = os.path.join(raw_data_p_path, 'calibration', 'Calib.toml')
                         shutil.copy(calib_ori_path, now_project_calib)
                         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
@@ -1108,7 +1095,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         copy_3d_2 = os.path.join(now_project, "opensim")
                         copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
                         shutil.copy(now_project_trc_ori, copy_3d_2)
-
                         os.chdir(posesim_path) # ThirParty/opensim/bin
                         print("切換至" + os.getcwd())
                         now_project_opensim = os.path.join(now_project, "opensim") # opensim folder in Apose(each_person)
@@ -1117,7 +1103,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         print("切換至" + os.getcwd())             
                         halpe26_xml_update(now_project)
                         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])       
-                        
                         os.chdir(ori_path)
                         print("切換至" + os.getcwd())
 
@@ -1145,8 +1130,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                 now_json = os.path.join(now_project, "pose-2d")
                 now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
                 print(now_videos)
-                # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
-
                 rtm2json(now_videos, now_json+'.json',now_pose)
 
             os.chdir(ori_path)
@@ -1245,7 +1228,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         shutil.copytree(source, target)
                     else:
                         shutil.copy2(source, target)
-                # shutil.copytree(empty_project_path, now_project)
                 print("複製專案成功")
             except:
                 print("複製專案失敗")
@@ -1257,7 +1239,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             now_project_calib = os.path.join(now_project, "calib-2d")
             now_project_calib = os.path.join(now_project_calib, "Calib.toml")
             shutil.copytree(apose_file_videos, now_project_videos)
-            # subprocess.run(["rmdir", "/s", "/q", apose_file], check=True, shell=True)
             shutil.copy(calib_ori_path, now_project_calib)
             os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
 
@@ -1268,8 +1249,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                 now_pose =  os.path.join(now_pose_videos, str(l) + ".mp4")
                 now_json = os.path.join(now_project, "pose-2d")
                 now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
-
-                # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
                 rtm2json(now_videos, now_json+'.json',now_pose)
                 print(now_pose)
             
@@ -1406,28 +1385,24 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             #halpe26_xml_update(now_project)
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             os.chdir(ori_path)
-    if gait_token==1: 
-        gait1(caculate_finshed_path)
-        for task_gltf in os.listdir(caculate_finshed_path):
-            if task_gltf != "Apose":
-                osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
-                geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
-                motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
-                outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
-                working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
-                os.chdir(working_dir)
-                try:
-                    convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
-                except:
-                    continue
+        if gait_token==1: 
+            gait1(caculate_finshed_path)
+            for task_gltf in os.listdir(caculate_finshed_path):
+                if task_gltf != "Apose":
+                    osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+                    geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+                    motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+                    outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+                    working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+                    os.chdir(working_dir)
+                    try:
+                        convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+                    except:
+                        continue
 
-        os.chdir(ori_path)
-    else:
-        return caculate_finshed_path
-
-# subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
-                
-
+            os.chdir(ori_path)
+        else:
+            return caculate_finshed_path
 
 def marker_caculate_fast(PWD,cal_data_path):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array

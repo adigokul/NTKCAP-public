@@ -13,8 +13,6 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 from filterpy.kalman import KalmanFilter
 from filterpy.common import Q_discrete_white_noise
 
-from Pose2Sim.common_multi import plotWindow
-
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
 __copyright__ = "Copyright 2021, Pose2Sim"
@@ -296,51 +294,6 @@ def median_filter_1d(config, col):
 
     return col_filtered
 
-
-def display_figures_fun(Q_unfilt, Q_filt, time_col, keypoints_names):
-    '''
-    Displays filtered and unfiltered data for comparison
-
-    INPUTS:
-    - Q_unfilt: pandas dataframe of unfiltered 3D coordinates
-    - Q_filt: pandas dataframe of filtered 3D coordinates
-    - time_col: pandas column
-    - keypoints_names: list of strings
-
-    OUTPUT:
-    - matplotlib window with tabbed figures for each keypoint
-    '''
-
-    pw = plotWindow()
-    for id, keypoint in enumerate(keypoints_names):
-        f = plt.figure()
-        
-        axX = plt.subplot(311)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3].to_numpy(), label='filtered')
-        plt.setp(axX.get_xticklabels(), visible=False)
-        axX.set_ylabel(keypoint+' X')
-        plt.legend()
-
-        axY = plt.subplot(312)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+1].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+1].to_numpy(), label='filtered')
-        plt.setp(axY.get_xticklabels(), visible=False)
-        axY.set_ylabel(keypoint+' Y')
-        plt.legend()
-
-        axZ = plt.subplot(313)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+2].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+2].to_numpy(), label='filtered')
-        axZ.set_ylabel(keypoint+' Z')
-        axZ.set_xlabel('Time')
-        plt.legend()
-
-        pw.addPlot(keypoint, f)
-    
-    pw.show()
-
-
 def filter1d(col, config, filter_type):
     '''
     Choose filter type and filter column
@@ -423,28 +376,13 @@ def filter_all(config):
     project_dir = config.get('project').get('project_dir')
     if project_dir == '': project_dir = os.getcwd()
     pose_tracked_folder_name = config.get('project').get('poseAssociated_folder_name')
-    pose_folder_name = config.get('project').get('pose_folder_name')
-    try:
-        pose_tracked_dir = os.path.join(project_dir, pose_tracked_folder_name)
-        os.listdir(pose_tracked_dir)
-        pose_dir = pose_tracked_dir
-    except:
-        pose_dir = os.path.join(project_dir, pose_folder_name)
-    json_folder_extension =  config.get('project').get('pose_json_folder_extension')
-    frame_range = config.get('project').get('frame_range')
-    seq_name = os.path.basename(project_dir)
+    
+    pose_tracked_dir = os.path.join(project_dir, pose_tracked_folder_name)
+    os.listdir(pose_tracked_dir)
     pose3d_folder_name = config.get('project').get('pose3d_folder_name')
     pose3d_dir = os.path.join(project_dir, pose3d_folder_name)
-    display_figures = config.get('filtering').get('display_figures')
     filter_type = config.get('filtering').get('type')
 
-    # Frames range
-    pose_listdirs_names = next(os.walk(pose_dir))[1]
-    json_dirs_names = [k for k in pose_listdirs_names if json_folder_extension in k]
-    json_files_names = [fnmatch.filter(os.listdir(os.path.join(pose_dir, js_dir)), '*.json') for js_dir in json_dirs_names]
-    #import pdb;pdb.set_trace()
-    f_range = [[0,min([len(j) for j in json_files_names])] if frame_range==[] else frame_range][0]
-    
     # Trc paths
     trc_path_in = [file for file in glob.glob(os.path.join(pose3d_dir, '*.trc')) if 'filt' not in file]
     trc_f_out = [f'{os.path.basename(t).split(".")[0]}_filt_{filter_type}.trc' for t in trc_path_in]
@@ -462,18 +400,11 @@ def filter_all(config):
         # Filter coordinates
         Q_filt = Q_coord.apply(filter1d, axis=0, args = [config, filter_type])
 
-        # Display figures
-        if display_figures:
-            # Retrieve keypoints
-            keypoints_names = pd.read_csv(t_in, sep="\t", skiprows=3, nrows=0).columns[2::3].to_numpy()
-            display_figures_fun(Q_coord, Q_filt, time_col, keypoints_names)
-
         # Reconstruct trc file with filtered coordinates
         with open(t_out, 'w') as trc_o:
             [trc_o.write(line) for line in header]
             Q_filt.insert(0, 'Frame#', frames_col)
             Q_filt.insert(1, 'Time', time_col)
-            # Q_filt = Q_filt.fillna(' ')
             Q_filt.to_csv(trc_o, sep='\t', index=False, header=None, line_terminator='\n')
             
 

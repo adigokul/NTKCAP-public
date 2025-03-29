@@ -1,35 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-
-'''
-    ###########################################################################
-    ## TRACKING OF PERSON OF INTEREST                                        ##
-    ###########################################################################
-    
-    Openpose detects all people in the field of view.
-    - multi_person = false: Triangulates the most prominent person
-    - multi_person = true: Triangulates persons across views
-                           Tracking them across time frames is done in the triangulation stage.
-    If multi_person = false, this module tries all possible triangulations of a chosen
-    anatomical point, and chooses the person for whom the reprojection error is smallest. 
-    
-    If multi_person = true, it computes the distance between epipolar lines (camera to 
-    keypoint lines) for all persons detected in all views, and selects the best correspondences. 
-    The computation of the affinity matrix from the distance is inspired from the EasyMocap approach.
-    
-    INPUTS: 
-    - a calibration file (.toml extension)
-    - json files from each camera folders with several detected persons
-    - a Config.toml file
-    - a skeleton model
-    
-    OUTPUTS: 
-    - json files for each camera with only one person of interest
-    
-'''
 from scipy.optimize import linear_sum_assignment
-## INIT
 import subprocess
 import os
 import glob
@@ -46,55 +15,15 @@ from scipy import interpolate
 from anytree import RenderTree
 import logging
 from scipy.spatial import Delaunay
-from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
-    reprojection, euclidean_distance, natural_sort
+from Pose2Sim.common import retrieve_calib_params, computeP, weighted_triangulation, reprojection, euclidean_distance, natural_sort
 from Pose2Sim.skeletons import *
 
 from pathlib import Path
 import copy
 from scipy.io import savemat
 import shutil
-## AUTHORSHIP INFORMATION
-__author__ = "David Pagnon"
-__copyright__ = "Copyright 2021, Pose2Sim"
-__credits__ = ["David Pagnon"]
-__license__ = "BSD 3-Clause License"
-__version__ = "0.8.2"
-__maintainer__ = "David Pagnon"
-__email__ = "contact@david-pagnon.com"
-__status__ = "Development"
 
-
-# PersonAssociation_FUNCTIONS
-def persons_combinations(json_files_framef):
-    '''
-    Find all possible combinations of detected persons' ids. 
-    Person's id when no person detected is set to -1.
-    
-    INPUT:
-    - json_files_framef: list of strings
-
-    OUTPUT:
-    - personsIDs_comb: array, list of lists of int
-    '''
-    
-    n_cams = len(json_files_framef)
-    
-    # amount of persons detected for each cam
-    nb_persons_per_cam = []
-    for c in range(n_cams): # 0-3
-        with open(json_files_framef[c], 'r') as js:
-            nb_persons_per_cam += [len(json.load(js)['people'])] # 長度為4的list，分別為每台相機分別偵測到幾個人Ex:[1, 1, 1, 1]
-    
-    # persons_combinations
-    id_no_detect = [i for i, x in enumerate(nb_persons_per_cam) if x == 0]  # 沒有偵測到人的相機編號，Ex[0, 1]，若無則為[]
-    nb_persons_per_cam = [x if x != 0 else 1 for x in nb_persons_per_cam] # 把偵測到為0的替換為1 Ex:[1, 1, 2, 3]
-    range_persons_per_cam = [range(nb_persons_per_cam[c]) for c in range(n_cams)] # Ex:[range(0, 1), range(0, 1), range(0, 2), range(0, 3)]
-    personsIDs_comb = np.array(list(it.product(*range_persons_per_cam)), float) # 所有組合(從各自range去推導)
-    personsIDs_comb[:,id_no_detect] = np.nan # 把沒偵測到人的相機組合都設為Nan
-    
-    return personsIDs_comb # Ex:[[nan nan  0.  0.], [nan nan  0.  1.], [nan nan  0.  2.], [nan nan  1.  0.], [nan nan  1.  1.], [nan nan  1.  2.]]
-
+# PersonAssociation Functions
 def zup2yup(Q):
     '''
     Turns Z-up system coordinates into Y-up coordinates
@@ -184,8 +113,6 @@ def interpolate_zeros_nans(col, *args):
     OUTPUT:
     - col_interp: interpolated pandas column
     '''
-    
-
     if len(args)==2:
         N, kind = args
     if len(args)==1:
@@ -212,8 +139,6 @@ def interpolate_zeros_nans(col, *args):
         for seq in sequences:
             if len(seq) > N: # values to exclude from interpolation are set to false when they are too long 
                 col_interp[seq] = np.nan
-    
-    
     return col_interp
 
 def read_json(js_file):
@@ -224,11 +149,9 @@ def read_json(js_file):
         js = json.load(json_f)
         json_data = []
         for people in range(len(js['people'])):
-            # if len(js['people'][people]['pose_keypoints_2d']) < 3: continue
-            # else:
+            
             json_data.append(js['people'][people]['pose_keypoints_2d'])
     return json_data
-
 
 def compute_rays(json_coord, calib_params, cam_id):
     '''
@@ -249,9 +172,6 @@ def compute_rays(json_coord, calib_params, cam_id):
     x = json_coord[0::3]
     y = json_coord[1::3]
     likelihood = json_coord[2::3]
-    # print(json_coord)
-    # print(x)
-    # print(y)
     
     inv_K = calib_params['inv_K'][cam_id]
     R_mat = calib_params['R_mat'][cam_id]
@@ -261,7 +181,7 @@ def compute_rays(json_coord, calib_params, cam_id):
     plucker = []
     for i in range(len(x)):
         q = np.array([x[i], y[i], 1])
-        norm_Q = R_mat.T @ (inv_K @ q -T) #計算從相機中心到轉換後點的向量
+        norm_Q = R_mat.T @ (inv_K @ q -T) # 計算從相機中心到轉換後點的向量 The vector of the camera center to the transformed 2d coords
         
         line = norm_Q - cam_center
         norm_line = line/np.linalg.norm(line)
@@ -269,7 +189,6 @@ def compute_rays(json_coord, calib_params, cam_id):
         plucker.append(np.concatenate([norm_line, moment, [likelihood[i]]]))
 
     return np.array(plucker)
-
 
 def broadcast_line_to_line_distance(p0, p1):
     '''
@@ -297,7 +216,6 @@ def broadcast_line_to_line_distance(p0, p1):
     dist = np.abs(product) # dist[i, j, k]表示p0中第i個人的第k個關節與p1中第j個人的第k個關節之間的距離。
 
     return dist
-
 
 def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=0.1):
     '''
@@ -362,7 +280,6 @@ def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, recons
     affinity = 1 - distance / reconstruction_error_threshold
 
     return affinity
-
 
 def circular_constraint(cum_persons_per_view):
     '''
@@ -530,15 +447,7 @@ def triangulation_from_best_cameras_ver_dynamic(config, x_files, y_files, likeli
     - error_min: float
     - nb_cams_excluded: int
     '''
-    list_dynamic_mincam_ver6=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':4,'RSmallToe':4,'RHeel':4,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':4,'LSmallToe':4,'LHeel':4,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-
-    list_dynamic_mincam_ver5=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':4,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':4,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    
     list_dynamic_mincam=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':3,'RBigToe':3,'RSmallToe':3,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':3,'LSmallToe':3,'LHeel':3,'Neck':3,'Head':2,'Nose':2,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    
-    list_dynamic_mincam_ver3=  {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':3,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':3,'LShoulder':3,'LElbow':3,'LWrist':3}
-    list_dynamic_mincam_ver2 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':3,'LHip':4,'LKnee':3,'LAnkle':3,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':3,'RWrist':2,'LShoulder':3,'LElbow':3,'LWrist':2}
-    list_dynamic_mincam_ver1 = {'Hip':4,'RHip':4,'RKnee':3,'RAnkle':2,'RBigToe':2,'RSmallToe':2,'RHeel':2,'LHip':4,'LKnee':3,'LAnkle':2,'LBigToe':2,'LSmallToe':2,'LHeel':2,'Neck':2,'Head':3,'Nose':3,'RShoulder':3,'RElbow':2,'RWrist':2,'LShoulder':3,'LElbow':2,'LWrist':2}
     
     # Read config
     error_threshold_triangulation = config.get('triangulation').get('reproj_error_threshold_triangulation')
@@ -577,7 +486,6 @@ def triangulation_from_best_cameras_ver_dynamic(config, x_files, y_files, likeli
     Q_temp =[]
     exclude_record =[]
     error_record=[]
-    error_record1 =[]
     count_all_com = 0
     first_tri = 1
     
@@ -650,9 +558,6 @@ def triangulation_from_best_cameras_ver_dynamic(config, x_files, y_files, likeli
         
         nb_cams_excluded = nb_cams_excluded_filt[best_cams]
         Q = Q_filt[best_cams][:-1]
-
-        # idxs = np.argsort(error)
-        # Q = Q_filt[idxs[:3]].mean(axis=0)
         
         nb_cams_off += 1
         
