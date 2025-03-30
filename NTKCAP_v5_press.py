@@ -17,7 +17,7 @@ from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-
+from GUI_source.LabelClickable import LabelClickable
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self.btnCloseCamera.setEnabled(False)
         self.shape = (1080, 1920, 3)
         self.buffer_length = 4
-        self.camera_opened = False     
+        self.camera_opened = False
         self.label_cam = {0:self.Camera1, 1:self.Camera2, 2:self.Camera3, 3:self.Camera4}  
         
         # Record task
@@ -83,6 +83,17 @@ class MainWindow(QMainWindow):
         self.list_widget_multi_record_list = self.findChild(QListWidget, "list_widget_multi_record_list")
         self.list_widget_multi_record_list.itemDoubleClicked.connect(self.lw_multi_subjects_selected_del_select)
         self.list_widget_multi_record_list.setVisible(False)
+        self.Camera1.clicked.connect(lambda: self.CameraLabel_click(self.Camera1))
+        self.Camera2.clicked.connect(lambda: self.CameraLabel_click(self.Camera2))
+        self.Camera3.clicked.connect(lambda: self.CameraLabel_click(self.Camera3))
+        self.Camera4.clicked.connect(lambda: self.CameraLabel_click(self.Camera4))
+        self.BoundaryOpened = []
+        self.btn_record_boundary_cam = self.findChild(QPushButton, "btn_record_boundary_cam")
+        self.btn_record_boundary_cam.clicked.connect(self.record_boundary_cam)
+        self.btn_record_boundary_cam.setCheckable(True)
+        self.btn_record_boundary_cam.setVisible(False)
+        self.label_boundaryCam = self.findChild(QLabel, "label_boundaryCam")
+        self.label_boundaryCam.setVisible(False)
         self.lw_select_del = None
         self.btn_multi_subjects_selected_del = self.findChild(QPushButton, "btn_multi_subjects_selected_del")
         self.btn_multi_subjects_selected_del.clicked.connect(self.lw_multi_subjects_selected_del)
@@ -107,6 +118,9 @@ class MainWindow(QMainWindow):
         self.btn_multi_match_gui = self.findChild(QPushButton, "btn_multi_match_gui")
         self.btn_multi_match_gui.clicked.connect(self.multi_match_gui)
         self.btn_multi_match_gui.setEnabled(True)
+        self.btn_boundary_gui = self.findChild(QPushButton, "btn_boundary_gui")
+        self.btn_boundary_gui.clicked.connect(self.boundary_gui)
+        self.btn_boundary_gui.setEnabled(True)
         self.logview = self.findChild(QPlainTextEdit, "logview")
         self.logview.setReadOnly(True)
         self.logview.setVisible(False)
@@ -167,12 +181,15 @@ class MainWindow(QMainWindow):
         self.result_load_folders()
         
         self.result_web_view_widget: QWebEngineView = self.findChild(QWebEngineView, "result_web_view_widget")
-        
         # Calculation
         self.checkBox_fast_cal = self.findChild(QCheckBox, "checkBox_fast_cal")
         self.checkBox_fast_cal.setChecked(False)
         self.checkBox_fast_cal.toggled.connect(self.on_fast_calculation)
         self.fast_cal = False
+        self.checkBox_gait = self.findChild(QCheckBox, "checkBox_gait")
+        self.checkBox_gait.setChecked(True)
+        self.checkBox_gait.toggled.connect(self.on_gait_calculation)
+        self.gait = True
         self.cal_select_patient_id, self.cal_select_date = None, None
         self.cal_select_depth = 0
         self.listwidget_select_cal_date = self.findChild(QListWidget, "listwidget_select_cal_date")
@@ -224,11 +241,28 @@ class MainWindow(QMainWindow):
         self.label_log.setText("Please select a patient ID")
         self.result_load_folders()
         self.list_widget_patient_task_record.clear()
-    
+    def record_boundary_cam(self):
+        if self.btn_record_boundary_cam.isChecked():
+            self.Camera1.setClickable(True)
+            self.Camera2.setClickable(True)
+            self.Camera3.setClickable(True)
+            self.Camera4.setClickable(True)
+        else:
+            self.BoundaryOpened = []
+            self.label_boundaryCam.clear()
+            self.Camera1.setClickable(False)
+            self.Camera2.setClickable(False)
+            self.Camera3.setClickable(False)
+            self.Camera4.setClickable(False)
+            
     def multi_match_gui(self):
         subprocess.run(["python", os.path.join(self.current_directory, 'match_multi_GUI.py'), self.multi_person_path])
-
+    def boundary_gui(self):
+        subprocess.run(["python", os.path.join(self.current_directory, 'boundary_GUI.py')])
     def on_multi_person_toggled(self, checked): # mp func is checked or not
+        if (not self.camera_opened):
+            QMessageBox.information(self, "Cameras are not opened", "Please open cameras first！")
+            return
         if self.multi_person:
             reply = QMessageBox.question(
                 self, 
@@ -238,6 +272,8 @@ class MainWindow(QMainWindow):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self.list_widget_multi_record_list.setVisible(False)
+                self.label_boundaryCam.setVisible(False)
+                self.btn_record_boundary_cam.setVisible(False)
                 self.btn_multi_subjects_selected_del.setVisible(False)
                 self.record_select_patientID = None
                 self.label_selected_patient.setText(f"Selected patient :")
@@ -251,10 +287,12 @@ class MainWindow(QMainWindow):
                 self.btn_multi_person.blockSignals(False)
             else:
                 self.list_widget_multi_record_list.setVisible(True)
+                self.label_boundaryCam.setVisible(True)
+                self.btn_record_boundary_cam.setVisible(True)
                 self.btn_multi_subjects_selected_del.setVisible(True)
                 self.btn_multi_person.blockSignals(True)
                 self.btn_multi_person.setChecked(True)
-                self.btn_multi_person.blockSignals(False)
+                self.btn_multi_person.blockSignals(False)             
         else:
             reply = QMessageBox.question(
                 self, 
@@ -264,6 +302,8 @@ class MainWindow(QMainWindow):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self.list_widget_multi_record_list.setVisible(True)
+                self.label_boundaryCam.setVisible(True)
+                self.btn_record_boundary_cam.setVisible(True)
                 self.btn_multi_subjects_selected_del.setVisible(True)
                 self.record_select_patientID = "multi_person"
                 self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
@@ -275,6 +315,8 @@ class MainWindow(QMainWindow):
                 self.btn_multi_person.blockSignals(False)
             else:
                 self.list_widget_multi_record_list.setVisible(False)
+                self.label_boundaryCam.setVisible(False)
+                self.btn_record_boundary_cam.setVisible(False)
                 self.btn_multi_subjects_selected_del.setVisible(False)
                 self.btn_multi_person.blockSignals(True)
                 self.btn_multi_person.setChecked(False)
@@ -466,7 +508,7 @@ class MainWindow(QMainWindow):
         if not os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name)):
             os.makedirs(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos'))
         self.btn_pg1_reset.setEnabled(False)
-        if self.multi_person:            
+        if self.multi_person:   
             self.shared_dict_record_name['name'] = self.record_select_patientID
             self.shared_dict_record_name['task_name'] = self.record_task_name
             self.shared_dict_record_name['start_time'] = time.time()            
@@ -476,6 +518,9 @@ class MainWindow(QMainWindow):
                 with open(os.path.join(multi_name_folder_path, "name.txt"), "w") as f:
                     for name in self.multi_person_record_list:                
                         f.write(name + "\n")
+            with open(os.path.join(multi_name_folder_path, "Boundary.txt"), "w", encoding="utf-8") as f:
+                for cam_id in self.BoundaryOpened:
+                    f.write(int(cam_id) + "\n")
             # continue
         else:
             self.shared_dict_record_name['name'] = self.record_select_patientID
@@ -677,7 +722,16 @@ class MainWindow(QMainWindow):
             black_pixmap = QPixmap(label.width(), label.height())
             black_pixmap.fill(QColor(0, 0, 0))
             label.setPixmap(black_pixmap)
-
+    def CameraLabel_click(self, label):
+        if label.objectName()[-1] in self.BoundaryOpened:
+            return
+        if len(self.BoundaryOpened) < 2:
+            self.BoundaryOpened.append(label.objectName()[-1])
+        else:
+            self.BoundaryOpened.pop(0)
+            self.BoundaryOpened.append(label.objectName()[-1])
+        if self.BoundaryOpened != []:
+            self.label_boundaryCam.setText('\n'.join(self.BoundaryOpened))
     def button_config(self, instance):
         self.label_log.setText("detect Webcam ID and update config")
         camera_config_create(self.config_path)
@@ -769,9 +823,9 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal))
+            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
             # self.marker_calculate_process.start()
-            mp_marker_calculate(cur_dir, cal_list, self.fast_cal)
+            mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
@@ -780,9 +834,20 @@ class MainWindow(QMainWindow):
     # Calculation tab
     def on_fast_calculation(self, checked):
         if checked:
+            reply = QMessageBox.warning(
+                self, 
+                "Notification",
+                "Fast calculation only supports single person mode",
+            )
             self.fast_cal = True
         else:
             self.fast_cal = False
+
+    def on_gait_calculation(self, checked):
+        if checked:
+            self.gait = True
+        else:
+            self.gait = False
 
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
@@ -930,7 +995,6 @@ class MainWindow(QMainWindow):
 
     def result_select_gait_figures(self, index):
 
-        # self.result_disconnet_gait_figures()
         if index == 1:#knee flexion
             self.video_player.hip_flexion_plot()# Clear and replot everything
             self.result_video_slider.valueChanged.connect(self.video_player.update_hip_flexion)

@@ -939,16 +939,16 @@ def read_err_calib_extri(PWD):
     return err_list
 ######################################################
 # openpose & pose2sim
-def mp_marker_calculate(PWD, calculate_path_list, fast_cal):
+def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True):
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
-        if (not fast_cal) or ('multi_person' in cal_folder_path):  
-            folder_calculated = marker_caculate(PWD , cal_folder_path, 1)
+        if (not fast_cal) or ('multi_person' in cal_folder_path):
+            folder_calculated = marker_caculate(PWD , cal_folder_path, gait)
         else:
             folder_calculated = marker_caculate_fast(PWD, cal_folder_path)
-            
-def marker_caculate(PWD, cal_data_path, gait_token=None):
-    
+
+def marker_caculate(PWD, cal_data_path, gait_token=False):
+
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
     openpose_path = os.path.join(openpose_path, "ThirdParty")
@@ -991,7 +991,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             elif os.path.exists(os.path.join(task_folder_path, 'name', 'name.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name.txt')
             else: name_list_file_path = os.path.join(task_folder_path, 'name_checked', 'name.txt')
             name_list = []
-            Apose_p_path = []
+            Apose_p_path = []            
             with open(name_list_file_path, 'r') as file: # read the txt file with all person names in this task
                 lines = file.readlines()
                 for line in lines:
@@ -1136,11 +1136,21 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             print("切換至" + os.getcwd())
             os.chdir(now_project)
             print("切換至" + os.getcwd())
-            Pose2Sim.triangulation_multi(now_project)
+            cam_boundary_path = os.path.join(cal_data_path, 'raw_data', task, 'name', 'Boundary.txt')
+            if os.path.exists(cam_boundary_path):
+                
+                cam_boundary = []
+                with open(cam_boundary_path, 'r') as file: # read the txt file to get which side need to be opened
+                    lines = file.readlines()
+                    for line in lines:
+                        cam_boundary.append(int(line.strip()))
+                Pose2Sim.triangulation_multi(project_path=now_project, boundary=cam_boundary)
+            else:
+                Pose2Sim.triangulation_multi(project_path=now_project)
             Pose2Sim.filtering_multi()
             for apose_p_path in Apose_p_path:
                 a_p_pth = Path(apose_p_path).parent
-                rpj_all_dir = os.path.join(a_p_pth, task, 'User', 'reprojection_record.npz')            
+                rpj_all_dir = os.path.join(a_p_pth, task, 'User', 'reprojection_record.npz')           
                 if os.path.isfile(rpj_all_dir):
                     if not os.path.isfile(os.path.join(a_p_pth, task,'videos_pose_estimation_repj_combine')):
                         os.mkdir(os.path.join(a_p_pth, task,'videos_pose_estimation_repj_combine'))
@@ -1171,7 +1181,26 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                     now_project_opensim_scaling = now_project_opensim_scaling.replace('\\', '/')
                     print("切換至" + os.getcwd())
                     subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
-                    os.chdir(ori_path)            
+                    os.chdir(ori_path)
+            
+            if gait_token:
+                for apose_p_path in Apose_p_path:
+                    caculate_finshed_path = Path(apose_p_path).parent
+                    gait1(caculate_finshed_path)
+                    for task_gltf in os.listdir(caculate_finshed_path):
+                        if task_gltf != "Apose":
+                            osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+                            geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+                            motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+                            outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+                            working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+                            os.chdir(working_dir)
+                            try:
+                                convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+                            except:
+                                continue
+                os.chdir(ori_path)
+
     else:
         calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
         caculate_finshed_path = os.path.join(data_path, folder_name)
@@ -1356,7 +1385,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             cv2.destroyAllWindows()
             os.chdir(ori_path)
             print("切換至" + os.getcwd())
-            # import ipdb;ipdb.set_trace()
             now_project_3d = os.path.join(now_project, "pose-3d")
             trc_files = os.listdir(now_project_3d)
             for m in trc_files:
@@ -1385,7 +1413,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
             #halpe26_xml_update(now_project)
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             os.chdir(ori_path)
-        if gait_token==1: 
+        if gait_token:
             gait1(caculate_finshed_path)
             for task_gltf in os.listdir(caculate_finshed_path):
                 if task_gltf != "Apose":
@@ -1399,7 +1427,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=None):
                         convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
                     except:
                         continue
-
             os.chdir(ori_path)
         else:
             return caculate_finshed_path
@@ -1682,12 +1709,5 @@ def marker_caculate_fast(PWD,cal_data_path):
 
 # subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
 
-# import time
-# s = time.time()
-# dir_task = r'D:\NTKCAP\Patient_data\0906_chen\2024_09_06\2024_11_21_16_13_calculated\path1_04'        
-os.chdir(r"C:\Users\MyUser\Desktop\NTKCAP")
-# import inspect
-# print(inspect.getfile(Pose2Sim))
-# Pose2Sim.triangulation()
-# print(time.time()-s)       
-mp_marker_calculate('C:\\Users\\MyUser\\Desktop\\NTKCAP', ['C:\\Users\\MyUser\\Desktop\\NTKCAP\\Patient_data\\multi_person\\2025_02_24'], False)
+# os.chdir(r"C:\Users\MyUser\Desktop\NTKCAP")
+# mp_marker_calculate('C:\\Users\\MyUser\\Desktop\\NTKCAP', [r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\multi_person\2025_02_24'], False)

@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
         
         self.load_images_to_viewer(selected_path, self.middle_widget)
     def on_dropdown_changed_task(self):
-        print(self.cur_task)
         selected_folder = self.dropdown_task.currentText()
         
         if not str.isdigit(selected_folder):

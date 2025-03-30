@@ -1012,7 +1012,7 @@ def triangulation_from_best_cameras_ver_realdistdynamic_RANSAC(config, coords_2D
     return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point,strongness_of_exclusion
     # return Q_final, error_min_final, nb_cams_excluded_final, id_excluded_cams_final,exclude_record,error_record,dist_camera2point,strongness_of_exclusion,all_error,all_error_noweight,cam_correspond,residuals_SVD
 
-def track_2d_all(config, c_project_path, pk = True):
+def track_2d_all(config, c_project_path, boundary=None):
     '''
     For each frame,
     - Find all possible combinations of detected persons
@@ -1098,28 +1098,29 @@ def track_2d_all(config, c_project_path, pk = True):
         "4": pos[3]
     }
     matrix_not_same_p = []
-    camera_wall = [1, 2]
-    camera_coords_with_index = [(int(key), coord) for key, coord in camera_coordinates.items()]
-    sorted_coords_with_index = sorted(
-        camera_coords_with_index,
-        key=lambda item: (-item[1][1])
-    )
-    top_two = sorted_coords_with_index[:2]
-    bottom_two = sorted_coords_with_index[2:]
-    top_two_sorted = sorted(top_two, key=lambda item: -item[1][0])
-    bottom_two_sorted = sorted(bottom_two, key=lambda item: item[1][0])
-    final_sorted_coords = top_two_sorted + bottom_two_sorted
+    if boundary is not None:
+        camera_wall = boundary
+        camera_coords_with_index = [(int(key), coord) for key, coord in camera_coordinates.items()]
+        sorted_coords_with_index = sorted(
+            camera_coords_with_index,
+            key=lambda item: (-item[1][1])
+        )
+        top_two = sorted_coords_with_index[:2]
+        bottom_two = sorted_coords_with_index[2:]
+        top_two_sorted = sorted(top_two, key=lambda item: -item[1][0])
+        bottom_two_sorted = sorted(bottom_two, key=lambda item: item[1][0])
+        final_sorted_coords = top_two_sorted + bottom_two_sorted
 
-    sorted_indices = [item[0] for item in final_sorted_coords]
-    sorted_coords = [item[1] for item in final_sorted_coords]
-    
-    id1 = sorted_indices.index(camera_wall[0])
-    id2 = sorted_indices.index(camera_wall[1])
-    if set(camera_wall) == set([sorted_indices[0], sorted_indices[1]]) or set(camera_wall) == set([sorted_indices[2], sorted_indices[3]]):
-        base = 'x'
-    elif set(camera_wall) == set([sorted_indices[1], sorted_indices[2]]) or set(camera_wall) == set([sorted_indices[0], sorted_indices[3]]):
-        base = 'y'
-    center_p = np.mean(sorted_coords, axis=0)
+        sorted_indices = [item[0] for item in final_sorted_coords]
+        sorted_coords = [item[1] for item in final_sorted_coords]
+        
+        id1 = sorted_indices.index(camera_wall[0])
+        id2 = sorted_indices.index(camera_wall[1])
+        if set(camera_wall) == set([sorted_indices[0], sorted_indices[1]]) or set(camera_wall) == set([sorted_indices[2], sorted_indices[3]]):
+            base = 'x'
+        elif set(camera_wall) == set([sorted_indices[1], sorted_indices[2]]) or set(camera_wall) == set([sorted_indices[0], sorted_indices[3]]):
+            base = 'y'
+        center_p = np.mean(sorted_coords, axis=0)
     for f in tqdm(range(*f_range)): # all frames     
         json_files_f = [json_files[c][f] for c in range(n_cams)] # same frame from different cameras，file location
         json_tracked_files_f = [json_tracked_files[c][f] for c in range(n_cams)] # same frame from different, keypoints
@@ -1179,7 +1180,7 @@ def track_2d_all(config, c_project_path, pk = True):
             with np.errstate(invalid='ignore'):
                 L_all[L_all<likelihood_threshold] = 0.
             
-            if pk: # open one wall if needed
+            if boundary is not None: # open one wall if needed
                 q = weighted_triangulation(P_all, x_all, y_all, lik_all) 
                 cross1, cross2 = cross_product(sorted_coords[id1], sorted_coords[id2], q[:2]), cross_product(sorted_coords[id1], sorted_coords[id2], center_p)
                 if not is_point_in_hull(q[:2], delaunay):

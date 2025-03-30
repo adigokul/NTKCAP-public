@@ -285,7 +285,7 @@ def triangulation_fast(coord,config=os.path.join('User', 'Config.toml')):
     end = time.time()
     logging.info(f'Triangulation took {end-start:.2f} s.') 
 
-def triangulation_multi(project_path, config=os.path.join('User', 'Config.toml')):
+def triangulation_multi(project_path, config=os.path.join('User', 'Config.toml'), boundary=None):
     
     '''
     Robust triangulation of 2D points coordinates.
@@ -299,7 +299,6 @@ def triangulation_multi(project_path, config=os.path.join('User', 'Config.toml')
     if type(config)==dict:
         config_dict = config
     else:
-        #import pdb;pdb.set_trace()
         config_dict = read_config_file(config)
     project_dir, seq_name, frames = base_params(config_dict)
     
@@ -308,7 +307,10 @@ def triangulation_multi(project_path, config=os.path.join('User', 'Config.toml')
     logging.info("---------------------------------------------------------------------")
     logging.info(f"\nProject directory: {project_dir}")
     start = time.time()
-    triangulation_multi.track_2d_all(config_dict, project_path)
+    if boundary is not None:
+        triangulation_multi.track_2d_all(config=config_dict, c_project_path=project_path, boundary=boundary)
+    else:
+        triangulation_multi.track_2d_all(config=config_dict, c_project_path=project_path)
     
     end = time.time()
     logging.info(f'Triangulation took {end-start:.2f} s.')

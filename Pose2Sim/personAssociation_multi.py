@@ -28,8 +28,6 @@
     - json files for each camera with only one person of interest
     
 '''
-
-
 ## INIT
 import os
 import glob
@@ -44,21 +42,8 @@ from anytree import RenderTree
 from anytree.importer import DictImporter
 import logging
 from scipy.spatial import ConvexHull, Delaunay
-
-try:
-    from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
-        reprojection, euclidean_distance, natural_sort
-    from Pose2Sim.skeletons import *
-    from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
-    
-    from Pose2Sim.common import weighted_triangulation
-except:
-    from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
-        reprojection, euclidean_distance, natural_sort
-    from skeletons import *
-    
-    from common import weighted_triangulation
-    from common import weighted_triangulation,weighted_triangulation_R
+from Pose2Sim.common import retrieve_calib_params, computeP, weighted_triangulation, weighted_triangulation_R, reprojection, euclidean_distance, natural_sort
+from Pose2Sim.skeletons import *
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
@@ -651,11 +636,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state,
             person_to_remove.append(p)
         else:
             proposals_index.append(p)
-        
-            # import pdb;pdb.set_trace()
-        
-    # print(person_to_remove)
-    #import pdb; pdb.set_trace()
+
     if nb_det_max_p - len(person_to_remove) == 0: # there is no person in the area
         # state = None # whether the previous frame has person in the area : None means no, True means yes 
         if (state) and (frame != 0): # previous frame has person in the area. The situation happens in which the person walks out the area.
@@ -944,7 +925,6 @@ def track_2d_all(config):
             affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
             affinity[affinity<min_affinity] = 0
             proposals = person_index_per_cam(affinity, cum_persons_per_view, min_cameras_for_triangulation)
-            # print(proposals)
             state = prepare_rewrite_json_files(json_tracked_files_f, json_files_f, proposals, n_cams, calib_file, f, P, f_range[0], state)
             
             if (not state) and (state is not None):
@@ -953,10 +933,3 @@ def track_2d_all(config):
     # recap message
     recap_tracking(config, error_min_tot, cameras_off_tot)
     print('成功結束personAssociation')
-    
-# dir_task = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp\醫療科技展\4025\2024_12_08\2024_12_08_15_18_calculated\1'
-# coord = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\4024\2024_12_08\2025_02_12_18_07_calculated\1\coord.npy'
-# # a = np.load(coord,allow_pickle = True)
-# os.chdir(dir_task)
-# config = toml.load(os.path.join( dir_task,'User','Config.toml'))
-# track_2d_all(config)
