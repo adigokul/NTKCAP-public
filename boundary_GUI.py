@@ -2,8 +2,9 @@ import os
 import sys
 from PyQt6 import uic
 from PyQt6.QtWidgets import QLabel, QPushButton, QListWidget, QMainWindow, QApplication
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPixmap, QImage
 import cv2
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -12,10 +13,11 @@ class MainWindow(QMainWindow):
         self.patient_id_path = os.path.join(os.getcwd(), "Patient_data", "multi_person")
 
         self.listWidget_record_boundary_tasks = self.findChild(QListWidget, "listWidget_record_boundary_tasks")
-        self.label_camera1 = self.findChild(QLabel, "label_camera1")
-        self.label_camera2 = self.findChild(QLabel, "label_camera2")
-        self.label_camera3 = self.findChild(QLabel, "label_camera3")
-        self.label_camera4 = self.findChild(QLabel, "label_camera4")
+        self.label_camera = [self.findChild(QLabel, "label_camera1"),
+                                self.findChild(QLabel, "label_camera2"),
+                                self.findChild(QLabel, "label_camera3"),
+                                self.findChild(QLabel, "label_camera4")]
+        
         self.btn_camera1 = self.findChild(QPushButton, "btn_camera1")
         self.btn_camera2 = self.findChild(QPushButton, "btn_camera2")
         self.btn_camera3 = self.findChild(QPushButton, "btn_camera3")
@@ -24,6 +26,8 @@ class MainWindow(QMainWindow):
         self.task_boundary_needed_list = []
         self.task_boundary_needed()
         self.listWidget_record_boundary_tasks_show()
+        self.listWidget_record_boundary_tasks_dclick()
+    
     def task_boundary_needed(self):
         for date in os.listdir(self.patient_id_path):
             raw_data_path = os.path.join(self.patient_id_path, date, "raw_data")
@@ -34,11 +38,32 @@ class MainWindow(QMainWindow):
                     boundary_path = os.path.join(raw_data_path, task, 'name', 'Boundary.txt')
                     if not os.path.exists(boundary_path):
                         self.task_boundary_needed_list.append(boundary_path)
+    
+    def listWidget_record_boundary_tasks_dclick(self, item):
+        task = item.text()
+        self.boundary_tasks_video_frame_label_show(task)
+    
+    def boundary_tasks_video_frame_label_show(self, task_path):
+        videos_path = os.path.join(task_path, 'videos')
+        video_path = [os.path.join(videos_path, '1.mp4'), os.path.join(videos_path, '2.mp4'), os.path.join(videos_path, '3.mp4'), os.path.join(videos_path, '4.mp4')]
+        for (video, label) in zip(video_path, self.label_camera):
+            cap = cv2.VideoCapture(video)
+            _, frame = cap.read()
+            cap.release()
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = frame_rgb.shape
+            bytes_per_line = ch * w
+            qimg = QImage(frame_rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(qimg)
+
+            label.setPixmap(pixmap)
+
     def listWidget_record_boundary_tasks_show(self):
         if self.task_boundary_needed_list == []: return
         self.listWidget_record_boundary_tasks.clear()
         for task in self.task_boundary_needed_list:
             self.listWidget_record_boundary_tasks.addItems(task)
+
 if __name__ == "__main__":
     App = QApplication(sys.argv)
     App.setWindowIcon(QIcon("GUI_source/Team_logo.jpg"))

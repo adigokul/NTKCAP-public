@@ -230,7 +230,6 @@ class MainWindow(QMainWindow):
         else:
             QApplication.quit()
         
-        
     def load_images_to_viewer(self, first_folder, viewer_widget):       
         # get the imgs(only .jpg and .png)        
         images = [os.path.join(first_folder, f) for f in os.listdir(first_folder) if f.endswith((".jpg", ".png"))]
