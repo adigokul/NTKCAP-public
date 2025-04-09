@@ -944,9 +944,9 @@ def triangulate_all(coord,config):
 
 # import time
 # s = time.time()
-dir_task = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_19_20_29_calculated\1005_1'        
-os.chdir(dir_task)
-config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
+# dir_task = r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_19_20_29_calculated\1005_1'        
+# os.chdir(dir_task)
+# config_dict = toml.load(os.path.join(dir_task,'User','Config.toml'))
 
-triangulate_all(config_dict)
+# triangulate_all(config_dict)
 # print(time.time()-s)

@@ -48,13 +48,13 @@ from anytree.importer import DictImporter
 import logging
 from scipy.spatial import ConvexHull, Delaunay
 try:
-    from Pose2Sim.common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+    from Pose2Sim.common import retrieve_calib_params, computeP, weighted_triangulation, \
         reprojection, euclidean_distance, natural_sort
     from Pose2Sim.skeletons import *
     
     from Pose2Sim.common import weighted_triangulation,weighted_triangulation_R
 except:
-    from common_multi import retrieve_calib_params, computeP, weighted_triangulation, \
+    from common import retrieve_calib_params, computeP, weighted_triangulation, \
         reprojection, euclidean_distance, natural_sort
     from skeletons import *
     
