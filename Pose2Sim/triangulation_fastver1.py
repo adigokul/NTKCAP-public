@@ -850,7 +850,7 @@ def triangulate_all(coord,config):
     prep_4like=cp.min(prep_4[:,:,:,:,2],axis=3)
     prep_3like=cp.min(prep_3[:,:,:,:,2],axis=3)
     prep_2like=cp.min(prep_2[:,:,:,:,2],axis=3)
-    
+
     prep_like = cp.concatenate((prep_4like,prep_3like,prep_2like),axis =2)
     #undistort
     
@@ -865,7 +865,7 @@ def triangulate_all(coord,config):
     ## delete the liklelihoood vlue which is too low
     real_dist = cp.concatenate((real_dist4,real_dist3,real_dist2),axis = 2)
     loc = cp.where(prep_like < likelihood_threshold)
-    #import pdb;pdb.set_trace()
+    
     real_dist[loc] = cp.inf
     # Find the index of the first non-inf element along axis 2
     non_inf_mask = ~cp.isinf(real_dist)
