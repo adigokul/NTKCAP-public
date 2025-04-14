@@ -10,14 +10,14 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from multiprocessing import Event, shared_memory, Manager, Queue, Process
+from multiprocessing import Event, shared_memory, Manager, Queue
 from check_extrinsic import *
 from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
 from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
-from GUI_source.LabelClickable import LabelClickable
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -256,9 +256,9 @@ class MainWindow(QMainWindow):
             self.Camera4.setClickable(False)
             
     def multi_match_gui(self):
-        subprocess.run(["python", os.path.join(self.current_directory, 'match_multi_GUI.py'), self.multi_person_path])
+        subprocess.run(["python", os.path.join(self.current_directory, 'GUI_source', 'match_multi_GUI.py'), self.multi_person_path])
     def boundary_gui(self):
-        subprocess.run(["python", os.path.join(self.current_directory, 'boundary_GUI.py')])
+        subprocess.run(["python", os.path.join(self.current_directory, 'GUI_source', 'boundary_GUI.py')])
     def on_multi_person_toggled(self, checked): # mp func is checked or not
         if (not self.camera_opened):
             QMessageBox.information(self, "Cameras are not opened", "Please open cameras first！")
@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
                         f.write(name + "\n")
             with open(os.path.join(multi_name_folder_path, "Boundary.txt"), "w", encoding="utf-8") as f:
                 for cam_id in self.BoundaryOpened:
-                    f.write(int(cam_id) + "\n")
+                    f.write(f"{int(cam_id)}\n")
             # continue
         else:
             self.shared_dict_record_name['name'] = self.record_select_patientID
@@ -722,6 +722,7 @@ class MainWindow(QMainWindow):
             black_pixmap = QPixmap(label.width(), label.height())
             black_pixmap.fill(QColor(0, 0, 0))
             label.setPixmap(black_pixmap)
+        
     def CameraLabel_click(self, label):
         if label.objectName()[-1] in self.BoundaryOpened:
             return
@@ -756,10 +757,7 @@ class MainWindow(QMainWindow):
             self.task_stop_rec_evt.clear()
             self.btn_pg1_reset.setEnabled(False)
             self.label_log.setText("create new extrinsic params")
-            config_name = os.path.join(self.config_path, "config.json")
             time_file_path = os.path.join(self.record_path, "calibration", "calib_time.txt")
-            with open(config_name, 'r') as f:
-                data = json.load(f)
             self.calib_rec_evt1.set()
             self.calib_rec_evt2.set()
             self.calib_rec_evt3.set()

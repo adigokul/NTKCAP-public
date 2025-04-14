@@ -8,6 +8,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Match multiple person")
         self.resize(1200, 600)
+        print(os.getcwd())
         self.patient_id_path = os.path.join(os.getcwd(), 'Patient_data', 'multi_person')
 
         self.unchcked_multi_task = self.generate_task_list()
