@@ -830,11 +830,7 @@ class MainWindow(QMainWindow):
     # Calculation tab
     def on_fast_calculation(self, checked):
         if checked:
-            reply = QMessageBox.warning(
-                self, 
-                "Notification",
-                "Fast calculation only supports single person mode",
-            )
+            QMessageBox.information(self, "Notification", "Fast calculation only supports single person mode")
             self.fast_cal = True
         else:
             self.fast_cal = False
@@ -978,36 +974,35 @@ class MainWindow(QMainWindow):
         self.result_video_slider.setEnabled(True)
 
     def result_disconnet_gait_figures(self):
-        if self.result_current_gait_figures_index == 1:#knee flexion
+        if self.result_current_gait_figures_index == 1: # Hip flexion
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_hip_flexion)
-        elif self.result_current_gait_figures_index ==2:
+        elif self.result_current_gait_figures_index ==2: # Knee flexion
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_knee_flexion)          
-        elif self.result_current_gait_figures_index ==3:
+        elif self.result_current_gait_figures_index ==3: # Ankle flexion
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_ankle_flexion)
-        elif self.result_current_gait_figures_index ==4:
+        elif self.result_current_gait_figures_index ==4: # Speed
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_speed)
-        elif self.result_current_gait_figures_index ==5:
+        elif self.result_current_gait_figures_index ==5: # Stride
             self.result_video_slider.valueChanged.disconnect(self.video_player.update_stride)
 
     def result_select_gait_figures(self, index):
-
-        if index == 1:#knee flexion
-            self.video_player.hip_flexion_plot()# Clear and replot everything
+        if index == 1: # Hip flexion
+            self.video_player.hip_flexion_plot()#
             self.result_video_slider.valueChanged.connect(self.video_player.update_hip_flexion)
             self.result_current_gait_figures_index = 1
-        elif index ==2:
+        elif index ==2: # Knee flexion
             self.video_player.knee_flexion_plot()       
             self.result_video_slider.valueChanged.connect(self.video_player.update_knee_flexion)
             self.result_current_gait_figures_index = 2
-        elif index ==3:
+        elif index ==3: # Ankle flexion
             self.video_player.ankle_flexion_plot()
             self.result_video_slider.valueChanged.connect(self.video_player.update_ankle_flexion)
             self.result_current_gait_figures_index = 3
-        elif index ==4:
+        elif index ==4: # Speed
             self.video_player.speed_plot()
             self.result_video_slider.valueChanged.connect(self.video_player.update_speed)
             self.result_current_gait_figures_index = 4
-        elif index ==5:
+        elif index ==5: # Stride
             self.video_player.stride_plot()
             self.result_video_slider.valueChanged.connect(self.video_player.update_stride)
             self.result_current_gait_figures_index = 5
