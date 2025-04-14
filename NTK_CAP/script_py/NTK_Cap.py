@@ -871,9 +871,8 @@ def shrink_video_1frame(file_path):
         out = cv2.VideoWriter(output_video_path, codec, fps, (width, height))
         
         # Write the first frame multiple times to generate a short video
-        
         out.write(frame)
-        
+
         # Release everything if job is finished
         cap.release()
         out.release()
@@ -943,9 +942,9 @@ def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True):
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
         if (not fast_cal) or ('multi_person' in cal_folder_path):
-            folder_calculated = marker_caculate(PWD , cal_folder_path, gait)
+            _ = marker_caculate(PWD , cal_folder_path, gait)
         else:
-            folder_calculated = marker_caculate_fast(PWD, cal_folder_path)
+            _ = marker_caculate_fast(PWD, cal_folder_path)
 
 def marker_caculate(PWD, cal_data_path, gait_token=False):
 
@@ -962,7 +961,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
     posesim_path = os.path.join(posesim_path, "OpenSim")
     posesim_path = os.path.join(posesim_path, "bin")
     posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
-
 
     data_path = cal_data_path
     calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
@@ -1706,8 +1704,3 @@ def marker_caculate_fast(PWD,cal_data_path):
     os.chdir(ori_path)
     
     return caculate_finshed_path
-
-# subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
-
-# os.chdir(r"C:\Users\MyUser\Desktop\NTKCAP")
-# mp_marker_calculate('C:\\Users\\MyUser\\Desktop\\NTKCAP', [r'C:\Users\MyUser\Desktop\NTKCAP\Patient_data\multi_person\2025_02_24'], False)

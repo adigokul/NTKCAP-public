@@ -10,7 +10,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from multiprocessing import Event, shared_memory, Manager, Queue
+from multiprocessing import Event, shared_memory, Manager, Queue, Process
 from check_extrinsic import *
 from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
@@ -662,8 +662,7 @@ class MainWindow(QMainWindow):
         )
         self.camera_proc_lst.append(p4)
         self.update()
-        # self.tri = Process(target=tri, args=())
-        # self.tri.start()
+        
         for i in range(4):
             label = self.label_cam[i]
             self.threads[i].scale_size = [label.size().width(), label.size().height()]
@@ -677,7 +676,7 @@ class MainWindow(QMainWindow):
             thread.start()
         self.btn_extrinsic_record.setEnabled(True)
         self.start_evt.set()
-    def closeCamera(self, is_main=True):
+    def closeCamera(self):
         if not self.camera_opened: return
         if self.record_opened: return
         self.btnOpenCamera.setEnabled(True)
@@ -821,13 +820,12 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
-            # self.marker_calculate_process.start()
-            mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
+            self.marker_calculate_process.start()
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
-            # self.timer_marker_calculate.start(1000)
+            self.timer_marker_calculate.start(1000)
 
     # Calculation tab
     def on_fast_calculation(self, checked):
