@@ -274,7 +274,7 @@ def compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, recons
         distance[cum_persons_per_view[compared_cam1]:cum_persons_per_view[compared_cam1+1], \
                  cum_persons_per_view[compared_cam0]:cum_persons_per_view[compared_cam0+1]] \
                  = mean_weighted_dist.T
-
+    import pdb; pdb.set_trace()
     # compute affinity matrix and clamp it to zero when distance > reconstruction_error_threshold
     distance[distance > reconstruction_error_threshold] = reconstruction_error_threshold
     affinity = 1 - distance / reconstruction_error_threshold
@@ -754,6 +754,7 @@ def sort_people_new(Q_kpt_old, Q_kpt, f):
         if np.all(np.isnan(dist_uncheck)):
             continue        
         personsIDs_comb_new.append(personsIDs_comb[dist_uncheck.index(min(dist_uncheck))+i])
+    
     _, _, min_dist_comb = min_with_single_indices(dist, personsIDs_comb)
     
     return min_dist_comb
@@ -1127,10 +1128,11 @@ def track_2d_all(config, c_project_path, boundary=None):
         matrix_not_same_p.append([])
         all_json_data_f, js_new_all = [], []
         for js_file in json_files_f:
-            all_json_data_f.append(read_json(js_file)) # len=4, each one contains coordinate and confidence of keypoint
+            all_json_data_f.append(read_json(js_file)) # len=4, each one contains coordinate and confidence of keypoint        
         persons_per_view = [0] + [len(j) for j in all_json_data_f] # [0, num_peo_cam1.... ]
-        cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]
-        affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)    
+        cum_persons_per_view = np.cumsum(persons_per_view) # [0, numpeocam1, numpeocam1+2....]        
+        affinity = compute_affinity(all_json_data_f, calib_params, cum_persons_per_view, reconstruction_error_threshold=reconstruction_error_threshold)
+        import pdb; pdb.set_trace()
         circ_constraint = circular_constraint(cum_persons_per_view)
         affinity = affinity * circ_constraint
         affinity = matchSVT(affinity, cum_persons_per_view, circ_constraint, max_iter = 20, w_rank = 50, tol = 1e-4, w_sparse=0.1)
@@ -1151,7 +1153,7 @@ def track_2d_all(config, c_project_path, boundary=None):
         kp_idx = 18 # Neck
         Q, index_remove, camera_exclude, error, nb_cams_excluded, id_excluded_cams,exclude_record,error_record,cam_dist,strongness_exclusion, current_num = [], [], [], [], [], [], [], [], [], [], 0
         # Check whether the person is inside the area
-        
+        import pdb; pdb.set_trace()
         for p in range(len(js_new_all)):
             x_all, y_all, lik_all, X_all, Y_all, L_all, P_all = [], [], [], [], [], [], []   
             camera_exclude.append([])         
@@ -1219,6 +1221,7 @@ def track_2d_all(config, c_project_path, boundary=None):
                 if js_new_all[idx][each_cam] == []:
                     js_new_all[idx][each_cam] = keypoints_2d_template
         if f != 0:
+            import pdb; pdb.set_trace()
             final_comb = sort_people_new(Q_old, Q, f)                                                            
             for idx, c in enumerate(final_comb): # (pre, cur)                         
                 if f == 1:                                                                     
