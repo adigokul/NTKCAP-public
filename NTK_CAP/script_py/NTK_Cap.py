@@ -996,6 +996,9 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
                     name_list.append(line.strip())
             for name in name_list: # Apose calculation
                 # Prevent repeated calculation
+                calculate_finished_path = os.path.join(Patient_data_path, name, date, folder_name)
+                old_apose_path = os.path.join(calculate_finished_path, 'Apose')
+                Apose_p_path.append(old_apose_path)
                 if os.path.exists(os.path.join(Patient_data_path, name, date, folder_name, 'Apose')):
                     continue
                 else:
@@ -1005,9 +1008,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
                     if not os.path.exists(os.path.join(raw_data_path, 'calibration')):
                         calibration_path = os.path.join(raw_data_p_path, 'calibration')
                         shutil.copytree(calibration_path, os.path.join(raw_data_path, 'calibration'))
-                    calculate_finished_path = os.path.join(Patient_data_path, name, date, folder_name)
-                    old_apose_path = os.path.join(calculate_finished_path, 'Apose')
-                    Apose_p_path.append(old_apose_path)
+                    
                     if not os.path.exists(calculate_finished_path):
                         os.makedirs(calculate_finished_path)
                     print(f"資料夾成功創建:{calculate_finished_path}, 計算{name}Apose")                    
@@ -1135,8 +1136,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             os.chdir(now_project)
             print("切換至" + os.getcwd())
             cam_boundary_path = os.path.join(cal_data_path, 'raw_data', task, 'name', 'Boundary.txt')
-            if os.path.exists(cam_boundary_path):
-                
+            if os.path.exists(cam_boundary_path):                
                 cam_boundary = []
                 with open(cam_boundary_path, 'r') as file: # read the txt file to get which side need to be opened
                     lines = file.readlines()
@@ -1146,6 +1146,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             else:
                 Pose2Sim.triangulation_multi(project_path=now_project)
             Pose2Sim.filtering_multi()
+            
             for apose_p_path in Apose_p_path:
                 a_p_pth = Path(apose_p_path).parent
                 rpj_all_dir = os.path.join(a_p_pth, task, 'User', 'reprojection_record.npz')           
