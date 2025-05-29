@@ -1222,3 +1222,183 @@
 [2025-04-28 17:56:28.319] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
 [2025-04-28 17:56:28.319] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
 [2025-04-28 17:56:28.319] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:07:20.614] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:07:21.689] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:07:21.713] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:07:21.713] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:07:21.713] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:07:21.713] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:07:23.413] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:07:23.949] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:07:23.972] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:07:23.972] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:07:23.973] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:07:23.973] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:09:57.372] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:09:57.901] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:09:57.923] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:09:57.923] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:09:57.923] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:09:57.923] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:09:58.133] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:09:58.777] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:09:58.799] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:09:58.799] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:09:58.799] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:09:58.799] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:10:01.711] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:10:02.239] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:10:02.261] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:10:02.261] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:10:02.261] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:10:02.261] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:10:02.463] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:10:02.994] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:10:03.016] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:10:03.016] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:10:03.016] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:10:03.016] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:29.108] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:29.647] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:12:29.669] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:29.669] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:29.670] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:29.670] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:29.857] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:30.396] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:12:30.417] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:30.418] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:30.418] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:30.418] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:30.582] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:31.119] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:12:31.140] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:31.140] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:31.140] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:31.140] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:35.487] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:36.035] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:12:36.058] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:36.058] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:36.058] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:36.058] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:36.242] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:36.790] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:12:36.813] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:36.813] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:36.813] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:36.813] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:12:36.983] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:12:37.530] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:12:37.551] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:12:37.551] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:12:37.551] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:12:37.552] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:03.938] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:04.477] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:15:04.501] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:04.501] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:04.501] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:04.501] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:04.685] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:05.222] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:15:05.244] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:05.244] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:05.244] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:05.244] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:05.404] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:05.945] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:15:05.966] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:05.966] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:05.966] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:05.966] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:06.122] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:06.660] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Balancing_for_IK_BODY.mot (nr=198 nc=63)
+[2025-05-02 12:15:06.682] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:06.682] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:06.682] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:06.682] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:12.349] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:12.886] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:15:12.909] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:12.909] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:12.909] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:12.909] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:13.087] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:13.765] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:15:13.788] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:13.788] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:13.788] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:13.788] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:13.963] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:14.512] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:15:14.535] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:14.535] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:14.535] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:14.535] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:15:14.699] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:15:15.241] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Balancing_for_IK_BODY.mot (nr=198 nc=63)
+[2025-05-02 12:15:15.263] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:15:15.263] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:15:15.263] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:15:15.263] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:44.820] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:45.362] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:17:45.385] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:45.386] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:45.386] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:45.386] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:45.567] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:46.106] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:17:46.128] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:46.128] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:46.129] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:46.129] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:46.288] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:46.824] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:17:46.846] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:46.847] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:46.847] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:46.847] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:47.000] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:47.539] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Balancing_for_IK_BODY.mot (nr=198 nc=63)
+[2025-05-02 12:17:47.561] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:47.561] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:47.561] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:47.561] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:47.715] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_9\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:48.250] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\GGG\LimitedSpace\2025_05_02_12_02_calculated\m_9\opensim/Balancing_for_IK_BODY.mot (nr=202 nc=63)
+[2025-05-02 12:17:48.272] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:48.272] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:48.272] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:48.272] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:55.315] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:55.849] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_10\opensim/Balancing_for_IK_BODY.mot (nr=236 nc=63)
+[2025-05-02 12:17:55.871] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:55.871] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:55.871] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:55.871] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:56.048] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:56.740] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_6\opensim/Balancing_for_IK_BODY.mot (nr=212 nc=63)
+[2025-05-02 12:17:56.762] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:56.762] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:56.762] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:56.762] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:56.923] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:57.466] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_7\opensim/Balancing_for_IK_BODY.mot (nr=199 nc=63)
+[2025-05-02 12:17:57.488] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:57.488] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:57.488] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:57.488] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:57.642] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:58.188] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_8\opensim/Balancing_for_IK_BODY.mot (nr=198 nc=63)
+[2025-05-02 12:17:58.210] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:58.210] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:58.210] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:58.210] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-05-02 12:17:58.363] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_9\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-05-02 12:17:58.909] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\MMM\LimitedSpace\2025_05_02_12_02_calculated\m_9\opensim/Balancing_for_IK_BODY.mot (nr=202 nc=63)
+[2025-05-02 12:17:58.930] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
