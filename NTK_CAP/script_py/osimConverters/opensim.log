@@ -1402,3 +1402,9 @@
 [2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
 [2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
 [2025-05-02 12:17:58.931] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-06-05 11:25:56.111] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_06_05_11_24_calculated\1005_1\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-06-05 11:25:57.413] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_06_05_11_24_calculated\1005_1\opensim/Balancing_for_IK_BODY.mot (nr=133 nc=63)
+[2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
