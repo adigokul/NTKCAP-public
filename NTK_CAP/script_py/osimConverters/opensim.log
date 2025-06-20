@@ -1408,3 +1408,15 @@
 [2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
 [2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
 [2025-06-05 11:25:57.435] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-06-17 14:00:06.119] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp123\2025_06_17\2025_06_17_13_59_calculated\1\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-06-17 14:00:07.195] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp123\2025_06_17\2025_06_17_13_59_calculated\1\opensim/Balancing_for_IK_BODY.mot (nr=222 nc=63)
+[2025-06-17 14:00:07.220] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-06-17 14:00:07.220] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-06-17 14:00:07.220] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-06-17 14:00:07.220] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
+[2025-06-17 16:05:34.487] [info] Loaded model Pose2Sim_scaled from file C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp1234\2025_06_17\2025_06_17_16_04_calculated\1\opensim/Model_Pose2Sim_Halpe26_scaled.osim
+[2025-06-17 16:05:36.149] [info] Storage: read data file = C:\Users\MyUser\Desktop\NTKCAP\Patient_data\temp1234\2025_06_17\2025_06_17_16_04_calculated\1\opensim/Balancing_for_IK_BODY.mot (nr=209 nc=63)
+[2025-06-17 16:05:36.189] [warning] Coordinate.setValue:  coordinate mtp_angle_r is locked. Unable to change its value.
+[2025-06-17 16:05:36.190] [warning] Coordinate.setValue:  coordinate mtp_angle_l is locked. Unable to change its value.
+[2025-06-17 16:05:36.190] [warning] Coordinate.setValue:  coordinate Abs_t1 is locked. Unable to change its value.
+[2025-06-17 16:05:36.190] [warning] Coordinate.setValue:  coordinate Abs_t2 is locked. Unable to change its value.
