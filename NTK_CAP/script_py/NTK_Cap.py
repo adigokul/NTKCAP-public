@@ -1410,6 +1410,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             print("切換至" + os.getcwd())
             #######################################
             #halpe26_xml_update(now_project)
+            import pdb; pdb.set_trace()
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             os.chdir(ori_path)
         if gait_token:
