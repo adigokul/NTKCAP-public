@@ -1,7 +1,7 @@
 pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 pip install -U openmim
 mim install mmengine
-mim install "mmcv>=2.0.1" (2.1.0)
+mim install "mmcv==2.1.0"
 mim install "mmdet>=3.3.0"
 cd NTK_CAP\ThirdParty\mmpose
 pip install -r requirements.txt
@@ -31,7 +31,8 @@ pip install keyboard
 pip install import_ipynb
 pip install kivy
 pip install "Pose2Sim==0.4"
-pip install numpy==1.21.6 
+pip install cupy-cuda11x
+pip install numpy==1.26.1 
 pip install scipy==1.13.0
 pip install ultralytics
 pip install tkfilebrowser
@@ -41,3 +42,8 @@ pip install pyserial
 conda install opensim-org::opensim
 pip install func_timeout
 pip install pygltflib
+pip install openpyxl
+pip install PyQt6
+pip install PyQt6-WebEngine
+pip install pyqtgraph
+pip install natsort

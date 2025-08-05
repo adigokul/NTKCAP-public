@@ -20,10 +20,7 @@ sys.path.insert(0, os.getcwd())
 
 from Pose2Sim import Pose2Sim
 
-try:
-    from .gait_analysis import gait1
-except:
-    from gait_analysis import gait1
+from .gait_analysis import gait1
 
 import serial
 
@@ -1286,7 +1283,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             
             Pose2Sim.personAssociation_multi()
             
-            Pose2Sim.triangulation()
+            Pose2Sim.triangulation_ThreeCamROWV()
             
             Pose2Sim.filtering()
             import inspect
@@ -1370,7 +1367,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             os.chdir(now_project)
             print("切換至" + os.getcwd())         
             Pose2Sim.personAssociation_multi()        
-            Pose2Sim.triangulation()
+            Pose2Sim.triangulation_ThreeCamROWV()
             Pose2Sim.filtering()        
             rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
             if os.path.isfile(rpj_all_dir):

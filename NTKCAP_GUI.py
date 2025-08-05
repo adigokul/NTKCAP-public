@@ -820,12 +820,13 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
-            self.marker_calculate_process.start()
-            self.cal_select_list = []
-            self.label_calculation_status.setText("Calculating")
-            self.btn_cal_start_cal.setEnabled(False)
-            self.timer_marker_calculate.start(1000)
+            mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
+            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
+            # self.marker_calculate_process.start()
+            # self.cal_select_list = []
+            # self.label_calculation_status.setText("Calculating")
+            # self.btn_cal_start_cal.setEnabled(False)
+            # self.timer_marker_calculate.start(1000)
 
     # Calculation tab
     def on_fast_calculation(self, checked):

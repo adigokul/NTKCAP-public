@@ -1,2 +1,4 @@
-import cupy as cp
-print("Available GPU devices:", cp.cuda.runtime.getDeviceCount())
+import numpy as np
+import itertools as it
+a = np.array([0, 1, 2])
+print(a)
