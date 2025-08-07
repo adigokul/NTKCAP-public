@@ -182,6 +182,7 @@ class MainWindow(QMainWindow):
         
         self.result_web_view_widget: QWebEngineView = self.findChild(QWebEngineView, "result_web_view_widget")
         # Calculation
+        self.label_cal_selected_tasks = self.findChild(QLabel, "label_cal_selected_tasks")
         self.checkBox_fast_cal = self.findChild(QCheckBox, "checkBox_fast_cal")
         self.checkBox_fast_cal.setChecked(False)
         self.checkBox_fast_cal.toggled.connect(self.on_fast_calculation)
@@ -876,6 +877,7 @@ class MainWindow(QMainWindow):
             self.cal_select_date = item.text()
             if os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date) not in self.cal_select_list:
                 self.cal_select_list.append(os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date))
+            self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
             self.cal_show_selected_folder()
             self.cal_select_date = None
             self.cal_select_depth = 0
@@ -889,7 +891,8 @@ class MainWindow(QMainWindow):
     def cal_selected_folder_selcted_delete(self):
         self.cal_select_list.remove(self.listwidget_selected_cal_date_item_selected)
         self.cal_show_selected_folder()
-
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
+    
     # Show result tab 
     def select_back_path(self):
         if self.result_select_depth == 1:
@@ -1034,7 +1037,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     App = QApplication(sys.argv)
-    App.setWindowIcon(QIcon("GUI_source/Team_logo.jpg"))
+    App.setWindowIcon(QIcon("GUI_source/TeamLogo.jpg"))
     window = MainWindow()
     window.show()
     sys.exit(App.exec())

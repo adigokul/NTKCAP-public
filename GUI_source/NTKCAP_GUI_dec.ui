@@ -97,11 +97,16 @@ QWidget#tab {
               <height>400</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QLabel {
+	background-color: rgb(82, 83, 100);
+}</string>
+            </property>
             <property name="text">
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap>Team_logo.jpg</pixmap>
+             <pixmap>TeamLogoBackgroundRemoved.png</pixmap>
             </property>
             <property name="scaledContents">
              <bool>true</bool>
@@ -157,6 +162,8 @@ QWidget#tab {
               <property name="styleSheet">
                <string notr="true">QLabel {
 	background-color: rgb(234, 234, 234);
+    font-family: 'DFHannotateQ';
+    font-weight: bold;
     font-size: 40px;
     color: black;
 	border: 1px solid black;
@@ -218,6 +225,7 @@ QWidget#tab {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -279,6 +287,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -340,6 +349,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -535,6 +545,11 @@ QPushButton:pressed {
           </item>
           <item>
            <widget class="QPushButton" name="btn_result_refresh">
+            <property name="styleSheet">
+             <string notr="true">QPushButton{
+    font-weight: bold;
+}</string>
+            </property>
             <property name="text">
              <string>Refresh</string>
             </property>
@@ -574,6 +589,11 @@ QPushButton:pressed {
           </item>
           <item>
            <widget class="QPushButton" name="btn_result_back_path">
+            <property name="styleSheet">
+             <string notr="true">QPushButton{
+    font-weight: bold;
+}</string>
+            </property>
             <property name="text">
              <string>Back</string>
             </property>
@@ -633,6 +653,11 @@ QPushButton:pressed {
              <layout class="QHBoxLayout" name="horizontalLayout">
               <item>
                <widget class="QPushButton" name="btn_result_video_playstop">
+                <property name="styleSheet">
+                 <string notr="true">QPushButton{
+    font-weight: bold;
+}</string>
+                </property>
                 <property name="text">
                  <string>Play</string>
                 </property>
@@ -725,7 +750,7 @@ QPushButton:pressed {
              </layout>
             </item>
             <item>
-             <widget class="QWebEngineView" name="result_web_view_widget" native="true">
+             <widget class="QWebEngineView" name="result_web_view_widget">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -774,6 +799,7 @@ QPushButton:pressed {
               <property name="styleSheet">
                <string notr="true">QLabel {
 	font-size: 16px;
+    font-weight: bold;
 }</string>
               </property>
               <property name="text">
@@ -817,6 +843,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -850,6 +877,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -881,6 +909,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -918,6 +947,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -949,6 +979,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -981,6 +1012,7 @@ QPushButton:pressed {
 	font-size: 16px;
 	border: 1px solid black;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
                 </property>
                 <property name="text">
@@ -1012,9 +1044,11 @@ QPushButton:pressed {
             <property name="styleSheet">
              <string notr="true">QLabel {
 	background-color : rgb(234, 234, 234);
+	color: black;
 	font-size: 16px;
 	border: 1px solid black;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
             </property>
             <property name="text">
@@ -1046,6 +1080,7 @@ QPushButton:pressed {
             <property name="styleSheet">
              <string notr="true">QLabel {
 	font-size: 16px;
+    font-weight: bold;
 }</string>
             </property>
             <property name="text">
@@ -1106,8 +1141,9 @@ QPushButton:pressed {
     color: white;
     font-size: 25px;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 16px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1149,8 +1185,9 @@ QPushButton:pressed {
     color: white;
     font-size: 25px;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 16px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1196,8 +1233,9 @@ QPushButton:pressed {
     color: white;
     font-size: 25px;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 16px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1239,8 +1277,9 @@ QPushButton:pressed {
     color: white;
     font-size: 25px;
     border: 1px solid black;
-    border-radius: 5px;
+    border-radius: 16px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1276,6 +1315,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 16px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1314,9 +1354,10 @@ mode</string>
                 <widget class="QLabel" name="label_patient_list">
                  <property name="styleSheet">
                   <string notr="true">QLabel {
- 	background-color:  rgb(234, 234, 234);
+	background-color: rgb(234, 234, 234);
 	font-size: 16px;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
                  </property>
                  <property name="text">
@@ -1357,6 +1398,7 @@ mode</string>
 	background-color: rgb(234, 234, 234);
 	font-size: 16px;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
                  </property>
                  <property name="text">
@@ -1395,6 +1437,7 @@ mode</string>
 	background-color: rgb(234, 234, 234);
 	font-size: 16px;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
                  </property>
                  <property name="text">
@@ -1437,6 +1480,7 @@ mode</string>
 	background-color: rgb(234, 234, 234);
 	font-size: 16px;
 	border-radius: 5px;
+    font-weight: bold;
 }</string>
                    </property>
                    <property name="text">
@@ -1530,6 +1574,7 @@ mode</string>
 	border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1598,6 +1643,7 @@ QPushButton:checked {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1623,6 +1669,7 @@ QPushButton:pressed {
     border: 1px solid black;
     border-radius: 5px;
 	padding: 8px;
+    font-weight: bold;
 }
 
 QPushButton:hover {
@@ -1717,7 +1764,7 @@ QPushButton:pressed {
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_25" stretch="1,2,0,1">
+         <layout class="QHBoxLayout" name="horizontalLayout_25" stretch="1,2,0,0,1">
           <item>
            <widget class="QPushButton" name="btn_cal_delete">
             <property name="styleSheet">
@@ -1748,13 +1795,35 @@ QPushButton:pressed {
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Minimum</enum>
+            </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
+              <width>30</width>
               <height>20</height>
              </size>
             </property>
            </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_cal_selected_tasks">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>120</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>SelectedTasks:</string>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_gait">
@@ -1942,7 +2011,7 @@ QPushButton:pressed {
   <customwidget>
    <class>QWebEngineView</class>
    <extends>QWidget</extends>
-   <header location="global">PyQt6.QtWebEngineWidgets</header>
+   <header location="global">QtWebEngineWidgets/QWebEngineView</header>
    <container>1</container>
   </customwidget>
   <customwidget>

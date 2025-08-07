@@ -36,7 +36,7 @@ pip install numpy==1.26.1
 pip install scipy==1.13.0
 pip install ultralytics
 pip install tkfilebrowser
-pip install kivy
+
 pip install matplotlib==3.8.4
 pip install pyserial
 conda install opensim-org::opensim

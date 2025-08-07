@@ -22,7 +22,7 @@ mpl.use('qt5agg')
 mpl.rc('figure', max_open_warning=0)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
+from PyQt6.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 import sys
 
 
@@ -120,7 +120,6 @@ def weighted_triangulation(P_all,x_all,y_all,likelihood_all):
     OUTPUT:
     - Q: array of triangulated point (x,y,z,1.)
     '''
-    
     A = np.empty((0,4))
     for c in range(len(x_all)):
         P_cam = P_all[c]
