@@ -71,19 +71,19 @@
                     {
                         "type": "Collect",
                         "meta_keys": [
-                            "ori_filename",
-                            "img_path",
-                            "img_norm_cfg",
-                            "filename",
-                            "img_id",
-                            "img_shape",
-                            "flip_direction",
-                            "pad_param",
-                            "flip",
-                            "valid_ratio",
                             "pad_shape",
+                            "scale_factor",
+                            "flip",
                             "ori_shape",
-                            "scale_factor"
+                            "img_norm_cfg",
+                            "img_id",
+                            "valid_ratio",
+                            "pad_param",
+                            "img_shape",
+                            "img_path",
+                            "filename",
+                            "flip_direction",
+                            "ori_filename"
                         ],
                         "_scope_": "mmdet",
                         "keys": [

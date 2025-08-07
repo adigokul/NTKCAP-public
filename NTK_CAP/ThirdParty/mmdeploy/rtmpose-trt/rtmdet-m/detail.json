@@ -5,7 +5,7 @@
         "codebase": "mmdet",
         "version": "3.3.0",
         "pth": "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth",
-        "config": "C:/temp_0424/mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py"
+        "config": "D:/NTKCAP/NTK_CAP/ThirdParty/mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py"
     },
     "codebase_config": {
         "type": "mmdet",
