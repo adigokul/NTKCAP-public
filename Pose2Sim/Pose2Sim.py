@@ -228,7 +228,7 @@ def personAssociation_multi(config=os.path.join('User', 'Config.toml')):
     end = time.time()
     logging.info(f'Tracking took {end-start:.2f} s.')
     
-def triangulation_ThreeCamWeight(config=os.path.join('User', 'Config.toml')):
+def triangulation(config=os.path.join('User', 'Config.toml')):
     
     '''
     Robust triangulation of 2D points coordinates.
@@ -236,7 +236,7 @@ def triangulation_ThreeCamWeight(config=os.path.join('User', 'Config.toml')):
     config can either be a path or a dictionary (for batch processing)
     '''
 
-    from Pose2Sim import triangulation_ThreeCamWeight
+    from Pose2Sim import triangulation
 
 
     if type(config)==dict:
@@ -251,7 +251,7 @@ def triangulation_ThreeCamWeight(config=os.path.join('User', 'Config.toml')):
     logging.info("---------------------------------------------------------------------")
     logging.info(f"\nProject directory: {project_dir}")
     start = time.time()
-    triangulation_ThreeCamWeight.triangulate_all(config_dict)
+    triangulation.triangulate_all(config_dict)
     # triangulate_all(config_dict, k, cal_time)
     
     end = time.time()

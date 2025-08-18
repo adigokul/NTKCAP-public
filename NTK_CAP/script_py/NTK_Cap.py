@@ -1283,7 +1283,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             
             Pose2Sim.personAssociation_multi()
             
-            Pose2Sim.triangulation_ThreeCamWeight()
+            Pose2Sim.triangulation()
             
             Pose2Sim.filtering()
             import inspect
@@ -1367,7 +1367,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
             os.chdir(now_project)
             print("切換至" + os.getcwd())         
             Pose2Sim.personAssociation_multi()        
-            Pose2Sim.triangulation_ThreeCamWeight()
+            Pose2Sim.triangulation()
             Pose2Sim.filtering()        
             rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
             if os.path.isfile(rpj_all_dir):

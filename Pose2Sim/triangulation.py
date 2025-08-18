@@ -1086,8 +1086,7 @@ def triangulate_all(config):
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
     
     
-    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
-    np.shape(error_record_tot)
+    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=np.array(exclude_record_tot, dtype=object), error=np.array(error_record_tot, dtype=object), keypoints_name=keypoints_names, cam_dist=np.array(cam_dist_tot, dtype=object), cam_choose=np.array(id_excluded_cams_record_tot, dtype=object), strongness_of_exclusion =np.array(strongness_exclusion_tot, dtype=object))
     #pdb.set_trace()
     # Create TRC file
     trc_path = make_trc(config, Q_tot, keypoints_names, f_range)
