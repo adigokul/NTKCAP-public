@@ -40,11 +40,11 @@ class PreTri_Process(Process):
         self.sync_tracker_shm_lst.append(shared_array_tracker3)
         time.sleep(1)
         idx = 0
-        cal_path = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_18_00_02_calculated\1005_1\pose-2d-tracked"
+        cal_path = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_03_31_11_50_calculated\1005_1\pose-2d-tracked"
         template = ["pose_cam1_json", "pose_cam2_json", "pose_cam3_json", "pose_cam4_json"]
         config=r"C:\Users\MyUser\Desktop\NTKCAP\NTK_CAP\template\Empty_project\User\Config.toml"
         config_dict = self.read_config_file(config)
-        calib_file = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_02_18_00_02_calculated\1005_1\calib-2d\Calib_easymocap.toml"
+        calib_file = r"C:\Users\MyUser\Desktop\NTKCAP\Patient_data\HealthCare020\2024_12_06\2025_03_31_11_50_calculated\1005_1\calib-2d\Calib_easymocap.toml"
         likelihood_threshold = config_dict.get('triangulation').get('likelihood_threshold')
         mappingx,mappingy = self.computemap(calib_file)
         P = self.computeP(calib_file)
