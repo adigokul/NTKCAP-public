@@ -1645,6 +1645,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         f = time.time()
         Pose2Sim.filtering()
         g = time.time()
+        print('Reconstruction 3D joint completed')
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
 
