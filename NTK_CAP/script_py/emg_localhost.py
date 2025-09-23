@@ -10,6 +10,302 @@ import argparse
 import csv
 import datetime
 import os
+import queue
+from typing import Optional, Dict, Any
+
+class EMGEventRecorder:
+    """EMG data recorder with event marking functionality"""
+    
+    def __init__(self, uri: str, output_file: str, channel_count: int = 8):
+        self.uri = uri
+        self.output_file = output_file
+        self.channel_count = channel_count
+        self.recording_active = False
+        self.event_queue = queue.Queue()
+        self.recording_start_time = None
+        self.websocket = None
+        
+        # Filter parameters
+        self.bp_parameter = np.zeros((channel_count, 8))
+        self.nt_parameter = np.zeros((channel_count, 2))
+        self.lp_parameter = np.zeros((channel_count, 4))
+        
+        # Data statistics
+        self.sample_count = 0
+        self.data_packet_count = 0
+        
+    def add_event_marker(self, event_id: int, marker_name: str = "", duration: float = 0.0):
+        """Add event marker to queue"""
+        if not self.recording_active:
+            print(f"⚠️  Recording not active, cannot add event: {event_id}")
+            return False
+            
+        current_time = time.time()
+        relative_time = current_time - self.recording_start_time if self.recording_start_time else 0
+        
+        event_data = {
+            'event_id': event_id,
+            'event_date': current_time,
+            'relative_time': relative_time,
+            'duration': duration,
+            'marker_name': marker_name,
+            'timestamp': datetime.datetime.now().isoformat()
+        }
+        
+        self.event_queue.put(event_data)
+        print(f"✅ Added EMG Event: ID={event_id}, Name='{marker_name}', Time={relative_time:.3f}s")
+        return True
+        
+    def start_recording(self):
+        """Start EMG recording"""
+        if self.recording_active:
+            print("⚠️  Recording already in progress")
+            return False
+            
+        try:
+            print(f"🎯 Starting EMG recording: {self.uri}")
+            print(f"📁 Output file: {self.output_file}")
+            
+            # Ensure output directory exists
+            output_dir = os.path.dirname(self.output_file)
+            if output_dir:  # Only create if directory is not empty
+                os.makedirs(output_dir, exist_ok=True)
+            
+            # Establish WebSocket connection
+            self.websocket = websocket.WebSocket()
+            self.websocket.connect(self.uri)
+            
+            self.recording_active = True
+            self.recording_start_time = time.time()
+            self.sample_count = 0
+            self.data_packet_count = 0
+            
+            # Clear event queue
+            while not self.event_queue.empty():
+                self.event_queue.get()
+            
+            # Create CSV file and write header
+            self._write_csv_header()
+            
+            print("✅ EMG recording started")
+            return True
+            
+        except Exception as e:
+            print(f"❌ EMG recording startup failed: {str(e)}")
+            self.recording_active = False
+            return False
+    
+    def stop_recording(self):
+        """Stop EMG recording"""
+        if not self.recording_active:
+            print("⚠️  Recording not in progress")
+            return False
+            
+        self.recording_active = False
+        
+        if self.websocket:
+            self.websocket.close()
+            self.websocket = None
+            
+        print(f"🛑 EMG recording stopped")
+        print(f"📊 Processed {self.data_packet_count} data packets, {self.sample_count} samples")
+        print(f"📁 Data saved to: {self.output_file}")
+        return True
+    
+    def _write_csv_header(self):
+        """Write Cygnus-style CSV header"""
+        with open(self.output_file, 'w', newline='', encoding='utf-8') as csvfile:
+            # Write file information header
+            csvfile.write("Cygnus version: NTKCAP Integration\n")
+            csvfile.write(f"Record datetime: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}\n")
+            csvfile.write("Device name: STEEG_DG819202\n")
+            csvfile.write("Device sampling rate: 1000 samples/second\n")
+            csvfile.write("Data type / unit: EMG / micro-volt (uV)\n")
+            csvfile.write("Filter: Bandpass 20-450Hz, Notch 50Hz, Envelope 10Hz\n")
+            csvfile.write("Processing: Rectified and Low-pass filtered\n")
+            csvfile.write("Timestamp format: Relative time from recording start\n")
+            csvfile.write("Event synchronization: Real-time marking\n")
+            csvfile.write("Integration: NTKCAP Motion Capture System\n")
+            csvfile.write("Notes: Synchronized with motion capture data\n")
+            
+            # Write field headers
+            writer = csv.writer(csvfile)
+            headers = ['Timestamp', 'Serial Number']
+            headers.extend([f'CH{i+1}' for i in range(self.channel_count)])
+            headers.extend(['Event Id', 'Event Date', 'Event Duration', 'Software Marker', 'Software Marker Name'])
+            writer.writerow(headers)
+    
+    def process_and_save_data(self, timeout: float = 0.1):
+        """Process one data reception and save"""
+        if not self.recording_active:
+            return False
+            
+        try:
+            # Set short timeout to avoid blocking
+            self.websocket.settimeout(timeout)
+            data = self.websocket.recv()
+            
+            # Process EMG data
+            emg_array, self.bp_parameter, self.nt_parameter, self.lp_parameter = process_data_from_websocket(
+                data, self.bp_parameter, self.nt_parameter, self.lp_parameter, self.channel_count
+            )
+            
+            if emg_array.shape[0] != 0:
+                # Get current events
+                current_events = self._get_current_events()
+                
+                # Save data to CSV
+                self._save_data_to_csv(emg_array, current_events)
+                self.data_packet_count += 1
+                
+                # Display status every 100 data packets
+                if self.data_packet_count % 100 == 0:
+                    relative_time = time.time() - self.recording_start_time
+                    print(f"📊 Processed {self.data_packet_count} data packets, recording time: {relative_time:.1f}s")
+                
+                return True
+            
+        except websocket.WebSocketTimeoutException:
+            # Timeout is normal, allows checking events and status
+            pass
+        except Exception as e:
+            print(f"❌ Data processing error: {str(e)}")
+            return False
+            
+        return False
+    
+    def _get_current_events(self) -> Dict[str, Any]:
+        """Get current time point events"""
+        events = {}
+        
+        # Process all events in queue
+        while not self.event_queue.empty():
+            try:
+                event = self.event_queue.get_nowait()
+                event_time_key = f"{event['relative_time']:.3f}"
+                events[event_time_key] = event
+            except queue.Empty:
+                break
+                
+        return events
+    
+    def _save_data_to_csv(self, emg_array: np.ndarray, events: Dict[str, Any]):
+        """Save data to CSV file"""
+        with open(self.output_file, 'a', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # Process each data point
+            for i in range(emg_array.shape[1]):
+                current_time = time.time()
+                relative_time = current_time - self.recording_start_time
+                
+                # Check if there is corresponding event (allow 0.1 second tolerance)
+                event_id = ""
+                event_date = ""
+                event_duration = ""
+                software_marker = ""
+                software_marker_name = ""
+                
+                for event_key, event_data in list(events.items()):
+                    event_time = float(event_key)
+                    if abs(relative_time - event_time) <= 0.1:
+                        event_id = event_data['event_id']
+                        event_date = event_data['event_date']
+                        event_duration = event_data['duration']
+                        software_marker = ""
+                        software_marker_name = event_data['marker_name']
+                        # Remove used event
+                        del events[event_key]
+                        break
+                
+                # Write data row
+                row = [f"{relative_time:.3f}", self.sample_count]
+                row.extend([emg_array[ch, i] for ch in range(self.channel_count)])
+                row.extend([event_id, event_date, event_duration, software_marker, software_marker_name])
+                writer.writerow(row)
+                
+                self.sample_count += 1
+
+def test_emg_event_recorder():
+    """Test EMG Event recorder"""
+    print("🧪 Starting EMG Event recorder test")
+    print("="*50)
+    
+    # Test parameters
+    test_uri = "ws://localhost:31278/ws"
+    test_output = os.path.join(os.getcwd(), "test_emg_with_events.csv")  # Use absolute path of current directory
+    test_duration = 10  # Test for 10 seconds
+    
+    try:
+        # Detect channel count
+        print("🔍 Detecting EMG channel count...")
+        channel_count = detect_channel_count(test_uri)
+        
+        # Create recorder
+        recorder = EMGEventRecorder(test_uri, test_output, channel_count)
+        
+        # Start recording
+        if not recorder.start_recording():
+            return False
+        
+        print(f"⏱️  Recording for {test_duration} seconds, will add Event markers at different time points...")
+        print("Press Ctrl+C to stop recording early")
+        
+        start_time = time.time()
+        
+        # Add start event
+        recorder.add_event_marker(130, "Recording Start")
+        
+        # Event marking control variables
+        event1_added = False
+        event2_added = False  
+        event3_added = False
+        
+        try:
+            while recorder.recording_active and (time.time() - start_time) < test_duration:
+                # Process data
+                recorder.process_and_save_data()
+                
+                # Add test events at different time points (each event added only once)
+                elapsed = time.time() - start_time
+                
+                if elapsed >= 2.0 and not event1_added:  # At 2 seconds
+                    recorder.add_event_marker(141, "Test Event 1")
+                    event1_added = True
+                elif elapsed >= 5.0 and not event2_added:  # At 5 seconds
+                    recorder.add_event_marker(142, "Test Event 2")
+                    event2_added = True
+                elif elapsed >= 8.0 and not event3_added:  # At 8 seconds
+                    recorder.add_event_marker(143, "Test Event 3")
+                    event3_added = True
+                
+                time.sleep(0.001)  # Brief delay to avoid excessive CPU usage
+                
+        except KeyboardInterrupt:
+            print("\n⚠️  User interrupted recording")
+        
+        # Add end event and stop recording
+        recorder.add_event_marker(131, "Recording End")
+        time.sleep(0.1)  # Let the last event have time to be processed
+        recorder.stop_recording()
+        
+        print(f"✅ Test completed! Data saved to: {os.path.abspath(test_output)}")
+        print("\n📋 Test summary:")
+        print(f"   - Recording time: {time.time() - start_time:.1f} seconds")
+        print(f"   - Output file: {test_output}")
+        print(f"   - EMG channel count: {channel_count}")
+        print("\n🔍 Please check Event fields in CSV file, should contain following events:")
+        print("   - Event ID 130: Recording Start")
+        print("   - Event ID 141: Test Event 1 (around 2 seconds)")
+        print("   - Event ID 142: Test Event 2 (around 5 seconds)")
+        print("   - Event ID 143: Test Event 3 (around 8 seconds)")
+        print("   - Event ID 131: Recording End")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Test failed: {str(e)}")
+        return False
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -50,6 +346,12 @@ Usage Examples:
         '--continuous', '-c',
         action='store_true',
         help='Continuous mode: continuously receive and save data until manual stop'
+    )
+    
+    parser.add_argument(
+        '--test-events', '-te',
+        action='store_true',
+        help='Test mode: test EMG recording with event markers'
     )
     
     return parser.parse_args()
@@ -495,11 +797,22 @@ def map_to_levels(value, max_min_rms_values):
         print(f"Error calculating reward: {e}, return 0")
         return 0
 def main():
-    print("EMG WebSocket Data Reader")
-    print("="*40)
+    print("EMG WebSocket Data Reader with Event Markers")
+    print("="*50)
     
     # Parse command line arguments
     args = parse_arguments()
+    
+    # 測試模式
+    if args.test_events:
+        print("🧪 進入EMG Event測試模式")
+        success = test_emg_event_recorder()
+        if success:
+            print("\n✅ 測試成功完成")
+        else:
+            print("\n❌ 測試失敗")
+        input("按Enter鍵退出...")
+        return
     
     websocket_uri = None
     
@@ -528,6 +841,8 @@ def main():
         print("3. Firewall allows connection")
         print("\nOr use --uri parameter to specify server address directly:")
         print("  python emg_localhost.py --uri ws://localhost:31278/ws")
+        print("\nOr test event recording system:")
+        print("  python emg_localhost.py --test-events")
         input("Press Enter to exit...")
         return
     
