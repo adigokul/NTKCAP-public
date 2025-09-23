@@ -6,6 +6,9 @@ import copy
 import sys
 from datetime import datetime
 import pyqtgraph as pg
+import serial
+import keyboard
+import numpy as np
 from PyQt6 import uic
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
@@ -212,6 +215,16 @@ class MainWindow(QMainWindow):
         self.marker_calculate_process = None
         self.timer_marker_calculate = QTimer()
         self.timer_marker_calculate.timeout.connect(self.check_cal_finish)
+        
+        # TTL and Cygnus Recording initialization
+        self.cygnus_recording_mode = False
+        self.ttl_com_port = None
+        self.ttl_enabled = False
+        self.cygnus_timer = QTimer()
+        self.cygnus_timer.timeout.connect(self.check_cygnus_recording_finish)
+        
+        # TTL GUI elements
+        self.init_ttl_gui_elements()
     # Main page shortcut
     def button_shortcut_calculation(self):
         self.left_tab_changed(1)
@@ -241,6 +254,14 @@ class MainWindow(QMainWindow):
         self.btnStopRecording.setEnabled(False)
         self.label_selected_patient.setText("Selected patient :")
         self.label_log.setText("Please select a patient ID")
+        
+        # Reset TTL related states
+        if hasattr(self, 'checkbox_cygnus_recording'):
+            self.checkbox_cygnus_recording.setChecked(False)
+        self.cygnus_recording_mode = False
+        self.ttl_enabled = False
+        self.set_ttl_elements_visibility(False)
+        
         self.result_load_folders()
         self.list_widget_patient_task_record.clear()
     def record_boundary_cam(self):
@@ -510,6 +531,8 @@ class MainWindow(QMainWindow):
         if not os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name)):
             os.makedirs(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name, 'videos'))
         self.btn_pg1_reset.setEnabled(False)
+        
+        # Setup recording parameters
         if self.multi_person:   
             self.shared_dict_record_name['name'] = self.record_select_patientID
             self.shared_dict_record_name['task_name'] = self.record_task_name
@@ -523,18 +546,37 @@ class MainWindow(QMainWindow):
             with open(os.path.join(multi_name_folder_path, "Boundary.txt"), "w", encoding="utf-8") as f:
                 for cam_id in self.BoundaryOpened:
                     f.write(f"{int(cam_id)}\n")
-            # continue
         else:
             self.shared_dict_record_name['name'] = self.record_select_patientID
             self.shared_dict_record_name['task_name'] = self.record_task_name
             self.shared_dict_record_name['start_time'] = time.time()
+        
+        # Start recording
         self.task_stop_rec_evt.clear()
         self.btnStartRecording.setEnabled(False)
         self.task_rec_evt.set()
         self.record_opened = True
         self.record_enter_task_name.setEnabled(False)
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        self.label_log.setText("Recording start")
+        
+        # Start Cygnus TTL synchronization if enabled
+        if self.cygnus_recording_mode and self.ttl_enabled and self.ttl_com_port:
+            try:
+                save_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                       datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_task_name)
+                
+                # Start TTL synchronization in a separate process
+                from multiprocessing import Process
+                self.ttl_process = Process(target=self.CP2102_output_signal_cygnusRecording, 
+                                         args=(self.ttl_com_port, self.shared_dict_record_name['start_time'], save_path))
+                self.ttl_process.start()
+                
+                self.label_log.setText("Recording start with Cygnus TTL synchronization - Press 's' to sync start, 'q' to sync end")
+            except Exception as e:
+                QMessageBox.warning(self, "TTL Warning", f"TTL synchronization failed: {str(e)}\nRecording without TTL sync.")
+                self.label_log.setText("Recording start (TTL sync failed)")
+        else:
+            self.label_log.setText("Recording start")
     def stoprecord_task(self): 
         if not self.record_opened:
             return
@@ -547,6 +589,17 @@ class MainWindow(QMainWindow):
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.btn_pg1_reset.setEnabled(True)
         self.btnStopRecording.setEnabled(False)
+        
+        # Stop TTL process if running
+        if hasattr(self, 'ttl_process') and self.ttl_process.is_alive():
+            try:
+                self.ttl_process.terminate()
+                self.ttl_process.join(timeout=5)  # Wait up to 5 seconds
+                if self.ttl_process.is_alive():
+                    self.ttl_process.kill()  # Force kill if still alive
+            except Exception as e:
+                print(f"Error stopping TTL process: {str(e)}")
+        
         self.label_log.setText("Record end")
         self.lw_patient_task_record()
         self.cal_load_folders()
@@ -684,6 +737,17 @@ class MainWindow(QMainWindow):
         self.btnOpenCamera.setEnabled(True)
         self.btn_extrinsic_record.setEnabled(False)
         self.stop_evt.set()
+        
+        # Stop TTL process if running
+        if hasattr(self, 'ttl_process') and self.ttl_process.is_alive():
+            try:
+                self.ttl_process.terminate()
+                self.ttl_process.join(timeout=3)
+                if self.ttl_process.is_alive():
+                    self.ttl_process.kill()
+            except Exception as e:
+                print(f"Error stopping TTL process during camera close: {str(e)}")
+        
         for shm in self.shm_lst:
             shm.close()
             shm.unlink()
@@ -822,13 +886,13 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
-            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
-            # self.marker_calculate_process.start()
-            # self.cal_select_list = []
-            # self.label_calculation_status.setText("Calculating")
-            # self.btn_cal_start_cal.setEnabled(False)
-            # self.timer_marker_calculate.start(1000)
+            # mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
+            self.marker_calculate_process.start()
+            self.cal_select_list = []
+            self.label_calculation_status.setText("Calculating")
+            self.btn_cal_start_cal.setEnabled(False)
+            self.timer_marker_calculate.start(1000)
 
     # Calculation tab
     def on_fast_calculation(self, checked):
@@ -1031,10 +1095,155 @@ class MainWindow(QMainWindow):
         self.frame_label.setText(str(value))
 
     def closeEvent(self, event):
+        # Clean up TTL process
+        if hasattr(self, 'ttl_process') and self.ttl_process.is_alive():
+            try:
+                self.ttl_process.terminate()
+                self.ttl_process.join(timeout=3)
+                if self.ttl_process.is_alive():
+                    self.ttl_process.kill()
+            except Exception as e:
+                print(f"Error stopping TTL process on close: {str(e)}")
+                
         self.closeCamera()
         if self.marker_calculate_process and self.marker_calculate_process.is_alive():
             self.marker_calculate_process.terminate()
             self.marker_calculate_process.join()
+
+    # TTL and Cygnus Recording Functions
+    def init_ttl_gui_elements(self):
+        """Initialize TTL GUI elements"""
+        # Create TTL recording mode checkbox
+        self.checkbox_cygnus_recording = self.findChild(QCheckBox, "checkBox_cygnus_recording")
+        if not self.checkbox_cygnus_recording:
+            # If checkbox doesn't exist in UI file, create it programmatically
+            self.checkbox_cygnus_recording = QCheckBox("Cygnus Recording Mode")
+            # You might want to add it to a specific layout or position
+        
+        self.checkbox_cygnus_recording.toggled.connect(self.on_cygnus_recording_toggled)
+        
+        # TTL COM port input
+        self.ttl_com_input = self.findChild(QLineEdit, "lineEdit_ttl_com")
+        if not self.ttl_com_input:
+            self.ttl_com_input = QLineEdit()
+            self.ttl_com_input.setPlaceholderText("Enter COM port (e.g., 3)")
+            
+        # TTL test button
+        self.btn_ttl_test = self.findChild(QPushButton, "btn_ttl_test")
+        if not self.btn_ttl_test:
+            self.btn_ttl_test = QPushButton("Test TTL")
+            
+        self.btn_ttl_test.clicked.connect(self.test_ttl_signal)
+        self.btn_ttl_test.setEnabled(False)
+        
+        # Initially hide TTL elements
+        self.set_ttl_elements_visibility(False)
+    
+    def set_ttl_elements_visibility(self, visible):
+        """Show/hide TTL related GUI elements"""
+        if hasattr(self, 'ttl_com_input'):
+            self.ttl_com_input.setVisible(visible)
+        if hasattr(self, 'btn_ttl_test'):
+            self.btn_ttl_test.setVisible(visible)
+    
+    def on_cygnus_recording_toggled(self, checked):
+        """Handle Cygnus recording mode toggle"""
+        self.cygnus_recording_mode = checked
+        self.set_ttl_elements_visibility(checked)
+        
+        if checked:
+            QMessageBox.information(self, "Cygnus Recording Mode", 
+                                  "Cygnus Recording Mode enabled.\n"
+                                  "Please enter COM port and test TTL connection before recording.")
+            self.btn_ttl_test.setEnabled(True)
+        else:
+            self.btn_ttl_test.setEnabled(False)
+            self.ttl_enabled = False
+    
+    def test_ttl_signal(self):
+        """Test TTL signal output"""
+        try:
+            com_port = self.ttl_com_input.text().strip()
+            if not com_port:
+                QMessageBox.warning(self, "Warning", "Please enter COM port number")
+                return
+                
+            self.ttl_com_port = com_port
+            self.CP2102_output_signal_cygnus_test(com_port)
+            self.ttl_enabled = True
+            QMessageBox.information(self, "TTL Test", "TTL signal test successful!")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "TTL Error", f"TTL signal test failed: {str(e)}")
+            self.ttl_enabled = False
+    
+    def CP2102_output_signal_cygnus_test(self, input_COM):
+        """Test Cygnus TTL signal output"""
+        ser = serial.Serial(port='COM' + str(input_COM), baudrate=115200, timeout=1)
+        ser.write(b'\x82')  # open red
+        time.sleep(0.5)
+        ser.write(b'\x83')  # red close
+        ser.close()
+    
+    def CP2102_output_signal_cygnusRecording(self, input_COM, start_time, save_path):
+        """Cygnus recording with TTL signal and time synchronization"""
+        try:
+            ser = serial.Serial(port='COM' + str(input_COM), baudrate=115200, timeout=1)
+            
+            # Wait for 's' key to start
+            print("Press 's' to start recording with TTL sync...")
+            while True:
+                if keyboard.is_pressed('s'):
+                    dt_str_v1 = -1
+                    print('Start Signal send')
+                    time.sleep(2)
+                    ser.write(b'\x82')  # open red
+                    dt_str1 = time.time()
+                    print('Red Open')
+                    time.sleep(10)
+                    ser.write(b'\x83')  # red close
+                    time.sleep(0.5)
+                    ser.write(b'\x8c')  # open green
+                    print('Green Open')
+                    time.sleep(1)
+                    ser.write(b'\x8d')  # close green
+                    break
+            
+            # Wait for 'q' key to end
+            while True:
+                if keyboard.is_pressed('q'):
+                    dt_str_v2 = -1
+                    ser.write(b'\x8d')  # close green
+                    dt_str2 = time.time()
+                    print('End Signal send')
+                    break
+            
+            # Save timestamp data
+            formatted_time1 = datetime.fromtimestamp(dt_str1).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            formatted_time2 = datetime.fromtimestamp(dt_str2).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            marker_stamp_cygnus_cpu = [formatted_time1, formatted_time2]
+            
+            dt_str1 = dt_str1 - start_time
+            dt_str2 = dt_str2 - start_time
+            marker_stamp_cygnus = [np.array(float(f"{dt_str1:.3f}")), np.array(float(f"{dt_str2:.3f}"))]
+            marker_stamp_VICON = [np.array(float(f"{dt_str_v1:.3f}")), np.array(float(f"{dt_str_v2:.3f}"))]
+            
+            # Save synchronization data
+            np.savez(os.path.join(save_path, f"marker_stamp_cygnus_VICON.npz"),
+                    cygnus_CPU=marker_stamp_cygnus_cpu,
+                    cygnus_video=marker_stamp_cygnus,
+                    VICON=marker_stamp_VICON)
+            
+            ser.close()
+            
+        except Exception as e:
+            print(f"TTL recording error: {str(e)}")
+            raise e
+    
+    def check_cygnus_recording_finish(self):
+        """Check if Cygnus recording process has finished"""
+        # This method can be used to monitor Cygnus recording status
+        pass
 
 if __name__ == "__main__":
     App = QApplication(sys.argv)
