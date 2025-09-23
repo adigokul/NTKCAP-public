@@ -16,10 +16,11 @@ from typing import Optional, Dict, Any
 class EMGEventRecorder:
     """EMG data recorder with event marking functionality"""
     
-    def __init__(self, uri: str, output_file: str, channel_count: int = 8):
+    def __init__(self, uri: str, output_file: str, channel_count: int = 8, filter_raw_only: bool = True):
         self.uri = uri
         self.output_file = output_file
         self.channel_count = channel_count
+        self.filter_raw_only = filter_raw_only
         self.recording_active = False
         self.event_queue = queue.Queue()
         self.recording_start_time = None
@@ -147,7 +148,7 @@ class EMGEventRecorder:
             
             # Process EMG data
             emg_array, self.bp_parameter, self.nt_parameter, self.lp_parameter = process_data_from_websocket(
-                data, self.bp_parameter, self.nt_parameter, self.lp_parameter, self.channel_count
+                data, self.bp_parameter, self.nt_parameter, self.lp_parameter, self.channel_count, self.filter_raw_only
             )
             
             if emg_array.shape[0] != 0:
@@ -226,15 +227,23 @@ class EMGEventRecorder:
                 
                 self.sample_count += 1
 
-def test_emg_event_recorder():
-    """Test EMG Event recorder"""
+def test_emg_event_recorder(data_points=3000):
+    """Test EMG Event recorder
+    
+    Args:
+        data_points: Target number of data points to collect (default: 3000)
+    """
     print("🧪 Starting EMG Event recorder test")
     print("="*50)
     
     # Test parameters
     test_uri = "ws://localhost:31278/ws"
     test_output = os.path.join(os.getcwd(), "test_emg_with_events.csv")  # Use absolute path of current directory
-    test_duration = 10  # Test for 10 seconds
+    
+    # Calculate test duration based on data points (assuming ~1000 Hz sampling rate)
+    test_duration = max(10, data_points / 100)  # At least 10 seconds, or based on data points
+    print(f"Target data points: {data_points}")
+    print(f"Estimated test duration: {test_duration:.1f} seconds")
     
     try:
         # Detect channel count
@@ -262,22 +271,28 @@ def test_emg_event_recorder():
         event3_added = False
         
         try:
-            while recorder.recording_active and (time.time() - start_time) < test_duration:
+            while recorder.recording_active and recorder.sample_count < data_points:
                 # Process data
-                recorder.process_and_save_data()
+                processed = recorder.process_and_save_data()
                 
-                # Add test events at different time points (each event added only once)
+                # Add test events at different progress points (each event added only once)
+                progress = recorder.sample_count / data_points
                 elapsed = time.time() - start_time
                 
-                if elapsed >= 2.0 and not event1_added:  # At 2 seconds
-                    recorder.add_event_marker(141, "Test Event 1")
+                if progress >= 0.1 and not event1_added:  # At 10% progress
+                    recorder.add_event_marker(141, "Test Event 1 (10% progress)")
                     event1_added = True
-                elif elapsed >= 5.0 and not event2_added:  # At 5 seconds
-                    recorder.add_event_marker(142, "Test Event 2")
+                elif progress >= 0.5 and not event2_added:  # At 50% progress
+                    recorder.add_event_marker(142, "Test Event 2 (50% progress)")
                     event2_added = True
-                elif elapsed >= 8.0 and not event3_added:  # At 8 seconds
-                    recorder.add_event_marker(143, "Test Event 3")
+                elif progress >= 0.8 and not event3_added:  # At 80% progress
+                    recorder.add_event_marker(143, "Test Event 3 (80% progress)")
                     event3_added = True
+                
+                # Show progress every 500 samples
+                if recorder.sample_count > 0 and recorder.sample_count % 500 == 0:
+                    progress_pct = (recorder.sample_count / data_points) * 100
+                    print(f"📊 Progress: {recorder.sample_count}/{data_points} samples ({progress_pct:.1f}%)")
                 
                 time.sleep(0.001)  # Brief delay to avoid excessive CPU usage
                 
@@ -292,13 +307,16 @@ def test_emg_event_recorder():
         print(f"✅ Test completed! Data saved to: {os.path.abspath(test_output)}")
         print("\n📋 Test summary:")
         print(f"   - Recording time: {time.time() - start_time:.1f} seconds")
+        print(f"   - Collected samples: {recorder.sample_count}")
+        print(f"   - Target samples: {data_points}")
+        print(f"   - Data packets processed: {recorder.data_packet_count}")
         print(f"   - Output file: {test_output}")
         print(f"   - EMG channel count: {channel_count}")
         print("\n🔍 Please check Event fields in CSV file, should contain following events:")
         print("   - Event ID 130: Recording Start")
-        print("   - Event ID 141: Test Event 1 (around 2 seconds)")
-        print("   - Event ID 142: Test Event 2 (around 5 seconds)")
-        print("   - Event ID 143: Test Event 3 (around 8 seconds)")
+        print("   - Event ID 141: Test Event 1 (10% progress)")
+        print("   - Event ID 142: Test Event 2 (50% progress)")
+        print("   - Event ID 143: Test Event 3 (80% progress)")
         print("   - Event ID 131: Recording End")
         
         return True
@@ -314,12 +332,16 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Usage Examples:
-  python emg_localhost.py                              # Auto scan, single read
+  python emg_localhost.py                              # Auto scan, single read (quick mode)
+  python emg_localhost.py --scan-frequency             # Auto scan with full frequency range
   python emg_localhost.py --uri ws://localhost:31278/ws  # Direct URI specification
   python emg_localhost.py -u ws://192.168.1.100:31278   # Use short parameter
   python emg_localhost.py --uri localhost:31278         # Auto add ws:// prefix
   python emg_localhost.py -c -o emg_data.csv            # Continuous mode with output file
   python emg_localhost.py -u localhost:31278 -c         # Continuous mode auto filename
+  python emg_localhost.py --test-events                 # Test EMG with event markers (3000 samples)
+  python emg_localhost.py -te --test-samples 5000       # Test with 5000 samples
+  python emg_localhost.py -te -sf --test-samples 1000   # Test with frequency scan
         '''
     )
     
@@ -352,6 +374,19 @@ Usage Examples:
         '--test-events', '-te',
         action='store_true',
         help='Test mode: test EMG recording with event markers'
+    )
+    
+    parser.add_argument(
+        '--scan-frequency', '-sf',
+        action='store_true',
+        help='Enable frequency scanning mode for auto-discovery'
+    )
+    
+    parser.add_argument(
+        '--test-samples', '-ts',
+        type=int,
+        default=3000,
+        help='Number of samples for test mode (default: 3000)'
     )
     
     return parser.parse_args()
@@ -413,16 +448,29 @@ def test_direct_uri(uri, timeout=5):
         print(f"❌ URI connection failed: {e}")
         return False
 
-def scan_for_websocket_servers(host_range=None, port_range=None, timeout=1):
-    """Scan for available WebSocket servers"""
+def scan_for_websocket_servers(host_range=None, port_range=None, timeout=1, enable_scan=True):
+    """Scan for available WebSocket servers
+    
+    Args:
+        host_range: List of hosts to scan
+        port_range: Range of ports to scan
+        timeout: Connection timeout
+        enable_scan: If False, only try common default ports
+    """
     if host_range is None:
         host_range = ['localhost', '127.0.0.1']
-    if port_range is None:
-        port_range = range(31270, 31290)  # Common EMG device port range
+    
+    if not enable_scan:
+        # Only try common EMG device ports
+        port_range = [31278, 31279, 31280]
+        print("Using quick mode (limited port scan)...")
+    elif port_range is None:
+        port_range = range(31270, 31290)  # Full EMG device port range
+        print("Using full frequency scan mode...")
     
     available_servers = []
     
-    print("Scanning for available WebSocket servers...")
+    print(f"Scanning {len(host_range)} hosts and {len(list(port_range))} ports...")
     
     for host in host_range:
         for port in port_range:
@@ -499,12 +547,21 @@ def test_websocket_data(uri, timeout=3):
         print(f"✗ Data test failed: {uri} - {e}")
         return False
 
-def find_emg_server():
-    """Automatically find EMG WebSocket server"""
+def find_emg_server(enable_scan=True):
+    """Automatically find EMG WebSocket server
+    
+    Args:
+        enable_scan: If True, perform full frequency scan; if False, only try common ports
+    """
     print("=== Auto Scanning EMG WebSocket Server ===")
     
+    if enable_scan:
+        print("🔍 Full frequency scanning mode enabled")
+    else:
+        print("⚡ Quick scan mode (common ports only)")
+    
     # First scan for available WebSocket servers
-    available_servers = scan_for_websocket_servers()
+    available_servers = scan_for_websocket_servers(enable_scan=enable_scan)
     
     if not available_servers:
         print("❌ No available WebSocket servers found")
@@ -655,14 +712,43 @@ def detect_channel_count(uri, timeout=5):
         print(f"❌ Channel detection failed: {e}, using default value 8")
         return 8  # Default value
 
-def process_data_from_websocket(data, bp_parameter, nt_parameter, lp_parameter, channel_count=8):
+def process_data_from_websocket(data, bp_parameter, nt_parameter, lp_parameter, channel_count=8, filter_raw_only=True):
+    """
+    Process data from WebSocket
+    
+    Args:
+        data: WebSocket data
+        bp_parameter: Bandpass filter parameters
+        nt_parameter: Notch filter parameters  
+        lp_parameter: Lowpass filter parameters
+        channel_count: Number of channels (default: 8)
+        filter_raw_only: If True, only process raw data; if False, process all data types (default: True)
+    """
     emg_values = np.zeros((channel_count, 50))
     j = 0
     try:
         data_dict = json.loads(data)
         if "contents" in data_dict:
-            # Extract serial_number and eeg values
-            serial_numbers_eegs = [(item['serial_number'][0], item['eeg']) for item in data_dict['contents'] if 'eeg' in item and len(item['eeg']) > 0]
+            # Check data type filter
+            data_type = data_dict.get("type", {})
+            source_type = data_type.get("source_type", "")
+            
+            if filter_raw_only:
+                # Only process raw data
+                if source_type != "raw":
+                    return np.array([]), bp_parameter, nt_parameter, lp_parameter
+            else:
+                # Only process algorithm/filtered data
+                if source_type != "algorithm":
+                    return np.array([]), bp_parameter, nt_parameter, lp_parameter
+            
+            # Extract serial_number and eeg/data values
+            if filter_raw_only:
+                # For raw data, use 'eeg' field
+                serial_numbers_eegs = [(item['serial_number'][0], item['eeg']) for item in data_dict['contents'] if 'eeg' in item and len(item['eeg']) > 0]
+            else:
+                # For algorithm data, use 'data' field
+                serial_numbers_eegs = [(item['sync_tick'], item['data']) for item in data_dict['contents'] if 'data' in item and len(item['data']) > 0]
             # Output results
             for serial_number, eeg in serial_numbers_eegs:
                 # print(f"Serial Number: {serial_number}, EEG: {eeg}")
@@ -805,13 +891,14 @@ def main():
     
     # 測試模式
     if args.test_events:
-        print("🧪 進入EMG Event測試模式")
-        success = test_emg_event_recorder()
+        print("🧪 EMG Event Test Mode")
+        print(f"📊 Target samples: {args.test_samples}")
+        success = test_emg_event_recorder(data_points=args.test_samples)
         if success:
-            print("\n✅ 測試成功完成")
+            print("\n✅ Test completed successfully")
         else:
-            print("\n❌ 測試失敗")
-        input("按Enter鍵退出...")
+            print("\n❌ Test failed")
+        input("Press Enter to exit...")
         return
     
     websocket_uri = None
@@ -831,7 +918,7 @@ def main():
     # If no URI specified or specified URI is invalid, perform auto scan
     if not websocket_uri:
         print("\n=== Auto Scan Mode ===")
-        websocket_uri = find_emg_server()
+        websocket_uri = find_emg_server(enable_scan=args.scan_frequency)
     
     if not websocket_uri:
         print("❌ Cannot find available EMG WebSocket server")
