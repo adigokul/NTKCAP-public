@@ -221,6 +221,14 @@ class MainWindow(QMainWindow):
         self.emg_thread = None
         self.emg_uri = "ws://localhost:31278/ws"  # Complete WebSocket URI
         self.emg_channel_count = 8  # Default channel count
+        
+        # EEG Event Recording System
+        self.eeg_recorder = None
+        self.eeg_recording_active = False
+        self.eeg_thread_active = False
+        self.eeg_thread = None
+        self.eeg_uri = "ws://127.0.0.1:31279/ws"  # EEG WebSocket URI
+        self.eeg_channel_count = 32  # EEG typically has more channels
     # Main page shortcut
     def button_shortcut_calculation(self):
         self.left_tab_changed(1)
@@ -544,7 +552,7 @@ class MainWindow(QMainWindow):
         self.record_enter_task_name.setEnabled(False)
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         
-        # Start EMG Recording
+        # Start EMG and EEG Recording
         try:
             import sys
             import threading
@@ -554,40 +562,66 @@ class MainWindow(QMainWindow):
                 sys.path.append(script_py_path)
             
             from NTK_CAP.script_py.emg_localhost import EMGEventRecorder
+            
+            # Start EMG Recording
             emg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
                                          datetime.now().strftime("%Y_%m_%d"), "raw_data", 
                                          self.record_task_name, "emg_data.csv")
             self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count)
             
-            if self.emg_recorder.start_recording():
-                # Add recording start event marker
-                self.emg_recorder.add_event_marker(100, f"Recording Start - {self.record_task_name}")
+            # Start EEG Recording
+            eeg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                         datetime.now().strftime("%Y_%m_%d"), "raw_data", 
+                                         self.record_task_name, "eeg_data.csv")
+            self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count)
+            
+            emg_started = self.emg_recorder.start_recording()
+            eeg_started = self.eeg_recorder.start_recording()
+            
+            if emg_started:
                 self.emg_recording_active = True
-                
                 # Start EMG data processing thread
                 self.emg_thread_active = True
                 self.emg_thread = threading.Thread(target=self._emg_processing_loop, daemon=True)
                 self.emg_thread.start()
-                
-                self.label_log.setText("Recording start (including EMG)")
                 print("✅ EMG recording started successfully")
+            
+            if eeg_started:
+                self.eeg_recording_active = True
+                # Start EEG data processing thread
+                self.eeg_thread_active = True
+                self.eeg_thread = threading.Thread(target=self._eeg_processing_loop, daemon=True)
+                self.eeg_thread.start()
+                print("✅ EEG recording started successfully")
+            
+            if emg_started and eeg_started:
+                self.label_log.setText("Recording start (EMG + EEG)")
+            elif emg_started:
+                self.label_log.setText("Recording start (EMG only)")
+            elif eeg_started:
+                self.label_log.setText("Recording start (EEG only)")
             else:
-                raise Exception("Failed to start EMG recording")
+                raise Exception("Failed to start both EMG and EEG recording")
                 
         except Exception as e:
-            print(f"❌ EMG recording failed to start: {e}")
+            print(f"❌ EMG/EEG recording failed to start: {e}")
             self.emg_recording_active = False
-            self.label_log.setText("Recording start (EMG recording failed)")
+            self.eeg_recording_active = False
+            self.label_log.setText("Recording start (Bio-signal recording failed)")
     
     def stoprecord_task(self): 
         if not self.record_opened:
             return
         
-        # Stop EMG Recording first
+        # Stop EMG and EEG Recording
+        emg_stopped = False
+        eeg_stopped = False
+        
+        # Stop EMG Recording
         if self.emg_recording_active and self.emg_recorder:
             try:
                 # Add recording stop event marker
-                self.emg_recorder.add_event_marker(200, f"Recording Stop - {self.record_task_name}")
+                self.emg_recorder.add_event_marker(141, "Recording End")
                 
                 # Stop the EMG processing thread
                 self.emg_thread_active = False
@@ -598,12 +632,36 @@ class MainWindow(QMainWindow):
                 # Stop EMG recording
                 self.emg_recorder.stop_recording()
                 self.emg_recording_active = False
+                emg_stopped = True
                 print("✅ EMG recording stopped successfully")
             except Exception as e:
                 print(f"❌ Error stopping EMG recording: {e}")
                 # Force stop
                 self.emg_thread_active = False
                 self.emg_recording_active = False
+        
+        # Stop EEG Recording
+        if self.eeg_recording_active and self.eeg_recorder:
+            try:
+                # Add recording stop event marker
+                self.eeg_recorder.add_event_marker(141, "Recording End")
+                
+                # Stop the EEG processing thread
+                self.eeg_thread_active = False
+                if hasattr(self, 'eeg_thread') and self.eeg_thread is not None:
+                    # Wait a bit for the thread to finish
+                    self.eeg_thread.join(timeout=2.0)
+                
+                # Stop EEG recording
+                self.eeg_recorder.stop_recording()
+                self.eeg_recording_active = False
+                eeg_stopped = True
+                print("✅ EEG recording stopped successfully")
+            except Exception as e:
+                print(f"❌ Error stopping EEG recording: {e}")
+                # Force stop
+                self.eeg_thread_active = False
+                self.eeg_recording_active = False
         
         self.record_opened = False
         self.task_stop_rec_evt.set()
@@ -615,39 +673,71 @@ class MainWindow(QMainWindow):
         self.btn_pg1_reset.setEnabled(True)
         self.btnStopRecording.setEnabled(False)
         
-        if self.emg_recording_active:
-            self.label_log.setText("Record end (including EMG)")
+        if emg_stopped and eeg_stopped:
+            self.label_log.setText("Record end (EMG + EEG)")
+        elif emg_stopped:
+            self.label_log.setText("Record end (EMG only)")
+        elif eeg_stopped:
+            self.label_log.setText("Record end (EEG only)")
         else:
             self.label_log.setText("Record end")
             
         self.lw_patient_task_record()
         self.cal_load_folders()
         
-    def add_emg_event_marker(self, event_id=None, event_description="Manual Event"):
-        """Add an event marker to the EMG recording"""
+    def add_bio_event_marker(self, event_id=None, event_description="Manual Event"):
+        """Add an event marker to both EMG and EEG recordings"""
+        emg_success = False
+        eeg_success = False
+        
+        if event_id is None:
+            event_id = 999  # Default event ID for manual events
+        
+        # Add event to EMG recording
         if self.emg_recording_active and self.emg_recorder:
             try:
-                if event_id is None:
-                    event_id = 999  # Default event ID for manual events
                 self.emg_recorder.add_event_marker(event_id, event_description)
+                emg_success = True
                 print(f"EMG Event added: ID={event_id}, Description='{event_description}'")
-                return True
             except Exception as e:
                 print(f"Error adding EMG event marker: {e}")
-                return False
+        
+        # Add event to EEG recording
+        if self.eeg_recording_active and self.eeg_recorder:
+            try:
+                self.eeg_recorder.add_event_marker(event_id, event_description)
+                eeg_success = True
+                print(f"EEG Event added: ID={event_id}, Description='{event_description}'")
+            except Exception as e:
+                print(f"Error adding EEG event marker: {e}")
+        
+        if emg_success or eeg_success:
+            return True
         else:
-            print("EMG recording not active, cannot add event marker")
+            print("No bio-signal recording active, cannot add event marker")
             return False
+    
+    # Keep the old method name for backward compatibility
+    def add_emg_event_marker(self, event_id=None, event_description="Manual Event"):
+        """Legacy method - redirects to add_bio_event_marker"""
+        return self.add_bio_event_marker(event_id, event_description)
     
     def _emg_processing_loop(self):
         """Background thread for EMG data processing"""
         print("🎯 EMG processing thread started")
+        
+        first_data_received = False
         
         while self.emg_thread_active and self.emg_recording_active and self.emg_recorder:
             try:
                 # Process one data packet with timeout
                 if self.emg_recorder.process_and_save_data(timeout=0.1):
                     # Successfully processed data
+                    if not first_data_received:
+                        # Add recording start event marker on first successful data reception
+                        self.emg_recorder.add_event_marker(130, "Recording Start")
+                        first_data_received = True
+                        print("✅ First EMG data received, added start event marker")
                     continue
                 else:
                     # No data received within timeout, continue loop
@@ -658,6 +748,33 @@ class MainWindow(QMainWindow):
                 time.sleep(0.1)  # Wait before retrying
                 
         print("🛑 EMG processing thread ended")
+        
+    def _eeg_processing_loop(self):
+        """Background thread for EEG data processing"""
+        print("🎯 EEG processing thread started")
+        
+        first_data_received = False
+        
+        while self.eeg_thread_active and self.eeg_recording_active and self.eeg_recorder:
+            try:
+                # Process one data packet with timeout
+                if self.eeg_recorder.process_and_save_data(timeout=0.1):
+                    # Successfully processed data
+                    if not first_data_received:
+                        # Add recording start event marker on first successful data reception
+                        self.eeg_recorder.add_event_marker(130, "Recording Start")
+                        first_data_received = True
+                        print("✅ First EEG data received, added start event marker")
+                    continue
+                else:
+                    # No data received within timeout, continue loop
+                    time.sleep(0.01)  # Small delay to prevent busy waiting
+                    
+            except Exception as e:
+                print(f"❌ EEG processing error: {e}")
+                time.sleep(0.1)  # Wait before retrying
+                
+        print("🛑 EEG processing thread ended")
         
     def image_update_slot(self, image, label):
         label.setPixmap(QPixmap.fromImage(image))
@@ -1150,6 +1267,18 @@ class MainWindow(QMainWindow):
                 print("EMG recording stopped on application close")
             except Exception as e:
                 print(f"Error stopping EMG on close: {e}")
+        
+        # Stop EEG recording if active
+        if self.eeg_recording_active:
+            try:
+                self.eeg_thread_active = False
+                if hasattr(self, 'eeg_thread') and self.eeg_thread is not None:
+                    self.eeg_thread.join(timeout=1.0)
+                if self.eeg_recorder:
+                    self.eeg_recorder.stop_recording()
+                print("EEG recording stopped on application close")
+            except Exception as e:
+                print(f"Error stopping EEG on close: {e}")
         
         self.closeCamera()
         if self.marker_calculate_process and self.marker_calculate_process.is_alive():

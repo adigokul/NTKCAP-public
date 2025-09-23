@@ -127,3 +127,4 @@ Usage Examples:
   python emg_localhost.py --test-events                 # Test EMG with event markers (3000 samples)
   python emg_localhost.py -te --test-samples 5000       # Test with 5000 samples
   python emg_localhost.py -te -sf --test-samples 1000   # Test with frequency scan
+ws://127.0.0.1:31279/ws

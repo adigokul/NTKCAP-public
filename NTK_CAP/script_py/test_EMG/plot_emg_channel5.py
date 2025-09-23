@@ -74,8 +74,8 @@ def plot_channel5_voltage(csv_file_path):
         print(f"Error plotting Channel 5: {str(e)}")
 
 if __name__ == "__main__":
-    # Default CSV file path
-    csv_file = "test_emg_with_events.csv"
+    # GUI recorded EMG data file path  
+    csv_file = r"D:\NTKCAP\Patient_data\sync_2\2025_09_23\raw_data\no_input\emg_data.csv"
     
     # Plot Channel 5
     plot_channel5_voltage(csv_file)

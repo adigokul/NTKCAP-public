@@ -186,7 +186,7 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # 主要測試
-    main_uri = "ws://localhost:31278/ws"
+    main_uri = "ws://localhost:31279/ws"
     tester = EMGWebSocketTester(main_uri)
     
     success = tester.test_connection(duration=15)  # 測試15秒
