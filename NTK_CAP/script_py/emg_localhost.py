@@ -16,11 +16,12 @@ from typing import Optional, Dict, Any
 class EMGEventRecorder:
     """EMG data recorder with event marking functionality"""
     
-    def __init__(self, uri: str, output_file: str, channel_count: int = 8, filter_raw_only: bool = True):
+    def __init__(self, uri: str, output_file: str, channel_count: int = 8, filter_raw_only: bool = True, use_cumulative_timestamp: bool = True):
         self.uri = uri
         self.output_file = output_file
         self.channel_count = channel_count
         self.filter_raw_only = filter_raw_only
+        self.use_cumulative_timestamp = use_cumulative_timestamp  # New parameter for timestamp mode
         self.recording_active = False
         self.event_queue = queue.Queue()
         self.recording_start_time = None
@@ -34,6 +35,10 @@ class EMGEventRecorder:
         # Data statistics
         self.sample_count = 0
         self.data_packet_count = 0
+        
+        # Cumulative timestamp tracking
+        self.cumulative_timestamp = 0.0  # Start from 0
+        self.timestamp_increment = 0.001  # 1ms increment for 1000Hz
         
     def add_event_marker(self, event_id: int, marker_name: str = "", duration: float = 0.0):
         """Add event marker to queue"""
@@ -219,8 +224,14 @@ class EMGEventRecorder:
                         del events[event_key]
                         break
                 
-                # Write data row
-                row = [f"{relative_time:.3f}", self.sample_count]
+                # Write data row with appropriate timestamp
+                if self.use_cumulative_timestamp:
+                    timestamp = f"{self.cumulative_timestamp:.3f}"
+                    self.cumulative_timestamp += self.timestamp_increment
+                else:
+                    timestamp = f"{relative_time:.3f}"
+                
+                row = [timestamp, self.sample_count]
                 row.extend([emg_array[ch, i] for ch in range(self.channel_count)])
                 row.extend([event_id, event_date, event_duration, software_marker, software_marker_name])
                 writer.writerow(row)

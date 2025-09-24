@@ -567,13 +567,15 @@ class MainWindow(QMainWindow):
             emg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
                                          datetime.now().strftime("%Y_%m_%d"), "raw_data", 
                                          self.record_task_name, "emg_data.csv")
-            self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count)
+            # Use cumulative timestamps by default (True)
+            self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count, use_cumulative_timestamp=True)
             
             # Start EEG Recording
             eeg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
                                          datetime.now().strftime("%Y_%m_%d"), "raw_data", 
                                          self.record_task_name, "eeg_data.csv")
-            self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count)
+            # Use cumulative timestamps by default (True)  
+            self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count, use_cumulative_timestamp=True)
             
             emg_started = self.emg_recorder.start_recording()
             eeg_started = self.eeg_recorder.start_recording()
