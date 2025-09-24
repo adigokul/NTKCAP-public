@@ -75,7 +75,7 @@ def plot_channel5_voltage(csv_file_path):
 
 if __name__ == "__main__":
     # GUI recorded EMG data file path  
-    csv_file = r"D:\NTKCAP\Patient_data\sync_2\2025_09_23\raw_data\no_input\emg_data.csv"
+    csv_file = r"D:\NTKCAP\Patient_data\sync_2\2025_09_23\raw_data\4\emg_data.csv"
     
     # Plot Channel 5
     plot_channel5_voltage(csv_file)
