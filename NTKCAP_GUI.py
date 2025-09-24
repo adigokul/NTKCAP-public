@@ -4,6 +4,7 @@ import time
 import json
 import copy
 import sys
+import threading
 from datetime import datetime
 import pyqtgraph as pg
 from PyQt6 import uic
@@ -229,6 +230,35 @@ class MainWindow(QMainWindow):
         self.eeg_thread = None
         self.eeg_uri = "ws://127.0.0.1:31279/ws"  # EEG WebSocket URI
         self.eeg_channel_count = 32  # EEG typically has more channels
+        
+        # Bio-signal Recording Control Checkboxes
+        self.checkBox_emg_recording = self.findChild(QCheckBox, "checkBox_emg_recording")
+        self.checkBox_eeg_recording = self.findChild(QCheckBox, "checkBox_eeg_recording")
+        self.emg_recording_enabled = False
+        self.eeg_recording_enabled = False
+        
+        # Connect checkbox signals
+        if self.checkBox_emg_recording:
+            self.checkBox_emg_recording.toggled.connect(self.on_emg_recording_toggled)
+        if self.checkBox_eeg_recording:
+            self.checkBox_eeg_recording.toggled.connect(self.on_eeg_recording_toggled)
+    # Bio-signal Recording Control
+    def on_emg_recording_toggled(self, checked):
+        """Handle EMG recording checkbox toggle"""
+        self.emg_recording_enabled = checked
+        if checked:
+            print("✅ EMG recording enabled")
+        else:
+            print("❌ EMG recording disabled")
+    
+    def on_eeg_recording_toggled(self, checked):
+        """Handle EEG recording checkbox toggle"""
+        self.eeg_recording_enabled = checked
+        if checked:
+            print("✅ EEG recording enabled")
+        else:
+            print("❌ EEG recording disabled")
+    
     # Main page shortcut
     def button_shortcut_calculation(self):
         self.left_tab_changed(1)
@@ -552,10 +582,11 @@ class MainWindow(QMainWindow):
         self.record_enter_task_name.setEnabled(False)
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         
-        # Start EMG and EEG Recording
+        # Start EMG and EEG Recording (only if checkboxes are checked)
+        emg_started = False
+        eeg_started = False
+        
         try:
-            import sys
-            import threading
             # Add the script_py directory to Python path
             script_py_path = os.path.join(os.path.dirname(__file__), 'NTK_CAP', 'script_py')
             if script_py_path not in sys.path:
@@ -563,22 +594,23 @@ class MainWindow(QMainWindow):
             
             from NTK_CAP.script_py.emg_localhost import EMGEventRecorder
             
-            # Start EMG Recording
-            emg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
-                                         datetime.now().strftime("%Y_%m_%d"), "raw_data", 
-                                         self.record_task_name, "emg_data.csv")
-            # Use cumulative timestamps by default (True)
-            self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count, use_cumulative_timestamp=True)
+            # Start EMG Recording only if checkbox is checked
+            if self.emg_recording_enabled and self.checkBox_emg_recording.isChecked():
+                emg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                             datetime.now().strftime("%Y_%m_%d"), "raw_data", 
+                                             self.record_task_name, "emg_data.csv")
+                # Use cumulative timestamps by default (True)
+                self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count, use_cumulative_timestamp=True)
+                emg_started = self.emg_recorder.start_recording()
             
-            # Start EEG Recording
-            eeg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
-                                         datetime.now().strftime("%Y_%m_%d"), "raw_data", 
-                                         self.record_task_name, "eeg_data.csv")
-            # Use cumulative timestamps by default (True)  
-            self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count, use_cumulative_timestamp=True)
-            
-            emg_started = self.emg_recorder.start_recording()
-            eeg_started = self.eeg_recorder.start_recording()
+            # Start EEG Recording only if checkbox is checked
+            if self.eeg_recording_enabled and self.checkBox_eeg_recording.isChecked():
+                eeg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                             datetime.now().strftime("%Y_%m_%d"), "raw_data", 
+                                             self.record_task_name, "eeg_data.csv")
+                # Use cumulative timestamps by default (True)  
+                self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count, use_cumulative_timestamp=True)
+                eeg_started = self.eeg_recorder.start_recording()
             
             if emg_started:
                 self.emg_recording_active = True
@@ -596,14 +628,17 @@ class MainWindow(QMainWindow):
                 self.eeg_thread.start()
                 print("✅ EEG recording started successfully")
             
+            # Update status message based on what was started
             if emg_started and eeg_started:
                 self.label_log.setText("Recording start (EMG + EEG)")
             elif emg_started:
                 self.label_log.setText("Recording start (EMG only)")
             elif eeg_started:
                 self.label_log.setText("Recording start (EEG only)")
+            elif not self.emg_recording_enabled and not self.eeg_recording_enabled:
+                self.label_log.setText("Recording start (No bio-signal recording selected)")
             else:
-                raise Exception("Failed to start both EMG and EEG recording")
+                self.label_log.setText("Recording start (Bio-signal connection failed)")
                 
         except Exception as e:
             print(f"❌ EMG/EEG recording failed to start: {e}")

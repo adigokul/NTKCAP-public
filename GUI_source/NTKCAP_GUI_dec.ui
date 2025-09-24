@@ -1206,6 +1206,68 @@ QPushButton:pressed {
              </layout>
             </item>
             <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_biosignal">
+              <item>
+               <widget class="QCheckBox" name="checkBox_emg_recording">
+                <property name="styleSheet">
+                 <string notr="true">QCheckBox {
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+}
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+}
+QCheckBox::indicator:unchecked {
+    border: 2px solid black;
+    background-color: white;
+}
+QCheckBox::indicator:checked {
+    border: 2px solid black;
+    background-color: rgb(143, 201, 255);
+}</string>
+                </property>
+                <property name="text">
+                 <string>EMG Recording</string>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="checkBox_eeg_recording">
+                <property name="styleSheet">
+                 <string notr="true">QCheckBox {
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+}
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+}
+QCheckBox::indicator:unchecked {
+    border: 2px solid black;
+    background-color: white;
+}
+QCheckBox::indicator:checked {
+    border: 2px solid black;
+    background-color: rgb(143, 201, 255);
+}</string>
+                </property>
+                <property name="text">
+                 <string>EEG Recording</string>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <item>
                <widget class="QPushButton" name="btnStartRecording">
