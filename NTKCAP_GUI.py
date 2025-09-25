@@ -18,6 +18,41 @@ from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
 
+class PatientDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("New Patient")
+        layout = QFormLayout(self)
+
+        self.id_edit = QLineEdit(self)
+        self.sex_edit = QComboBox(self)
+        self.sex_edit.addItems(["M", "F"])
+        self.height_edit = QLineEdit(self)
+        self.weight_edit = QLineEdit(self)
+        self.age_edit = QLineEdit(self)
+
+        layout.addRow("Patient ID:", self.id_edit)
+        layout.addRow("Sex:", self.sex_edit)
+        layout.addRow("Height (cm):", self.height_edit)
+        layout.addRow("Weight (kg):", self.weight_edit)
+        layout.addRow("Age:", self.age_edit)
+
+        # Correct usage of QDialogButtonBox for PyQt6
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def get_data(self):
+        return {
+            "id": self.id_edit.text(),
+            "sex": self.sex_edit.currentText(),
+            "height": self.height_edit.text(),
+            "weight": self.weight_edit.text(),
+            "age": self.age_edit.text(),
+        }
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -394,33 +429,54 @@ class MainWindow(QMainWindow):
             if item != 'multi_person':
                 self.record_list_widget_patient_id.addItem(item)
     def button_create_new_patient(self):
-        text, ok = QInputDialog.getText(self, 'New subject', 'Enter patient ID:')
+    # Create the patient dialog instance
+        dialog = PatientDialog(self)
         
-        if ok:
-            if os.path.exists(os.path.join(self.patient_path, text)):
+        # Show the dialog and check if user pressed OK
+        if dialog.exec() == QDialog.accepted:
+            data = dialog.get_data()
+            patient_id = data["id"]
+            sex = data["sex"]
+            height = data["height"]
+            weight = data["weight"]
+            age = data["age"]
+            
+            patient_dir = os.path.join(self.patient_path, patient_id)
+
+            # Check if the patient directory already exists
+            if os.path.exists(patient_dir):
                 reply = QMessageBox.question(
                     self, 
                     "Patient ID already exists",
-                    "Are you sure to cover the ID?",
+                    "Are you sure to overwrite the ID?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    shutil.rmtree(os.path.join(self.patient_path, text))
-                    os.mkdir(os.path.join(self.patient_path, text))
-                    self.label_log.setText(f"Patient ID {text} is selected")
-                    self.record_list_widget_patient_id_list_show()
-                    self.btn_Apose_record.setEnabled(True)
-                    self.record_select_patientID = text
-                    self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
-                elif reply == QMessageBox.StandardButton.No:
-                    self.button_create_new_patient()
-            else:
-                self.record_select_patientID = text
-                os.mkdir(os.path.join(self.patient_path, text))
-                self.label_log.setText(f"Patient ID {text} is selected")
-                self.record_list_widget_patient_id_list_show()
-                self.btn_Apose_record.setEnabled(True)
-                self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+                    shutil.rmtree(patient_dir)
+                    os.mkdir(patient_dir)
+                else:
+                    return
+
+            # Create the new patient directory and save their data
+            os.mkdir(patient_dir)
+            
+            # Save patient info in a text file
+            with open(os.path.join(patient_dir, "info.txt"), "w") as f:
+                f.write(f"ID: {patient_id}\n")
+                f.write(f"Sex: {sex}\n")
+                f.write(f"Height: {height}\n")
+                f.write(f"Weight: {weight}\n")
+                f.write(f"Age: {age}\n")
+            
+            # Update UI and logic after creating the patient
+            self.record_select_patientID = patient_id
+            self.label_log.setText(f"Patient {patient_id} selected")
+            self.record_list_widget_patient_id_list_show()
+            self.btn_Apose_record.setEnabled(True)
+            self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+
+
+
     def check_apose_finish(self):
         if not self.apose_rec_evt1.is_set() and not self.apose_rec_evt2.is_set() and not self.apose_rec_evt3.is_set() and not self.apose_rec_evt4.is_set():
             self.shared_dict_record_name.clear()

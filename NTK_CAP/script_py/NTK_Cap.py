@@ -1648,7 +1648,7 @@ def marker_caculate_fast(PWD,cal_data_path):
         print('Reconstruction 3D joint completed')
         cv2.destroyAllWindows()
         print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
-
+        
         os.chdir(ori_path)
         now_project_3d = os.path.join(now_project, "pose-3d")
         trc_files = os.listdir(now_project_3d)
