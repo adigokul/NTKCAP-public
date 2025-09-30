@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Pre-commit hook to ensure proper email configuration
+# This script will prompt for email and name before each commit
+
+# Get current git user configuration
+current_email=$(git config user.email)
+current_name=$(git config user.name)
+
+echo "========================================="
+echo "Git Commit Author Configuration"
+echo "========================================="
+echo "Current settings:"
+echo "  Name: $current_name"
+echo "  Email: $current_email"
+echo ""
+
+# Force interactive input for email
+echo ""
+echo "Please confirm or update your email:"
+printf "Enter your email (current: '%s'): " "$current_email"
+read -r new_email < /dev/tty
+if [ ! -z "$new_email" ]; then
+    git config user.email "$new_email"
+    echo "✓ Email updated to: $new_email"
+else
+    echo "✓ Keeping current email: $current_email"
+fi
+
+# Force interactive input for name  
+echo ""
+echo "Please confirm or update your name:"
+printf "Enter your name (current: '%s'): " "$current_name"
+read -r new_name < /dev/tty
+if [ ! -z "$new_name" ]; then
+    git config user.name "$new_name"
+    echo "✓ Name updated to: $new_name"
+else
+    echo "✓ Keeping current name: $current_name"
+fi
+echo ""
+
+echo "========================================="
+echo "Final commit author:"
+echo "  Name:  $(git config user.name)"
+echo "  Email: $(git config user.email)"
+echo "========================================="
+echo "Proceeding with commit..."
+
+exit 0
