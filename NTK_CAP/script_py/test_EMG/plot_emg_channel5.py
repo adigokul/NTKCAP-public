@@ -31,15 +31,31 @@ def plot_channel1_voltage(csv_file_path):
             print(f"Available columns: {list(df.columns)}")
             return
         
-        # Get channel 1 data
-        channel1_data = df['CH1'].values
+        # Check total data points first
+        total_points = len(df['CH1'])
+        print(f"Total data points in file: {total_points}")
         
-        # Create time axis using detected sampling rate
+        # Get channel 1 data and skip first 2000 points
+        skip_points = 2000
+        if total_points <= skip_points:
+            print(f"Warning: File has only {total_points} data points, which is less than or equal to skip_points ({skip_points})")
+            print("Using all available data without skipping")
+            skip_points = 0
+            
+        channel1_data = df['CH1'].values[skip_points:]  # Skip first N data points
+        
+        # Check if we have any data left
+        if len(channel1_data) == 0:
+            print("Error: No data remaining after skipping points")
+            return
+        
+        # Create time axis using detected sampling rate, starting from skip_points
         time_axis = np.arange(len(channel1_data)) / sampling_rate  # Convert to seconds
+        time_axis_offset = np.arange(skip_points, skip_points + len(channel1_data)) / sampling_rate  # Actual time with offset
         
         # Create the plot
         plt.figure(figsize=(12, 6))
-        plt.plot(time_axis, channel1_data, 'b-', linewidth=1, label='Channel 1')
+        plt.plot(time_axis_offset, channel1_data, 'b-', linewidth=1, label='Channel 1 (skipped first 2000 points)')
         
         # Set labels and title in English
         plt.xlabel('Time (seconds)')
@@ -54,7 +70,7 @@ def plot_channel1_voltage(csv_file_path):
         min_voltage = np.min(channel1_data)
         
         # Add text box with statistics
-        stats_text = f'Mean: {mean_voltage:.2f} uV\nMax: {max_voltage:.2f} uV\nMin: {min_voltage:.2f} uV\nSamples: {len(channel1_data)}'
+        stats_text = f'Mean: {mean_voltage:.2f} uV\nMax: {max_voltage:.2f} uV\nMin: {min_voltage:.2f} uV\nSamples: {len(channel1_data)} (skipped first 2000)'
         plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes, 
                 verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
         
@@ -64,9 +80,10 @@ def plot_channel1_voltage(csv_file_path):
         # Show the plot
         plt.show()
         
-        print(f"Successfully plotted Channel 1 data")
-        print(f"Data points: {len(channel1_data)}")
-        print(f"Duration: {time_axis[-1]:.3f} seconds")
+        print(f"Successfully plotted Channel 1 data (skipped first 2000 points)")
+        print(f"Data points: {len(channel1_data)} (after skipping 2000)")
+        print(f"Duration: {time_axis_offset[-1] - time_axis_offset[0]:.3f} seconds")
+        print(f"Time range: {time_axis_offset[0]:.3f} to {time_axis_offset[-1]:.3f} seconds")
         print(f"Sampling rate: {sampling_rate} Hz")
         print(f"Voltage range: {min_voltage:.2f} to {max_voltage:.2f} uV")
         
@@ -75,7 +92,7 @@ def plot_channel1_voltage(csv_file_path):
 
 if __name__ == "__main__":
     # GUI recorded EMG data file path  
-    csv_file = r"D:\NTKCAP\Patient_data\TVGH_20250924_fix_cal\2025_09_24\raw_data\1\emg_data.csv"
+    csv_file = r"D:\NTKCAP\Patient_data\TVGH_20250924_fix_cal\2025_09_24\raw_data\2\eeg_data.csv"
     
     # Plot Channel 1
     plot_channel1_voltage(csv_file)
