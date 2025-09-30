@@ -1228,8 +1228,12 @@ class MainWindow(QMainWindow):
         self.result_load_folders()
 
     def update_slider(self):
-        self.result_video_slider.setValue(int(self.video_player.progress * 100))
-        self.frame_label.setText(str(int(self.video_player.progress * 100)))
+        # Update slider position based on video player progress
+        slider_value = int(self.video_player.progress * 100)
+        self.result_video_slider.blockSignals(True)  # Prevent signal loop
+        self.result_video_slider.setValue(slider_value)
+        self.result_video_slider.blockSignals(False)
+        self.frame_label.setText(str(slider_value))
 
     def select_result_cal_task(self, patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task):
         self.show_result_path = os.path.join(patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task)
@@ -1276,21 +1280,33 @@ class MainWindow(QMainWindow):
 
     def play_stop(self):
         if self.is_playing:
+            # Stop both 3D animation and video timer
             self.result_web_view_widget.page().runJavaScript("stopAnimation();")
             self.video_player.timer.stop()
             self.is_playing = False
+            print("Playback stopped")
         else:
+            # Start both 3D animation and video timer
             self.result_web_view_widget.page().runJavaScript("startAnimation();")
-            self.video_player.timer.start(15)
+            self.video_player.timer.start(33)  # ~30 FPS for smoother sync
             self.is_playing = True
+            print("Playback started")
 
     def slider_changed(self, value):
+        # Pause playback when user drags slider
+        was_playing = self.is_playing
         if self.is_playing:
             self.play_stop()
-        self.video_player.progress = value/100
+            
+        # Update progress and sync all components
+        self.video_player.progress = value / 100
         self.video_player.slider_changed()
         self.result_video_slider.setValue(value)
         self.frame_label.setText(str(value))
+        
+        # Resume playback if it was playing before
+        # Note: Don't auto-resume to give user control
+        print(f"Slider changed to: {value}%")
 
     def closeEvent(self, event):
         # Stop EMG recording if active

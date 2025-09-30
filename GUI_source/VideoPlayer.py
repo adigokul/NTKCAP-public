@@ -63,18 +63,19 @@ class VideoPlayer(QThread):
         self.plot.showGrid(x=True, y=True, alpha=0.2)  # Enable grid
         
     def set_slider_value(self, progress):
+        """Legacy method - now used only for manual slider updates"""
         self.progress = progress
-        if self.progress !=0:
-            if int(progress * 100) >= 100:
-                self.progress = 0
-                self.frame_changed.emit(0)
-                self.web_view_widget.page().runJavaScript("resetAnimation();")
-                
-            else:
-                self.frame_changed.emit(round(self.progress * 100))
+        if self.progress >= 1.0:
+            self.progress = 0
+            self.frame_changed.emit(0)
+            self.web_view_widget.page().runJavaScript("resetAnimation();")
+        else:
+            self.frame_changed.emit(round(self.progress * 100))
 
     def run(self):        
         cap_b = time.perf_counter()      
+        
+        # Get animation progress from 3D model first
         self.web_view_widget.page().runJavaScript(
             """
             (function() {
@@ -85,20 +86,65 @@ class VideoPlayer(QThread):
                 }
             })();
             """,
-            self.set_slider_value
+            self.sync_video_with_3d_model
         )
+
+    def sync_video_with_3d_model(self, progress):
+        """Synchronize video frames with 3D model animation progress"""
+        self.progress = progress
         
-        self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][int(self.progress * self.frame_count)]))
-        self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][int(self.progress * self.frame_count)]))
-        self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][int(self.progress * self.frame_count)]))
-        self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][int(self.progress * self.frame_count)]))
+        # Ensure progress is within bounds
+        if self.progress >= 1.0:
+            self.progress = 0.999  # Prevent index out of bounds
+        elif self.progress < 0:
+            self.progress = 0
+            
+        # Calculate frame index with bounds checking
+        if self.frame_count and self.frame_count > 0:
+            frame_index = int(self.progress * self.frame_count)
+            frame_index = min(frame_index, self.frame_count - 1)  # Ensure within bounds
+            
+            # Update video frames to match 3D animation
+            try:
+                self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
+                self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
+                self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
+                self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
+            except (IndexError, TypeError) as e:
+                print(f"Error updating video frames: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
+        
+        # Update slider position
+        self.frame_changed.emit(int(self.progress * 100))
+        
+        # Handle animation reset when reaching end
+        if self.progress >= 0.999:
+            self.progress = 0
+            self.web_view_widget.page().runJavaScript("resetAnimation();")
         
     def slider_changed(self):
-        self.web_view_widget.page().runJavaScript(f"window.updateAnimationProgress({self.progress});")     
-        self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][int(self.progress * self.frame_count)]))
-        self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][int(self.progress * self.frame_count)]))
-        self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][int(self.progress * self.frame_count)]))
-        self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][int(self.progress * self.frame_count)]))
+        """Handle manual slider changes - sync both 3D model and video"""
+        # Update 3D model animation first
+        self.web_view_widget.page().runJavaScript(f"window.updateAnimationProgress({self.progress});")
+        
+        # Ensure progress is within bounds
+        if self.progress >= 1.0:
+            self.progress = 0.999  # Prevent index out of bounds
+        elif self.progress < 0:
+            self.progress = 0
+            
+        # Calculate frame index with bounds checking
+        if self.frame_count and self.frame_count > 0:
+            frame_index = int(self.progress * self.frame_count)
+            frame_index = min(frame_index, self.frame_count - 1)  # Ensure within bounds
+            
+            # Update video frames to match slider position
+            try:
+                self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
+                self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
+                self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
+                self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
+            except (IndexError, TypeError) as e:
+                print(f"Error updating video frames in slider_changed: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
     def hip_flexion_plot(self):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
         R_Hip = self.hip_data['R_Hip']

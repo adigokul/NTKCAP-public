@@ -140,6 +140,7 @@
             if (mixer) {
                 isAnimating = true;
                 clock.start();
+                console.log("Animation started");
             }
         }
 
@@ -147,18 +148,26 @@
             if (mixer) {
                 isAnimating = false;
                 clock.stop();
+                console.log("Animation stopped");
             }
         }
 
         window.updateAnimationProgress = function (progress) {
             if (mixer) {
+                // Clamp progress to valid range
+                progress = Math.max(0, Math.min(1, progress));
                 const time = progress * animationDuration;
                 mixer.setTime(time);
+                console.log(`Animation set to time: ${time} (progress: ${progress})`);
             }
         }
 
         window.getAnimationProgress = function () {
-            return mixer ? mixer.time / animationDuration : 0;
+            if (mixer && animationDuration > 0) {
+                const progress = (mixer.time % animationDuration) / animationDuration;
+                return Math.max(0, Math.min(1, progress));
+            }
+            return 0;
         }
 
         window.getAnimationDuration = function () {
@@ -168,6 +177,7 @@
         window.resetAnimation = function () {
             if (mixer) {
                 mixer.setTime(0);
+                console.log("Animation reset");
             }
         }
     </script>
