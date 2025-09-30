@@ -1,7 +1,11 @@
 {
     "cam": {
         "number": 4,
-        "list": [],
+        "list": [
+            0,
+            2,
+            3
+        ],
         "resolution": [
             1920,
             1080

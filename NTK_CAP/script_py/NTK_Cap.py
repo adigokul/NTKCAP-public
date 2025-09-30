@@ -5,25 +5,33 @@ import json
 import sys
 import numpy as np
 import multiprocessing
-import multiprocessing, threading, logging, sys, traceback
+import multiprocessing, sys
 import time
 import keyboard
 import shutil
 from datetime import datetime
 import subprocess
-import easymocap
-import import_ipynb
+try:
+    from .xml_update import *
+except:
+    from xml_update import *
+import sys
+sys.path.insert(0, os.getcwd())
 
-from .full_process import rtm2json,rtm2json_rpjerror
-from .xml_update import *
 from Pose2Sim import Pose2Sim
-from ultralytics import YOLO
-import inspect;inspect.getfile(Pose2Sim)
 
+from .gait_analysis import gait1
+
+import serial
+
+from pathlib import Path
+try:
+    from .osimConverters.convertOsim2Gltf import convertOsim2Gltf
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video
+except:
+    from osimConverters.convertOsim2Gltf import convertOsim2Gltf
+    from full_process import rtm2json,rtm2json_rpjerror,timesync_video
 ######################################################
-
-#Version = '1.0.2'
-
 ######################################################
 # create calibration folder
 def create_fresh_directory(dir_path):
@@ -57,7 +65,7 @@ def create_calibration_folder(PWD, button_create=False):
     os.makedirs(cali_fold, exist_ok=True)
 ######################################################
 # update camera ID config
-def camera_config_update(save_path, search_num=20):
+def camera_config_update(save_path, search_num=20, new_gui=False):
     config_name = os.path.join(save_path, "config.json")
     with open(config_name, 'r') as f:
         data = json.load(f)
@@ -97,7 +105,8 @@ def camera_config_update(save_path, search_num=20):
     # 写入更新后的JSON文件
     with open(config_name, 'w') as f:
         json.dump(data, f, indent=4)
-
+    if new_gui:
+        return camera_list
 ######################################################
 # create camera ID config
 def camera_config_create(save_path):
@@ -358,7 +367,7 @@ def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop
             break
 
     # while True:
-    while True:
+    for i in range(10):
         ret, frame = cap.read()
         if not ret:
             break
@@ -369,7 +378,7 @@ def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop
         if event_stop.is_set() | button_stop:
             break
         video_writers.write(frame)  
-        cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+        #cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
         cv2.circle(frame,(100, 100), 50, (0, 255, 0), -1)
         frame = cv2.resize(frame, (640, 480))
         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
@@ -450,9 +459,12 @@ def camera_Apose_record(config_path, save_path, patientID, date, button_capture=
         p.join()
 
 ######################################################
-# Motion
-def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
+# Motion maximum 55minutes
+def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop,start_time,button_start=False, button_stop=False):
+    # Define the shape of the array
+    time_stamp= np.empty((1000000, 2))
     cap = cv2.VideoCapture(camera_id)
+    
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -475,10 +487,14 @@ def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_sto
         cv2.waitKey(1) 
         if event_start.is_set() | button_start:
             break
-
     # while True:
+    count = 0
     while True:
+
+        dt_str1 =time.time() - start_time
+
         ret, frame = cap.read()
+        dt_str2 = time.time() - start_time
         if not ret:
             break
         k = cv2.waitKey(1)
@@ -493,11 +509,162 @@ def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_sto
         frame = cv2.resize(frame, (640, 480))
         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+        time_stamp[count] =[np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
+        count = count+1
 
     video_writers.release()
     cap.release()
+    np.save(os.path.join(save_path, f"{now_cam_num}_dates.npy"), time_stamp)
 
-def camera_Motion_record(config_path, save_path, patientID, task, date, button_capture=False, button_stop=False):
+# def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
+#     cap = cv2.VideoCapture(camera_id)
+#     width = 1920
+#     height = 1080
+#     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+#     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+#     fps = 30
+#     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#     # 創建寫入影像的video writer物件
+#     video_writers = cv2.VideoWriter(os.path.join(save_path, f"{now_cam_num}.mp4"), fourcc, fps, (width, height))
+#     # 讀取攝像機影像，並將影像寫入mp4檔案中
+#     time.sleep(0.00001)
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         cv2.putText(frame, "press s to start recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+#         cv2.circle(frame,(100, 100), 50, (0, 0, 255), -1)
+#         frame = cv2.resize(frame, (640, 480))
+#         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
+#         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+#         cv2.waitKey(1) 
+#         if event_start.is_set() | button_start:
+#             break
+
+#     # while True:
+#     while True:
+#         ret, frame = cap.read()
+#         if not ret:
+#             break
+#         k = cv2.waitKey(1)
+#         if keyboard.is_pressed('q'):
+#             # print('quit')
+#             event_stop.set()
+#         if event_stop.is_set() | button_stop:
+#             break
+#         video_writers.write(frame)  
+#         cv2.putText(frame, "press q to stop recording", (500, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (30, 144, 255), 4, cv2.LINE_AA)
+#         cv2.circle(frame,(100, 100), 50, (0, 255, 0), -1)
+#         frame = cv2.resize(frame, (640, 480))
+#         cv2.imshow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), frame)
+#         cv2.moveWindow("Cam number:" + str(now_cam_num) + "Cam ID:" + str(camera_id), pos[0], pos[1])
+
+#     video_writers.release()
+#     cap.release()
+def CP2102_output_signal_vicon(input_COM,start_time,save_path):
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
+    while True:
+        if keyboard.is_pressed('s'):
+            ser.write(b"\x000")
+            dt_str1 =time.time() - start_time
+            print('Start Signal send')
+            break
+    while True:
+        if keyboard.is_pressed('q'):
+            ser.write(b"\x0000")
+            dt_str2 = time.time() - start_time
+            print('End Signal send')
+            break
+    marker_stamp = [np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
+    np.save(os.path.join(save_path, f"marker_stamp.npy"),marker_stamp)
+        
+def CP2102_output_signal(input_COM):
+    ser = serial.Serial(port='COM' +str(input_COM), baudrate=9600, timeout=1)
+    #ser.write(b"\x00000")
+    
+    ser.write(b'x0000')
+def print_timer_matplt(start_time):### Much Higher fps
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    update_rate = 1000
+
+    # Calculate the time interval between updates
+    interval = 1.0 / update_rate
+
+    # Start time for the timer
+     
+
+    # Create figure and axis objects
+    fig, ax = plt.subplots()
+
+    # Initialize text annotation
+    text = ax.text(0.5, 0.5, '', transform=ax.transAxes, ha='center', va='center', fontsize=100)
+
+    # Function to update the text
+    def update(frame):
+        
+        elapsed_time = time.time() - start_time
+        text.set_text('{:.3f}'.format(elapsed_time))
+        return text,
+
+    # Create animation
+    ani = FuncAnimation(fig, update, frames=None, blit=True, interval=interval*1000)
+
+    # Show the plot
+    plt.show()
+def camera_Motion_record(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
+    
+    config_name = os.path.join(config_path, "config.json")
+    save_path = os.path.join(save_path, "Patient_data")
+    save_path = os.path.join(save_path, patientID)
+    save_path = os.path.join(save_path, date)
+    save_path = os.path.join(save_path, 'raw_data')
+    save_path = os.path.join(save_path, task)
+    
+    time_file_path = os.path.join(save_path, "recordtime.txt")
+    save_path = os.path.join(save_path, "videos")
+    os.makedirs(save_path)
+    if os.path.exists(time_file_path):
+        with open(time_file_path, "r") as file:
+            formatted_datetime = file.read().strip()
+    else:
+        now = datetime.now()
+        formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
+        with open(time_file_path, "w") as file:
+            file.write(formatted_datetime)
+
+    # save_path_1 = os.path.join(save_path, "1.mp4")
+    with open(config_name, 'r') as f:
+        data = json.load(f)
+
+    num_cameras = data['cam']['list']
+
+    event_start = multiprocessing.Event()
+    event_stop = multiprocessing.Event()
+    processes = []
+    now_cam_num = 0
+    position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
+    for i in num_cameras:
+        now_cam_num = now_cam_num + 1
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
+        processes.append(p)
+        p.start()
+    time.sleep(1)
+    while True:
+        if keyboard.is_pressed('s'):
+            event_start.set()
+            time.sleep(1)
+            break
+
+    for p in processes:
+        p.join()
+def camera_Motion_record_test_time_delay(config_path, save_path, patientID, task, date,button_capture=False, button_stop=False):
+
     config_name = os.path.join(config_path, "config.json")
     save_path = os.path.join(save_path, "Patient_data")
     save_path = os.path.join(save_path, patientID)
@@ -530,12 +697,19 @@ def camera_Motion_record(config_path, save_path, patientID, task, date, button_c
     processes = []
     now_cam_num = 0
     position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
+    p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    processes.append(p)
+    p.start()
     for i in num_cameras:
         now_cam_num = now_cam_num + 1
-        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop))
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
         processes.append(p)
         p.start()
-
     time.sleep(1)
     while True:
         if keyboard.is_pressed('s'):
@@ -545,6 +719,64 @@ def camera_Motion_record(config_path, save_path, patientID, task, date, button_c
 
     for p in processes:
         p.join()
+def camera_Motion_record_VICON_sync(config_path, save_path, patientID, task, date,input_COM,button_capture=False, button_stop=False):
+
+    config_name = os.path.join(config_path, "config.json")
+    save_path = os.path.join(save_path, "Patient_data")
+    save_path = os.path.join(save_path, patientID)
+    save_path = os.path.join(save_path, date)
+    save_path = os.path.join(save_path, 'raw_data')
+    save_path = os.path.join(save_path, task)
+    
+    time_file_path = os.path.join(save_path, "recordtime.txt")
+    save_path = os.path.join(save_path, "videos")
+    os.makedirs(save_path)
+
+    if os.path.exists(time_file_path):
+        with open(time_file_path, "r") as file:
+            formatted_datetime = file.read().strip()
+    else:
+        now = datetime.now()
+        formatted_datetime = now.strftime("%Y_%m_%d_%H%M")
+        with open(time_file_path, "w") as file:
+            file.write(formatted_datetime)
+
+
+    # save_path_1 = os.path.join(save_path, "1.mp4")
+    with open(config_name, 'r') as f:
+        data = json.load(f)
+
+    num_cameras = data['cam']['list']
+
+    event_start = multiprocessing.Event()
+    event_stop = multiprocessing.Event()
+    processes = []
+    now_cam_num = 0
+    position = [[10, 10], [10, 500], [700, 10], [700, 500]]
+    position = [[10, 10], [10, 500], [400, 10], [400, 500],[700,10],[700,500],[1000,10],[1000,500]]
+    start_time = time.time()
+    # p = multiprocessing.Process(target=print_timer_matplt, args=(start_time,))
+    # processes.append(p)
+    # p.start()
+    for i in num_cameras:
+        now_cam_num = now_cam_num + 1
+        p = multiprocessing.Process(target=camera_Motion, args=(i, now_cam_num, save_path, position[now_cam_num - 1], event_start, event_stop,start_time))
+        processes.append(p)
+        p.start()
+    p = multiprocessing.Process(target=CP2102_output_signal_vicon, args=(input_COM,start_time,save_path))
+    processes.append(p)
+    p.start()
+    
+    time.sleep(1)
+    while True:
+        if keyboard.is_pressed('s'):
+            event_start.set()
+            time.sleep(1)
+            break
+
+    for p in processes:
+        p.join()
+    print('send_signal')
 
 ######################################################
 # 計算內外參
@@ -558,7 +790,7 @@ def extract_video(PWD, file_path):
     now_path = os.path.join(now_path, "extract_video.py")
     subprocess.run(["python", now_path, file_path, "--no2d"])
 
-def detect_chessboard(PWD, file_path):
+def detect_chessboard(PWD, file_path,manual_token):
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -566,8 +798,9 @@ def detect_chessboard(PWD, file_path):
     now_path = os.path.join(now_path, "calibration")
     now_path = os.path.join(now_path, "detect_chessboard.py")
     #subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.15"])
-    subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.29"])
+    subprocess.run(["python", now_path, file_path, "--out", "output", "--pattern", "4,3", "--grid", "0.29",'--manual',str(manual_token)])
 def print_yolo_result(PWD,file_path):
+    from ultralytics import YOLO
     model_trained = YOLO('yolo_model_v1.pt')
     directory_path = os.path.join(file_path, 'yolo_backup')
     source_path = os.path.join(file_path, 'images')
@@ -597,12 +830,12 @@ def print_yolo_result(PWD,file_path):
                 cv2.imwrite(imgname, img)
     
     
-def calib_intri(PWD):
+def calib_intri(PWD,manual_token):
 
     file_path = os.path.join(PWD, "claibration")
     file_path = os.path.join(file_path, "IntrinsicCalibration")
     extract_video(PWD, file_path)
-    detect_chessboard(PWD, file_path)
+    detect_chessboard(PWD, file_path,manual_token)
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -611,15 +844,50 @@ def calib_intri(PWD):
     now_path = os.path.join(now_path, "calib_intri.py")
 
     subprocess.run(["python", now_path, file_path, "--num", "1000"])
+def shrink_video_1frame(file_path):
+    def export_first_frame(input_video_path, output_video_path):
+        cap = cv2.VideoCapture(input_video_path)
+        if not cap.isOpened():
+            print("Error: Could not open video.")
+            return
+        
+        # Read the first frame
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Could not read the first frame.")
+            cap.release()
+            return
+        
+        # Get the properties of the video
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        codec = cv2.VideoWriter_fourcc(*'mp4v')  # You can change the codec if needed
 
-def calib_extri(PWD):
+        # Initialize the video writer
+        out = cv2.VideoWriter(output_video_path, codec, fps, (width, height))
+        
+        # Write the first frame multiple times to generate a short video
+        out.write(frame)
 
+        # Release everything if job is finished
+        cap.release()
+        out.release()
+        print("Export complete. The output video is saved as:", output_video_path)
+    files_and_dirs = os.listdir(os.path.join(file_path,'videos'))
+    for item in files_and_dirs:
+        if item.endswith('.mp4'):
+            full_path = os.path.join(file_path,'videos', item)
+            export_first_frame(full_path,full_path)
+
+def calib_extri(PWD,manual_token):
     file_path = os.path.join(PWD, "calibration")
     output_toml_path = os.path.join(file_path, "Calib.toml")
     file_path = os.path.join(file_path, "ExtrinsicCalibration")
-
+    if manual_token ==1:
+        shrink_video_1frame(file_path)
     extract_video(PWD, file_path)
-    detect_chessboard(PWD, file_path)
+    detect_chessboard(PWD, file_path,manual_token)
     now_path = os.path.join(PWD, "NTK_CAP")
     now_path = os.path.join(now_path, "ThirdParty")
     now_path = os.path.join(now_path, "EasyMocap")
@@ -648,7 +916,7 @@ def calib_extri(PWD):
         print_yolo_result(PWD,file_path)
     finally:
         return err_list
-    
+   
 def read_err_calib_extri(PWD):
     try:
         file_name = os.path.join(PWD, "calibration","err_value.txt")
@@ -667,8 +935,499 @@ def read_err_calib_extri(PWD):
     return err_list
 ######################################################
 # openpose & pose2sim
+def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True):
+    for dir_sel_loop in range(len(calculate_path_list)):
+        cal_folder_path = calculate_path_list[dir_sel_loop]
+        if (not fast_cal) or ('multi_person' in cal_folder_path):
+            _ = marker_caculate(PWD , cal_folder_path, gait)
+        else:
+            _ = marker_caculate_fast(PWD, cal_folder_path)
 
-def marker_caculate(PWD,cal_data_path):
+def marker_caculate(PWD, cal_data_path, gait_token=False):
+
+    ori_path = PWD
+    openpose_path = os.path.join(PWD, "NTK_CAP")
+    openpose_path = os.path.join(openpose_path, "ThirdParty")
+    openpose_path = os.path.join(openpose_path, "openpose")
+    openpose_path = os.path.join(openpose_path, "openpose")
+    openpose_exe = os.path.join(openpose_path, "bin")
+    openpose_exe = os.path.join(openpose_exe, "OpenPoseDemo.exe")
+
+    posesim_path = os.path.join(PWD, "NTK_CAP")
+    posesim_path = os.path.join(posesim_path, "ThirdParty")
+    posesim_path = os.path.join(posesim_path, "OpenSim")
+    posesim_path = os.path.join(posesim_path, "bin")
+    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+
+    data_path = cal_data_path
+    calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
+
+    empty_project_path = os.path.join(PWD, "NTK_CAP")
+    empty_project_path = os.path.join(empty_project_path, "template")
+    empty_project_path = os.path.join(empty_project_path, "Empty_project")
+    
+    now = datetime.now()
+    formatted_datetime = now.strftime("%Y_%m_%d_%H_%M")
+    calculated_ending = "_calculated"
+    folder_name = formatted_datetime + calculated_ending
+    data_path = cal_data_path
+    date = data_path.split('\\')[-1]
+    Patient_data_path = os.path.join(PWD, 'Patient_data')
+    empty_project_path = os.path.join(PWD, "NTK_CAP", "template", "Empty_project")
+
+    if data_path.split('\\')[-2] == 'multi_person':
+        raw_data_path = os.path.join(data_path, 'raw_data')
+        task_caculate_finshed_path = os.path.join(data_path, folder_name)
+        for task in os.listdir(raw_data_path):
+            if task == 'calibration' or task == 'Apose': continue # There shouldn't be Apose folder in multi_person task raw_data folder
+            task_folder_path = os.path.join(raw_data_path, task)
+            
+            if os.path.exists(os.path.join(task_folder_path, 'name', 'name_cal.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name_cal.txt')
+            elif os.path.exists(os.path.join(task_folder_path, 'name', 'name.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name.txt')
+            else: name_list_file_path = os.path.join(task_folder_path, 'name_checked', 'name.txt')
+            name_list = []
+            Apose_p_path = []            
+            with open(name_list_file_path, 'r') as file: # read the txt file with all person names in this task
+                lines = file.readlines()
+                for line in lines:
+                    name_list.append(line.strip())
+            for name in name_list: # Apose calculation
+                # Prevent repeated calculation
+                if os.path.exists(os.path.join(Patient_data_path, name, date, folder_name, 'Apose')):
+                    continue
+                else:
+                    print(f'Calculating {name}/{date} Apose')
+                    raw_data_p_path = os.path.join(Patient_data_path, name, date, 'raw_data')
+                    
+                    if not os.path.exists(os.path.join(raw_data_path, 'calibration')):
+                        calibration_path = os.path.join(raw_data_p_path, 'calibration')
+                        shutil.copytree(calibration_path, os.path.join(raw_data_path, 'calibration'))
+                    calculate_finished_path = os.path.join(Patient_data_path, name, date, folder_name)
+                    old_apose_path = os.path.join(calculate_finished_path, 'Apose')
+                    Apose_p_path.append(old_apose_path)
+                    if not os.path.exists(calculate_finished_path):
+                        os.makedirs(calculate_finished_path)
+                    print(f"資料夾成功創建:{calculate_finished_path}, 計算{name}Apose")                    
+                    apose_p_file = os.path.join(raw_data_p_path, "Apose")
+                    print("apose_p_file",apose_p_file)        
+                    scaling_model = os.path.join(calculate_finished_path, 'Apose', "opensim", "Model_Pose2Sim_Halpe26_scaled.osim")
+                    cal_apose_path = old_apose_path
+                    if os.path.exists(cal_apose_path):
+                        print("已有Apose 不再重新計算")
+                    else:
+                        print("apose_file: " + old_apose_path)
+                        cal_apose_path = old_apose_path
+                        os.makedirs(cal_apose_path)
+                        print("資料夾成功創建")                    
+                        try:
+                            now_project = old_apose_path                            
+                            print(empty_project_path)
+                            print(now_project)
+                            contents = os.listdir(empty_project_path)
+                            print(contents)
+                            for item in contents:
+                                source = os.path.join(empty_project_path, item)
+                                target = os.path.join(now_project, item)
+                                if os.path.isdir(source):
+                                    shutil.copytree(source, target)
+                                else:
+                                    shutil.copy2(source, target)
+                            print("複製專案成功")
+                        except:
+                            print("複製專案失敗")
+                        apose_file_videos = os.path.join(apose_p_file, "videos")
+                        now_project_videos = os.path.join(now_project, "videos")
+                        now_pose_videos = os.path.join(now_project, "videos_pose_estimation")
+                        os.mkdir(now_pose_videos)
+                        print(now_pose_videos)
+                        now_project_calib = os.path.join(now_project, "calib-2d")
+                        now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+                        
+                        shutil.copytree(apose_file_videos, now_project_videos)
+                        calib_ori_path = os.path.join(raw_data_p_path, 'calibration', 'Calib.toml')
+                        shutil.copy(calib_ori_path, now_project_calib)
+                        os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+                        
+                        print("切換至" + os.getcwd())
+                        for l in range(1,5):
+                            now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
+                            now_pose =  os.path.join(now_pose_videos, str(l) + ".mp4")
+                            now_json = os.path.join(now_project, "pose-2d")
+                            now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
+                            
+                            rtm2json(now_videos, now_json+'.json',now_pose)
+                            print(now_pose)
+                        os.chdir(ori_path)
+                        print("切換至" + os.getcwd())
+                        os.chdir(now_project)
+                        print("切換至" + os.getcwd())
+                        Pose2Sim.personAssociation_multi()
+                        Pose2Sim.triangulation()
+                        Pose2Sim.filtering()
+                        import inspect
+                        print(inspect.getfile(Pose2Sim))
+
+                        rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
+                        if os.path.isfile(rpj_all_dir):
+                            if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
+                                os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                                print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                                
+                            for video_rpj_count in range(1,5):                                    
+                                out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                                Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                                rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+                        cv2.destroyAllWindows()
+                        os.chdir(ori_path)
+                        print("切換至" + os.getcwd())
+                        
+                        now_project_3d = os.path.join(now_project, "pose-3d")
+                        trc_files = os.listdir(now_project_3d)
+                        for m in trc_files:
+                            if "filt" in m:
+                                copy_3d = m
+                        now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+                        copy_3d_2 = os.path.join(now_project, "opensim")
+                        copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
+                        shutil.copy(now_project_trc_ori, copy_3d_2)
+                        os.chdir(posesim_path) # ThirParty/opensim/bin
+                        print("切換至" + os.getcwd())
+                        now_project_opensim = os.path.join(now_project, "opensim") # opensim folder in Apose(each_person)
+                        now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml") # + Scaling_Setup_Pose2Sim_Halpe26.xml
+                        os.chdir(now_project_opensim) # switch to Apose folder
+                        print("切換至" + os.getcwd())             
+                        halpe26_xml_update(now_project)
+                        subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])       
+                        os.chdir(ori_path)
+                        print("切換至" + os.getcwd())
+
+            # task
+            now_task = os.path.join(task_caculate_finshed_path, task)
+            now_project = now_task
+            print(f"Calculating {task}")
+            shutil.copytree(empty_project_path, now_project)
+
+            now_task_videos = os.path.join(cal_data_path,'raw_data', task, "videos")
+            now_project_videos = os.path.join(now_project, "videos")
+            pose_videos = os.path.join(now_project, "videos_pose_estimation")
+            os.mkdir(pose_videos)
+
+            now_project_calib = os.path.join(now_project, "calib-2d")
+            now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+            shutil.copytree(now_task_videos, now_project_videos)
+            shutil.copy(calib_ori_path, now_project_calib)
+            os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+            print("切換至" + os.getcwd())
+            timesync_video(now_project_videos,4, os.path.join(now_project, "opensim"))
+            for l in range(1,5):
+                now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
+                now_pose =  os.path.join(pose_videos, str(l) + ".mp4")
+                now_json = os.path.join(now_project, "pose-2d")
+                now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
+                print(now_videos)
+                rtm2json(now_videos, now_json+'.json',now_pose)
+
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            os.chdir(now_project)
+            print("切換至" + os.getcwd())
+            cam_boundary_path = os.path.join(cal_data_path, 'raw_data', task, 'name', 'Boundary.txt')
+            if os.path.exists(cam_boundary_path):
+                
+                cam_boundary = []
+                with open(cam_boundary_path, 'r') as file: # read the txt file to get which side need to be opened
+                    lines = file.readlines()
+                    for line in lines:
+                        cam_boundary.append(int(line.strip()))
+                Pose2Sim.triangulation_multi(project_path=now_project, boundary=cam_boundary)
+            else:
+                Pose2Sim.triangulation_multi(project_path=now_project)
+            Pose2Sim.filtering_multi()
+            for apose_p_path in Apose_p_path:
+                a_p_pth = Path(apose_p_path).parent
+                rpj_all_dir = os.path.join(a_p_pth, task, 'User', 'reprojection_record.npz')           
+                if os.path.isfile(rpj_all_dir):
+                    if not os.path.isfile(os.path.join(a_p_pth, task,'videos_pose_estimation_repj_combine')):
+                        os.mkdir(os.path.join(a_p_pth, task,'videos_pose_estimation_repj_combine'))
+                    for video_rpj_count in range(1,5):
+                        out_video = os.path.join(a_p_pth, task, 'videos_pose_estimation_repj_combine', str(video_rpj_count)+'.mp4')
+                        Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                        rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+            cv2.destroyAllWindows()
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            now_project_3d = os.path.join(now_project, "pose-3d")
+            trc_files = os.listdir(now_project_3d)   
+            for m in trc_files:
+                if "filt" in m:
+                    copy_3d = m
+                    p_name = copy_3d.split('_')[-4]
+                    now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+                    p_cal_task_path = os.path.join(Patient_data_path, p_name, date, folder_name, task)
+                    shutil.copytree(os.path.join(now_project, "opensim"), os.path.join(p_cal_task_path, 'opensim'), dirs_exist_ok=True)                    
+                    shutil.copy(now_project_trc_ori, os.path.join(p_cal_task_path, 'opensim', 'Empty_project_filt_0-30.trc'))
+                    os.chdir(posesim_path)
+                    print("切換至" + os.getcwd())
+                    scaling_model = os.path.join(Patient_data_path, p_name, date, folder_name, 'Apose', 'opensim', 'Model_Pose2Sim_Halpe26_scaled.osim')
+                    shutil.copy(scaling_model, os.path.join(p_cal_task_path, 'opensim', 'Model_Pose2Sim_Halpe26_scaled.osim'))
+                    now_project_opensim = os.path.join(p_cal_task_path, 'opensim')
+                    now_project_opensim_scaling = os.path.join(now_project_opensim, "IK_Setup_Pose2Sim_Halpe26.xml")                    
+                    os.chdir(now_project_opensim)
+                    now_project_opensim_scaling = now_project_opensim_scaling.replace('\\', '/')
+                    print("切換至" + os.getcwd())
+                    subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
+                    os.chdir(ori_path)
+            
+            if gait_token:
+                for apose_p_path in Apose_p_path:
+                    caculate_finshed_path = Path(apose_p_path).parent
+                    gait1(caculate_finshed_path)
+                    for task_gltf in os.listdir(caculate_finshed_path):
+                        if task_gltf != "Apose":
+                            osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+                            geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+                            motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+                            outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+                            working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+                            os.chdir(working_dir)
+                            try:
+                                convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+                            except:
+                                continue
+                os.chdir(ori_path)
+
+    else:
+        calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
+        caculate_finshed_path = os.path.join(data_path, folder_name)
+        os.makedirs(caculate_finshed_path, exist_ok=True)
+        print("資料夾成功創建:", caculate_finshed_path)        
+        old_apose_path = caculate_finshed_path
+        old_apose_path = os.path.join(old_apose_path,"Apose")
+        print("old_apose_path", old_apose_path)
+        now_date = data_path
+        apose_stage = 0
+        apose_using = False
+        apose_file = os.path.join(now_date,'raw_data', "Apose")
+        print("apose_file",apose_file)
+                
+        if os.path.exists(apose_file):
+            print("使用最新Apose校正")
+            apose_stage = 1
+            apose_using = True
+            scaling_model = os.path.join(old_apose_path, "opensim")
+            scaling_model = os.path.join(scaling_model, "Model_Pose2Sim_Halpe26_scaled.osim")
+        elif os.path.exists(old_apose_path):
+            print("使用前次拍攝之Apose")
+            apose_using = True
+            scaling_model = os.path.join(old_apose_path, "opensim")
+            scaling_model = os.path.join(scaling_model, "Model_Pose2Sim_Halpe26_scaled.osim")
+        else:
+            print("不使用Apose")
+
+        if apose_stage == 1:
+            try:
+                print("嘗試創建資料夾")
+                print("apose_file: " + old_apose_path)
+                cal_apose_path = old_apose_path
+                os.makedirs(cal_apose_path, exist_ok=True)
+                print("資料夾成功創建")
+            except:
+                print("將覆蓋Apose")
+                subprocess.run(["rmdir", "/s", "/q", cal_apose_path], check=True, shell=True)
+                print("重新創建資料夾")
+                cal_apose_path = old_apose_path
+                os.makedirs(cal_apose_path, exist_ok=True)
+            try:
+                now_project = old_apose_path
+                
+                print(empty_project_path)
+                print(now_project)
+
+                contents = os.listdir(empty_project_path)
+                print(contents)
+                for item in contents:
+                    source = os.path.join(empty_project_path, item)
+                    target = os.path.join(now_project, item)
+                    if os.path.isdir(source):
+                        shutil.copytree(source, target)
+                    else:
+                        shutil.copy2(source, target)
+                print("複製專案成功")
+            except:
+                print("複製專案失敗")
+            apose_file_videos = os.path.join(apose_file, "videos")
+            now_project_videos = os.path.join(now_project, "videos")
+            now_pose_videos = os.path.join(now_project, "videos_pose_estimation")
+            os.mkdir(now_pose_videos)
+            print(now_pose_videos)
+            now_project_calib = os.path.join(now_project, "calib-2d")
+            now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+            shutil.copytree(apose_file_videos, now_project_videos)
+            shutil.copy(calib_ori_path, now_project_calib)
+            os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+
+            print("切換至" + os.getcwd())
+            
+            for l in range(1,5):
+                now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
+                now_pose =  os.path.join(now_pose_videos, str(l) + ".mp4")
+                now_json = os.path.join(now_project, "pose-2d")
+                now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
+                rtm2json(now_videos, now_json+'.json',now_pose)
+                print(now_pose)
+            
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            os.chdir(now_project)
+            print("切換至" + os.getcwd())
+            
+            Pose2Sim.personAssociation_multi()
+            
+            Pose2Sim.triangulation()
+            
+            Pose2Sim.filtering()
+            import inspect
+            print(inspect.getfile(Pose2Sim))
+            
+            rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
+            if os.path.isfile(rpj_all_dir):
+                if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
+                    os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                    print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                    
+                for video_rpj_count in range(1,5):
+                    # if video_rpj_count == 3:
+                    out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                    Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                        
+                    rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+            cv2.destroyAllWindows()
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            
+            now_project_3d = os.path.join(now_project, "pose-3d")
+            trc_files = os.listdir(now_project_3d)
+            for m in trc_files:
+                if "filt" in m:
+                    copy_3d = m
+            
+            now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+            copy_3d_2 = os.path.join(now_project, "opensim")
+            copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
+            shutil.copy(now_project_trc_ori, copy_3d_2)
+
+            os.chdir(posesim_path)
+            print("切換至" + os.getcwd())
+            now_project_opensim = os.path.join(now_project, "opensim")
+            now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml")
+            os.chdir(now_project_opensim)
+            print("切換至" + os.getcwd())
+            halpe26_xml_update(now_project)
+            subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
+            
+
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+        
+        tasks = os.listdir(os.path.join(cal_data_path,'raw_data'))
+        for k in tasks:
+            if k == "Apose" or k == "calibration" or k == 'Meet_note.json':
+                continue
+            
+            
+            now_task = os.path.join(caculate_finshed_path, k)
+            now_project = now_task
+            
+            shutil.copytree(empty_project_path, now_project)
+
+            now_task_videos = os.path.join(cal_data_path,'raw_data', k, "videos")
+            now_project_videos = os.path.join(now_project, "videos")
+            pose_videos = os.path.join(now_project, "videos_pose_estimation")
+            os.mkdir(pose_videos)
+
+            now_project_calib = os.path.join(now_project, "calib-2d")
+            now_project_calib = os.path.join(now_project_calib, "Calib.toml")
+            shutil.copytree(now_task_videos, now_project_videos)
+            shutil.copy(calib_ori_path, now_project_calib)
+            os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
+            print("切換至" + os.getcwd())
+            timesync_video(now_project_videos,4, os.path.join(now_project, "opensim"))
+            for l in range(1,5):
+                now_videos = os.path.join(now_project_videos, str(l) + ".mp4")
+                now_pose =  os.path.join(pose_videos, str(l) + ".mp4")
+                now_json = os.path.join(now_project, "pose-2d")
+                now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
+                print(now_videos)
+                # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
+
+                rtm2json(now_videos, now_json+'.json',now_pose)
+
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            os.chdir(now_project)
+            print("切換至" + os.getcwd())         
+            Pose2Sim.personAssociation_multi()        
+            Pose2Sim.triangulation()
+            Pose2Sim.filtering()        
+            rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
+            if os.path.isfile(rpj_all_dir):
+                if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
+                    os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
+                for video_rpj_count in range(1,5):
+                    out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
+                    Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
+                    rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
+            cv2.destroyAllWindows()
+            os.chdir(ori_path)
+            print("切換至" + os.getcwd())
+            now_project_3d = os.path.join(now_project, "pose-3d")
+            trc_files = os.listdir(now_project_3d)
+            for m in trc_files:
+                if "filt" in m:
+                    copy_3d = m
+
+            now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
+            copy_3d_2 = os.path.join(now_project, "opensim")
+            copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
+            shutil.copy(now_project_trc_ori, copy_3d_2)
+
+            os.chdir(posesim_path)
+            print("切換至" + os.getcwd())
+            now_project_opensim = os.path.join(now_project, "opensim")
+            if apose_using:
+                now_project_opensim_scaling = os.path.join(now_project_opensim, "Model_Pose2Sim_Halpe26_scaled.osim")
+                shutil.copy(scaling_model, now_project_opensim_scaling)
+                now_project_opensim_scaling = os.path.join(now_project_opensim, "IK_Setup_Pose2Sim_Halpe26.xml")
+            else:
+                now_project_opensim_scaling = os.path.join(now_project_opensim, "IK_Setup_Pose2Sim_Body26_without_scaling.xml")
+            os.chdir(now_project_opensim)
+            ###################################### very weird but seems only / works
+            now_project_opensim_scaling = now_project_opensim_scaling.replace('\\', '/')
+            print("切換至" + os.getcwd())
+            #######################################
+            #halpe26_xml_update(now_project)
+            subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
+            os.chdir(ori_path)
+        if gait_token:
+            gait1(caculate_finshed_path)
+            for task_gltf in os.listdir(caculate_finshed_path):
+                if task_gltf != "Apose":
+                    osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+                    geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+                    motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+                    outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+                    working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+                    os.chdir(working_dir)
+                    try:
+                        convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+                    except:
+                        continue
+            os.chdir(ori_path)
+        else:
+            return caculate_finshed_path
+
+def marker_caculate_fast(PWD,cal_data_path):
+    from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
     openpose_path = os.path.join(openpose_path, "ThirdParty")
@@ -794,9 +1553,10 @@ def marker_caculate(PWD,cal_data_path):
         os.chdir(now_project)
         print("切換至" + os.getcwd())
         
+        Pose2Sim.personAssociation_multi()
         
-        Pose2Sim.personAssociation()
         Pose2Sim.triangulation()
+        
         Pose2Sim.filtering()
         import inspect
         print(inspect.getfile(Pose2Sim))
@@ -808,12 +1568,11 @@ def marker_caculate(PWD,cal_data_path):
             if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
                 os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
                 print(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
-                #import pdb;pdb.set_trace()
+
             for video_rpj_count in range(1,5):
                     
                 out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
                 Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
-                    #import pdb;pdb.set_trace()
                 rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
         cv2.destroyAllWindows()
         os.chdir(ori_path)
@@ -836,78 +1595,72 @@ def marker_caculate(PWD,cal_data_path):
         now_project_opensim_scaling = os.path.join(now_project_opensim, "Scaling_Setup_Pose2Sim_Halpe26.xml")
         os.chdir(now_project_opensim)
         print("切換至" + os.getcwd())
+
         halpe26_xml_update(now_project)
-        #import pdb;pdb.set_trace()
+      
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
-        
+          
 
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
 
     tasks = os.listdir(os.path.join(cal_data_path,'raw_data'))
     for k in tasks:
-        if k == "Apose":
-            continue
-        if k == "calibration":
+
+        if k.endswith(("Apose","calibration",".json")):
             continue
         
         now_task = os.path.join(caculate_finshed_path, k)
         now_project = now_task
         
         shutil.copytree(empty_project_path, now_project)
-        #import pdb;pdb.set_trace()
 
         now_task_videos = os.path.join(cal_data_path,'raw_data', k, "videos")
         now_project_videos = os.path.join(now_project, "videos")
         pose_videos = os.path.join(now_project, "videos_pose_estimation")
-        os.mkdir(pose_videos)
+        #os.mkdir(pose_videos)
 
         now_project_calib = os.path.join(now_project, "calib-2d")
         now_project_calib = os.path.join(now_project_calib, "Calib.toml")
-        shutil.copytree(now_task_videos, now_project_videos)
+        #shutil.copytree(now_task_videos, now_project_videos)
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
         print("切換至" + os.getcwd())
-        for l in range(1,5):
-            now_videos = os.path.join(now_task_videos, str(l) + ".mp4")
-            now_pose =  os.path.join(pose_videos, str(l) + ".mp4")
-            now_json = os.path.join(now_project, "pose-2d")
-            now_json = os.path.join(now_json, "pose_cam" + str(l) + "_json")
-            print(now_videos)
-            # subprocess.run([openpose_exe, "BODY_25", "--video", now_videos, "--write_json", now_json, "--number_people_max", "1"])
-
-            rtm2json(now_videos, now_json+'.json',now_pose)
-
+        rtm_coord,calibrate_array=timesync2rtm(now_task_videos,4,os.path.join(now_project, "opensim"),os.path.join(now_project, "pose-2d"))
+        np.save(os.path.join(now_project,'coord.npz'),rtm_coord)
         os.chdir(ori_path)
         print("切換至" + os.getcwd())
         os.chdir(now_project)
         print("切換至" + os.getcwd())
-        
-        
-        Pose2Sim.personAssociation()
-        Pose2Sim.triangulation()
+        s = time.time()
+        coord = Pose2Sim.personAssociation_multi_fast(rtm_coord) 
+        e = time.time()
+        #Pose2Sim.triangulation()
+        Pose2Sim.triangulation_fast(coord)
+        f = time.time()
         Pose2Sim.filtering()
-        
-        
+        g = time.time()
+        cv2.destroyAllWindows()
+        print('Accosiation: '+ str(e-s)+'\ntriangulation: '+str(f-e)+'\nfitlering: '+str(g-f))
 
+        os.chdir(ori_path)
+        now_project_3d = os.path.join(now_project, "pose-3d")
+        trc_files = os.listdir(now_project_3d)
+        for m in trc_files:
+            if "filt" in m:
+                copy_3d = m
+        ############## output rpj videos
+        
         rpj_all_dir = os.path.join(now_project,'User','reprojection_record.npz')
         if os.path.isfile(rpj_all_dir):
             if not os.path.isfile(os.path.join(now_project,'videos_pose_estimation_repj_combine')):
                 os.mkdir(os.path.join(now_project,'videos_pose_estimation_repj_combine'))
             for video_rpj_count in range(1,5):
                 out_video = os.path.join(now_project,'videos_pose_estimation_repj_combine',str(video_rpj_count)+'.mp4')
-                Video_path = os.path.join(now_project,'videos' ,str(video_rpj_count) + '.mp4')
-                rtm2json_rpjerror(Video_path,out_video,rpj_all_dir)
-        cv2.destroyAllWindows()
-        os.chdir(ori_path)
-        print("切換至" + os.getcwd())
-        # import ipdb;ipdb.set_trace()
-        now_project_3d = os.path.join(now_project, "pose-3d")
-        trc_files = os.listdir(now_project_3d)
-        for m in trc_files:
-            if "filt" in m:
-                copy_3d = m
+                Video_path = os.path.join(now_task_videos ,str(video_rpj_count) + '.mp4')
+                rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,calibrate_array)
 
+        ##############
         now_project_trc_ori = os.path.join(now_project_3d, copy_3d)
         copy_3d_2 = os.path.join(now_project, "opensim")
         copy_3d_2 = os.path.join(copy_3d_2, "Empty_project_filt_0-30.trc")
@@ -928,11 +1681,23 @@ def marker_caculate(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         #######################################
         #halpe26_xml_update(now_project)
-        #import pdb;pdb.set_trace()
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
+    
+    gait1(caculate_finshed_path)
+    for task_gltf in os.listdir(caculate_finshed_path):
+        if task_gltf != "Apose":
+            osimModelFilePath=os.path.join(caculate_finshed_path, task_gltf, "opensim/Model_Pose2Sim_Halpe26_scaled.osim")
+            geometrySearchPath=os.path.join(ori_path, "NTK_CAP/script_py/osimConverters/Geometry")
+            motionPaths=[os.path.join(caculate_finshed_path, task_gltf, "opensim/Balancing_for_IK_BODY.mot")]
+            outputfile=os.path.join(caculate_finshed_path, task_gltf, "model.gltf")
+            working_dir = os.path.join(ori_path, "NTK_CAP/script_py/osimConverters")
+            os.chdir(working_dir)
+            try:
+                convertOsim2Gltf(osimModelFilePath, geometrySearchPath, motionPaths, outputfile)
+            except:
+                continue
 
-# subprocess.run(["rmdir", "/s", "/q", now_patient], check=True, shell=True)
-                
-
-
+    os.chdir(ori_path)
+    
+    return caculate_finshed_path

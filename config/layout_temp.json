@@ -1,0 +1,43 @@
+{
+    "meet_layoutId": "Dr.Tsai Special meet",
+    "action_layoutId": "Dr. Tsai Special action",
+    "fields": [
+        {
+            "type": "input",
+            "title": "Symptoms",
+            "content": "",
+            "notetype": "meet"
+        },
+        {
+            "type": "input",
+            "title": "Fall Risk Level",
+            "content": "",
+            "notetype": "meet"
+        },
+        {
+            "type": "spinner",
+            "title": "Walking aid",
+            "content": "Choose an option",
+            "notetype": "action",
+            "options": [
+                "None",
+                "Walking Stick",
+                "Cane",
+                "Crutch",
+                "Hiking Pole",
+                "Quad Cane",
+                "Folding Cane",
+                "Offset Cane",
+                "White Cane",
+                "Forearm Crutch",
+                "Tripod Cane"
+            ]
+        },
+        {
+            "type": "input",
+            "title": "Note",
+            "content": "",
+            "notetype": "action"
+        }
+    ]
+}

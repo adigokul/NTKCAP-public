@@ -1,13 +1,16 @@
-set root=C:\Users\user\anaconda3
+set root=C:\Users\mauricetemp\anaconda3
 call %root%\Scripts\activate.bat %root%
+cd C:\Users\mauricetemp\Desktop\NTKCAP
+
 
 call conda activate pose2
 call pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
 call cd .\NTK_CAP\ThirdParty\EasyMocap
+call pip install setuptools==69.5.0
 call python setup.py develop --user
 call pip install -U openmim
 call mim install mmengine
-call mim install "mmcv>=2.0.1"
+call mim install "mmcv>=2.1.0"
 call mim install "mmdet>=3.3.0"
 call cd ..
 call cd mmpose
@@ -20,6 +23,19 @@ call pip install keyboard
 call pip install import_ipynb
 call pip install kivy
 call pip install "Pose2Sim==0.4"
-call pip install numpy==1.22.4
+call pip install pygltflib
+call pip install vtk
+call pip install numpy==1.22.4 
+call pip install scipy==1.13.0
 call pip install ultralytics
 call pip install tkfilebrowser
+call pip install kivy
+call pip install matplotlib==3.8.4
+call pip install pyserial
+call conda install -c opensim-org opensim=4.5=py310np121
+call pip install func_timeout
+call pip install pygltflib
+call pip install natsort
+call pip install openpyxl
+
+

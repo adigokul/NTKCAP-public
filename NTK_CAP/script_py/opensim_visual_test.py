@@ -3,6 +3,8 @@ import time
 import numpy as np
 import argparse
 import os
+
+import inspect
 def update_geometry_paths_in_memory(model, new_geometry_dir):
     model.initSystem()  # Initialize system to ensure model components are ready
 
@@ -25,7 +27,13 @@ def main(motfile, model_file,new_geometry_dir):
     time_data = osim.TimeSeriesTable(motfile)
     model = osim.Model(model_file)
     update_geometry_paths_in_memory(model, new_geometry_dir)
+    original = os.getcwd()
+    directory =inspect.getfile(osim)
+    while os.path.dirname(directory) != directory:
+        directory = os.path.dirname(directory)
+    os.chdir(directory)
     osim.VisualizerUtilities_showMotion(model, time_data)
+    os.chdir(original)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize motion data on a given model.")

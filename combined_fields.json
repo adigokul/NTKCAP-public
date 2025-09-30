@@ -1,0 +1,130 @@
+[
+    {
+        "type": "input",
+        "title": "Task number",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "spinner",
+        "title": "Task outin",
+        "content": "Choose an option",
+        "notetype": "meet",
+        "options": [
+            "Inside camera",
+            "walk from outside"
+        ]
+    },
+    {
+        "type": "spinner",
+        "title": "Facing",
+        "content": "Choose an option",
+        "notetype": "meet",
+        "options": [
+            "Door",
+            "Window"
+        ]
+    },
+    {
+        "type": "input",
+        "title": "Symptoms",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Fall Risk Level",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Temperature(C)",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Level of Mood",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "spinner",
+        "title": "Treatment Phase",
+        "content": "Choose an option",
+        "notetype": "meet",
+        "options": [
+            "Pre phase",
+            "Post-injection",
+            "Post-trainging"
+        ]
+    },
+    {
+        "type": "spinner",
+        "title": "Cloth Color",
+        "content": "Choose an option",
+        "notetype": "meet",
+        "options": [
+            "Red",
+            "Orange",
+            "Yellow",
+            "Green",
+            "Blue",
+            "Purple"
+        ]
+    },
+    {
+        "type": "spinner",
+        "title": "Task Type",
+        "content": "Choose an option",
+        "notetype": "action",
+        "options": [
+            "Walk",
+            "Run",
+            "TUG",
+            "Stair"
+        ]
+    },
+    {
+        "type": "spinner",
+        "title": "Walking aid",
+        "content": "Choose an option",
+        "notetype": "action",
+        "options": [
+            "None",
+            "Walking Stick",
+            "Cane",
+            "Crutch",
+            "Hiking Pole",
+            "Quad Cane",
+            "Folding Cane",
+            "Offset Cane",
+            "White Cane",
+            "Forearm Crutch",
+            "Tripod Cane"
+        ]
+    },
+    {
+        "type": "spinner",
+        "title": "Direction",
+        "content": "Choose an option",
+        "notetype": "action",
+        "options": [
+            "AtoB",
+            "BtoA"
+        ]
+    },
+    {
+        "type": "input",
+        "title": "Note",
+        "content": "",
+        "notetype": "action"
+    },
+    {
+        "type": "input",
+        "title": "Task Number",
+        "content": "",
+        "notetype": "action"
+    }
+]

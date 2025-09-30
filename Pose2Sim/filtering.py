@@ -24,19 +24,27 @@
 
 ## INIT
 import os
+import glob
 import fnmatch
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
-
+import cupyx.scipy.signal as cusignal
+import cupy as cp
 from scipy import signal
 from scipy.ndimage import gaussian_filter1d
 from statsmodels.nonparametric.smoothers_lowess import lowess
 from filterpy.kalman import KalmanFilter, rts_smoother
 from filterpy.common import Q_discrete_white_noise
+import toml
+#from Pose2Sim.common import plotWindow
+import cupy as cp
+import cupyx.scipy.signal as cusignal
+import numpy as np
+import pandas as pd
+import time
 
-from Pose2Sim.common import plotWindow
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
@@ -206,6 +214,7 @@ def butterworth_filter_1d(config, col):
     
         # Filter each of the selected sequences
         for seq_f in idx_sequences_to_filter:
+            #import pdb;pdb.set_trace()
             col_filtered[seq_f] = signal.filtfilt(b, a, col_filtered[seq_f])
     
     return col_filtered
@@ -246,11 +255,11 @@ def butterworth_on_speed_filter_1d(config, col):
     
         # Filter each of the selected sequences
         for seq_f in idx_sequences_to_filter:
+            
             col_filtered_diff[seq_f] = signal.filtfilt(b, a, col_filtered_diff[seq_f])
     col_filtered = col_filtered_diff.cumsum() + col.iloc[0] # integrate filtered derivative
     
     return col_filtered
-
 
 def gaussian_filter_1d(config, col):
     '''
@@ -269,7 +278,6 @@ def gaussian_filter_1d(config, col):
     col_filtered = gaussian_filter1d(col, gaussian_filter_sigma_kernel)
 
     return col_filtered
-    
 
 def loess_filter_1d(config, col):
     '''
@@ -320,48 +328,48 @@ def median_filter_1d(config, col):
     return col_filtered
 
 
-def display_figures_fun(Q_unfilt, Q_filt, time_col, keypoints_names):
-    '''
-    Displays filtered and unfiltered data for comparison
+# def display_figures_fun(Q_unfilt, Q_filt, time_col, keypoints_names):
+#     '''
+#     Displays filtered and unfiltered data for comparison
 
-    INPUTS:
-    - Q_unfilt: pandas dataframe of unfiltered 3D coordinates
-    - Q_filt: pandas dataframe of filtered 3D coordinates
-    - time_col: pandas column
-    - keypoints_names: list of strings
+#     INPUTS:
+#     - Q_unfilt: pandas dataframe of unfiltered 3D coordinates
+#     - Q_filt: pandas dataframe of filtered 3D coordinates
+#     - time_col: pandas column
+#     - keypoints_names: list of strings
 
-    OUTPUT:
-    - matplotlib window with tabbed figures for each keypoint
-    '''
+#     OUTPUT:
+#     - matplotlib window with tabbed figures for each keypoint
+#     '''
 
-    pw = plotWindow()
-    for id, keypoint in enumerate(keypoints_names):
-        f = plt.figure()
+#     pw = plotWindow()
+#     for id, keypoint in enumerate(keypoints_names):
+#         f = plt.figure()
         
-        axX = plt.subplot(311)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3].to_numpy(), label='filtered')
-        plt.setp(axX.get_xticklabels(), visible=False)
-        axX.set_ylabel(keypoint+' X')
-        plt.legend()
+#         axX = plt.subplot(311)
+#         plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3].to_numpy(), label='unfiltered')
+#         plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3].to_numpy(), label='filtered')
+#         plt.setp(axX.get_xticklabels(), visible=False)
+#         axX.set_ylabel(keypoint+' X')
+#         plt.legend()
 
-        axY = plt.subplot(312)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+1].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+1].to_numpy(), label='filtered')
-        plt.setp(axY.get_xticklabels(), visible=False)
-        axY.set_ylabel(keypoint+' Y')
-        plt.legend()
+#         axY = plt.subplot(312)
+#         plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+1].to_numpy(), label='unfiltered')
+#         plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+1].to_numpy(), label='filtered')
+#         plt.setp(axY.get_xticklabels(), visible=False)
+#         axY.set_ylabel(keypoint+' Y')
+#         plt.legend()
 
-        axZ = plt.subplot(313)
-        plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+2].to_numpy(), label='unfiltered')
-        plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+2].to_numpy(), label='filtered')
-        axZ.set_ylabel(keypoint+' Z')
-        axZ.set_xlabel('Time')
-        plt.legend()
+#         axZ = plt.subplot(313)
+#         plt.plot(time_col.to_numpy(), Q_unfilt.iloc[:,id*3+2].to_numpy(), label='unfiltered')
+#         plt.plot(time_col.to_numpy(), Q_filt.iloc[:,id*3+2].to_numpy(), label='filtered')
+#         axZ.set_ylabel(keypoint+' Z')
+#         axZ.set_xlabel('Time')
+#         plt.legend()
 
-        pw.addPlot(keypoint, f)
+#         pw.addPlot(keypoint, f)
     
-    pw.show()
+#     pw.show()
 
 
 def filter1d(col, config, filter_type):
@@ -389,7 +397,6 @@ def filter1d(col, config, filter_type):
     
     # Filter column
     col_filtered = filter_fun(config, col)
-
     return col_filtered
 
 
@@ -428,6 +435,61 @@ def recap_filter3d(config, trc_path):
     logging.info(filter_mapping_recap[filter_type])
     logging.info(f'Filtered 3D coordinates are stored at {trc_path}.')
 
+
+
+def butterworth_filter_2d_gpu(config, data):
+    '''
+    2D zero-phase Butterworth filter (dual pass) on each column using CuPy.
+    Ignores NaN values by interpolating over them.
+
+    INPUT:
+    - data: Pandas DataFrame (2D time series data with each column as a separate series)
+    - config: configuration dictionary with filter settings
+
+    OUTPUT:
+    - data_filtered: Filtered DataFrame with original NaN values restored
+    '''
+
+    # Extract filter parameters from config
+    filter_type = 'low'  # config.get('filtering').get('butterworth').get('type')
+    order = int(config.get('filtering').get('butterworth').get('order'))
+    cutoff = int(config.get('filtering').get('butterworth').get('cut_off_frequency'))
+    framerate = config.get('project').get('frame_rate')
+
+    # Calculate Butterworth filter coefficients on CPU
+    b, a = signal.butter(order / 2, cutoff / (framerate / 2), filter_type, analog=False)
+    
+    # Convert coefficients to CuPy arrays for GPU filtering
+    b = cp.array(b)
+    a = cp.array(a)
+
+    # Convert the entire DataFrame to a CuPy array
+    data_gpu = cp.array(data.values)
+    
+    # Create a mask for NaNs
+    mask_gpu = cp.isnan(data_gpu)
+
+    # Replace NaNs temporarily with the mean of each column
+    col_means = cp.nanmean(data_gpu, axis=0)
+    data_gpu = cp.where(mask_gpu, col_means, data_gpu)
+
+    # Apply forward filtering on all columns at once
+    filtered_forward = cusignal.lfilter(b, a, data_gpu, axis=0)
+
+    # Reverse and apply backward filtering on all columns
+    filtered_reversed = filtered_forward[::-1]
+    filtered_backward = cusignal.lfilter(b, a, filtered_reversed, axis=0)
+
+    # Reverse again to get the zero-phase filtered signal
+    data_filtered_gpu = filtered_backward[::-1]
+
+    # Restore NaNs to their original positions
+    data_filtered_gpu = cp.where(mask_gpu, cp.nan, data_filtered_gpu)
+
+    # Convert back to Pandas DataFrame to maintain compatibility with the original format
+    data_filtered = pd.DataFrame(cp.asnumpy(data_filtered_gpu), index=data.index, columns=data.columns)
+
+    return data_filtered
 
 def filter_all(config):
     '''
@@ -473,6 +535,7 @@ def filter_all(config):
     trc_f_out = f'{seq_name}_filt_{filter_type}_{f_range[0]}-{f_range[1]}.trc'
     trc_path_in = os.path.join(pose3d_dir, trc_f_in)
     trc_path_out = os.path.join(pose3d_dir, trc_f_out)
+    trc_path_out_g = os.path.join(pose3d_dir, 'gpu.trc')
     
     # Read trc header
     with open(trc_path_in, 'r') as trc_file:
@@ -482,15 +545,18 @@ def filter_all(config):
     trc_df = pd.read_csv(trc_path_in, sep="\t", skiprows=4)
     frames_col, time_col = trc_df.iloc[:,0], trc_df.iloc[:,1]
     Q_coord = trc_df.drop(trc_df.columns[[0, 1]], axis=1)
-
+    #import pdb;pdb.set_trace()
     # Filter coordinates
+    s = time.time()
     Q_filt = Q_coord.apply(filter1d, axis=0, args = [config, filter_type])
-
+    #e = time.time()
+    #Q_filt_g =butterworth_filter_2d_gpu(config, Q_coord)
+    #f = time.time()
     # Display figures
     if display_figures:
         # Retrieve keypoints
         keypoints_names = pd.read_csv(trc_path_in, sep="\t", skiprows=3, nrows=0).columns[2::3].to_numpy()
-        display_figures_fun(Q_coord, Q_filt, time_col, keypoints_names)
+        #display_figures_fun(Q_coord, Q_filt, time_col, keypoints_names)
 
     # Reconstruct trc file with filtered coordinates
     with open(trc_path_out, 'w') as trc_o:
@@ -499,5 +565,16 @@ def filter_all(config):
         Q_filt.insert(1, 'Time', time_col)
         Q_filt.to_csv(trc_o, sep='\t', index=False, header=None, line_terminator='\n')
 
+    # with open(trc_path_out_g, 'w') as trc_o:
+    #     [trc_o.write(line) for line in header]
+    #     Q_filt_g.insert(0, 'Frame#', frames_col)
+    #     Q_filt_g.insert(1, 'Time', time_col)
+    #     Q_filt_g.to_csv(trc_o, sep='\t', index=False, header=None, line_terminator='\n')
+
     # Recap
     recap_filter3d(config, trc_path_out)
+    #print('cpu:' + str(e-s)+'s\ngpu: ' +str(f-e) +'s')
+# dir = r'C:\Users\mauricetemp\Desktop\NTKCAP\Patient_data\ANN_FAKE\2024_09_23\2024_11_12_16_32_calculated\1'
+# os.chdir(dir)
+# config_dict = toml.load(os.path.join(dir,'User','Config.toml'))
+# filter_all(config_dict)

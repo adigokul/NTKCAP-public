@@ -4,7 +4,18 @@ __pycache__/
 .ipynb_checkpoints/
 patient/testing/
 /*venv*/
+# Ignore everything in Patient_data except Patient_ID
 Patient_data/*
 !Patient_data/Patient_ID/
-calibration/
+# If you want to include all files under Patient_ID, specify like below
+!Patient_data/Patient_ID/**
+#calibration/
 
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/NTK_CAP/ThirdParty/TensorRT-8.6.1.6/
+*.dll
+*.onnx
+*.caffemodel
+*.engine

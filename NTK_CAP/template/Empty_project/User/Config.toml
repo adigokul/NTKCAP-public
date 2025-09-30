@@ -17,6 +17,7 @@ pose_img_folder_extension = 'img'
 poseAssociated_folder_name = 'pose-2d-tracked'
 pose3d_folder_name = 'pose-3d'
 opensim_folder_name = 'opensim'
+multi_person = true
 
 
 [pose]
@@ -87,7 +88,12 @@ calibration_type = 'convert' # 'convert' or 'calculate'
 [personAssociation]
 tracked_keypoint = 'Neck' # If the neck is not detected by the pose_model, check skeleton.py 
 # and choose a stable point for tracking the person of interest (e.g., 'right_shoulder' with BLAZEPOSE)
-reproj_error_threshold_association = 20 # px
+reproj_error_threshold_association = 10 # px
+likelihood_threshold_association = 0.7
+error_threshold_tracking = 10 # px
+   [personAssociation.multi_person]
+   reconstruction_error_threshold = 0.1 # m
+   min_affinity = 0.8
 
 
 [triangulation]
@@ -98,6 +104,8 @@ interpolation = 'cubic' #linear, slinear, quadratic, cubic, or none
 # 'none' if you don't want to interpolate missing points
 interp_if_gap_smaller_than = 10000 # do not interpolate bigger gaps
 show_interp_indices = true # true or false (lowercase). For each keypoint, return the frames that need to be interpolated
+undistort_points = false
+make_c3d = false
 
 
 [filtering]

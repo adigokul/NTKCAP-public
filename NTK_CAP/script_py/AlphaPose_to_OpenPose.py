@@ -63,49 +63,33 @@ def AlphaPose_to_OpenPose_func(*args):
     # Open AlphaPose json file
     with open(input_alphapose_json_file, 'r') as alpha_json_f:
         alpha_js = json.load(alpha_json_f)
-        json_dict = {'version':1.3, 'people':[]}
+        
         coords = []
         frame_next = int(alpha_js[0].get('image_id'))
-        for i, a in enumerate(alpha_js):
-            frame_prev = int(a.get('image_id'))
-            coords = a.get('keypoints')
-            if frame_next != frame_prev or i==0:
-                # Save openpose json file with all people contained in the previous frame
-                if i != 0:
-                    json_file = os.path.join(output_openpose_json_folder, os.path.splitext(os.path.basename(str(frame_prev-1).zfill(5)))[0]+'.json')
-                    with open(json_file, 'w') as js_f:
-                        js_f.write(json.dumps(json_dict))
-                # Reset json_dict
-                json_dict['people'] = [{'person_id':[-1], 
-                    'pose_keypoints_2d': [], 
-                    'face_keypoints_2d': [], 
-                    'hand_left_keypoints_2d':[], 
-                    'hand_right_keypoints_2d':[], 
-                    'pose_keypoints_3d':[], 
-                    'face_keypoints_3d':[], 
-                    'hand_left_keypoints_3d':[], 
-                    'hand_right_keypoints_3d':[]}]
-            else:
-                # Add new person to json_dict
-                json_dict['people'] += [{'person_id':[-1], 
-                    'pose_keypoints_2d': [], 
-                    'face_keypoints_2d': [], 
-                    'hand_left_keypoints_2d':[], 
-                    'hand_right_keypoints_2d':[], 
-                    'pose_keypoints_3d':[], 
-                    'face_keypoints_3d':[], 
-                    'hand_left_keypoints_3d':[], 
-                    'hand_right_keypoints_3d':[]}]
-            # Add coordinates to json_dict
-            json_dict['people'][-1]['pose_keypoints_2d'] = coords
-
-            frame_next = int(a.get('image_id'))
         
-        # Save last frame
-        json_file = os.path.join(output_openpose_json_folder, os.path.splitext(os.path.basename(str(frame_prev).zfill(5)))[0]+'.json')
-        with open(json_file, 'w') as js_f:
-            js_f.write(json.dumps(json_dict))
-
+        for i, a in enumerate(alpha_js):
+            json_dict = {'version':1.3, 'people':[]}
+            frame_id = int(alpha_js[i].get('image_id'))
+           
+            num_people = len(alpha_js[i]['people'])
+            for k in range(num_people):
+                coords = alpha_js[i]['people'][k]['pose_keypoints_2d']
+                person_data = {'person_id': [k], 
+                                'pose_keypoints_2d': coords, 
+                                'face_keypoints_2d': [],   
+                                'hand_left_keypoints_2d':[], 
+                                'hand_right_keypoints_2d':[], 
+                                'pose_keypoints_3d':[], 
+                                'face_keypoints_3d':[], 
+                                'hand_left_keypoints_3d':[], 
+                                'hand_right_keypoints_3d':[]}
+                # Save openpose json file with all people contained in the previous frame
+                json_dict['people'].append(person_data)
+                
+                
+            json_file = os.path.join(output_openpose_json_folder, os.path.splitext(os.path.basename(str(frame_id).zfill(5)))[0]+'.json')
+            with open(json_file, 'w') as js_f:
+                js_f.write(json.dumps(json_dict))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

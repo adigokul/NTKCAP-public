@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive glTF Viewer - Dynamic Resize</title>
+    <script src="./three.min.js"></script>
+    <script src="./GLTFLoader.js"></script>
+    <script src="./OrbitControls.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+    <div id="viewer" style="width: 100%; height: 100%;"></div>
+    <script>
+        const container = document.getElementById("viewer");
+
+        // Scene, Camera, and Renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);  // Flat grey background
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // ✅ Handle window resizing dynamically
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // OrbitControls for camera manipulation
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 2;
+        controls.maxDistance = 20;
+
+        // Lighting setup
+        const hemisphereLight = new THREE.HemisphereLight(0xddeeff, 0xddeeff, 0.5);
+        hemisphereLight.position.set(0, 20, 0);
+        scene.add(hemisphereLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        directionalLight.position.set(0,5,5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        // const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
+        // scene.add(ambientLight);
+
+        // Load tile.jpg texture
+        const textureLoader = new THREE.TextureLoader();
+        const tileTexture = textureLoader.load('./tile.jpg');
+        tileTexture.encoding = THREE.sRGBEncoding;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        // Configure texture to repeat across the floor
+        tileTexture.wrapS = tileTexture.wrapT = THREE.RepeatWrapping;
+        tileTexture.repeat.set(50, 50);  // Replicate the 2x2 tile to fill the floor
+        tileTexture.anisotropy = 16;
+        // Floor material with the tile texture
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            map: tileTexture,
+            roughness: 0.8,  // Control the surface reflection (higher is less shiny)
+            metalness: 0.0   // Ensure it's not metallic, which can wash out the texture
+        });
+        const floorGeometry = new THREE.PlaneGeometry(50, 50);
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;  // Rotate to lie flat
+        floor.position.y = 0;  // Place on ground level
+        floor.receiveShadow = true;  // Allow shadows on the floor
+        scene.add(floor);
+
+        // Axes helper for reference
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        let mixer, model, animationDuration = 1;
+        let isAnimating = true;
+        const clock = new THREE.Clock();
+
+        // Get model from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const modelFile = urlParams.get('model');
+
+        if (modelFile) {
+            console.log(`Loading GLTF File: ${modelFile}`);
+            loadModel(modelFile);
+        }
+
+        // Load GLTF model function
+        function loadModel(modelPath) {
+            const loader = new THREE.GLTFLoader();
+            loader.load(modelPath, (gltf) => {
+                model = gltf.scene;
+                scene.add(model);
+
+                // Check for animations
+                if (gltf.animations.length > 0) {
+                    mixer = new THREE.AnimationMixer(model);
+                    const clip = gltf.animations[0];
+                    const action = mixer.clipAction(clip);
+                    action.play();
+                    isAnimating = false;
+                    animationDuration = clip.duration;
+                    console.log(`Animation Duration: ${animationDuration}`);
+                }
+            }, undefined, (error) => {
+                console.error("Error loading the GLTF file:", error);
+            });
+        }
+
+        // Load new model dynamically from PyQt
+        window.loadNewGLTF = function (newModelPath) {
+            scene.clear();  // Clear the current scene before loading new model
+            scene.add(hemisphereLight);  // Re-add lights and helpers
+            scene.add(directionalLight);
+            scene.add(axesHelper);
+            loadModel(newModelPath);
+        };
+
+        // Camera positioning
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0, 0);
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            if (mixer && isAnimating) {
+                const deltaTime = clock.getDelta();
+                mixer.update(deltaTime);
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Animation control functions
+        window.startAnimation = function () {
+            if (mixer) {
+                isAnimating = true;
+                clock.start();
+                console.log("Animation started");
+            }
+        }
+
+        window.stopAnimation = function () {
+            if (mixer) {
+                isAnimating = false;
+                clock.stop();
+                console.log("Animation stopped");
+            }
+        }
+
+        window.updateAnimationProgress = function (progress) {
+            if (mixer) {
+                // Clamp progress to valid range
+                progress = Math.max(0, Math.min(1, progress));
+                const time = progress * animationDuration;
+                mixer.setTime(time);
+                console.log(`Animation set to time: ${time} (progress: ${progress})`);
+            }
+        }
+
+        window.getAnimationProgress = function () {
+            if (mixer && animationDuration > 0) {
+                const progress = (mixer.time % animationDuration) / animationDuration;
+                return Math.max(0, Math.min(1, progress));
+            }
+            return 0;
+        }
+
+        window.getAnimationDuration = function () {
+            return animationDuration;
+        }
+
+        window.resetAnimation = function () {
+            if (mixer) {
+                mixer.setTime(0);
+                console.log("Animation reset");
+            }
+        }
+    </script>
+</body>
+</html>

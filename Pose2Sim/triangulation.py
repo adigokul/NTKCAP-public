@@ -44,7 +44,7 @@ from collections import Counter
 import logging
 
 from Pose2Sim.common import computeP, weighted_triangulation, reprojection, \
-    euclidean_distance, natural_sort, euclidean_dist_with_multiplication,camera2point_dist
+    euclidean_distance, natural_sort, euclidean_dist_with_multiplication, camera2point_dist,computemap,undistort_points1
 from Pose2Sim.skeletons import *
 
 
@@ -926,9 +926,9 @@ def extract_files_frame_f(json_tracked_files_f, keypoints_ids):
                     y_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+1] )
                     likelihood_files_cam.append( js['people'][0]['pose_keypoints_2d'][keypoint_id*3+2] )
                 except:
-                    x_files_cam.append( np.nan )
-                    y_files_cam.append( np.nan )
-                    likelihood_files_cam.append( np.nan )
+                    x_files_cam.append( np.array(0) )
+                    y_files_cam.append( np.array(0) )
+                    likelihood_files_cam.append( np.array(0) )
 
         x_files.append(x_files_cam)
         y_files.append(y_files_cam)
@@ -982,7 +982,7 @@ def triangulate_all(config):
     #import pdb;pdb.set_trace()
     # Projection matrix from toml calibration file
     P = computeP(calib_file)
-    
+    mappingx,mappingy =computemap(calib_file)
     # Retrieve keypoints from model
     model = eval(pose_model)
     keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
@@ -1023,6 +1023,7 @@ def triangulate_all(config):
             #import pdb;pdb.set_trace()
         # Triangulate cameras with min reprojection error
             coords_2D_kpt = ( x_files[:, keypoint_idx], y_files[:, keypoint_idx], likelihood_files[:, keypoint_idx] )
+            coords_2D_kpt =undistort_points1(mappingx,mappingy,coords_2D_kpt)
             id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = -1,-1,-1,-1
             #Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt = triangulation_from_best_cameras(config, coords_2D_kpt, P)
             Q_kpt, error_kpt, nb_cams_excluded_kpt, id_excluded_cams_kpt,exclude_record_kpt,error_record_kpt,cam_dist_kpt,strongness_of_exclusion_kpt = triangulation_from_best_cameras_ver_dynamic(config, coords_2D_kpt, P,keypoints_names[keypoint_idx])
@@ -1080,14 +1081,12 @@ def triangulate_all(config):
         #import ipdb; ipdb.set_trace()
         Q_tot = Q_tot.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, interpolation_kind])
     Q_tot.replace(np.nan, 0, inplace=True)
-
     from scipy.io import savemat
     mdic = {'exclude':exclude_record_tot,'error':error_record_tot,'keypoints_name':keypoints_names,'cam_dist':cam_dist_tot,'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
     
     
-    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=exclude_record_tot,error=error_record_tot,keypoints_name=keypoints_names,cam_dist=cam_dist_tot,cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
-    np.shape(error_record_tot)
+    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),exclude=np.array(exclude_record_tot, dtype=object), error=np.array(error_record_tot, dtype=object), keypoints_name=keypoints_names, cam_dist=np.array(cam_dist_tot, dtype=object), cam_choose=np.array(id_excluded_cams_record_tot, dtype=object), strongness_of_exclusion =np.array(strongness_exclusion_tot, dtype=object))
     #pdb.set_trace()
     # Create TRC file
     trc_path = make_trc(config, Q_tot, keypoints_names, f_range)

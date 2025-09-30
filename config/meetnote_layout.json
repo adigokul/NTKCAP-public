@@ -1,0 +1,14 @@
+[
+    {
+        "type": "input",
+        "title": "Symptoms",
+        "content": "",
+        "notetype": "meet"
+    },
+    {
+        "type": "input",
+        "title": "Fall Risk Level",
+        "content": "",
+        "notetype": "meet"
+    }
+]
