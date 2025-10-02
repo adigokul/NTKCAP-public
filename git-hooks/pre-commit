@@ -1,50 +1,87 @@
 #!/bin/bash
 
 # Pre-commit hook to ensure proper email configuration
-# This script will prompt for email and name before each commit
+# This script will check and prompt for email and name before each commit
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}=========================================${NC}"
+echo -e "${BLUE}Git Commit Author Configuration Check${NC}"
+echo -e "${BLUE}=========================================${NC}"
 
 # Get current git user configuration
 current_email=$(git config user.email)
 current_name=$(git config user.name)
 
-echo "========================================="
-echo "Git Commit Author Configuration"
-echo "========================================="
 echo "Current settings:"
-echo "  Name: $current_name"
-echo "  Email: $current_email"
+echo "  Name: ${current_name:-"(not set)"}"
+echo "  Email: ${current_email:-"(not set)"}"
 echo ""
 
-# Force interactive input for email
-echo ""
-echo "Please confirm or update your email:"
-printf "Enter your email (current: '%s'): " "$current_email"
-read -r new_email < /dev/tty
-if [ ! -z "$new_email" ]; then
-    git config user.email "$new_email"
-    echo "✓ Email updated to: $new_email"
-else
-    echo "✓ Keeping current email: $current_email"
+# Check if both name and email are properly configured
+needs_config=false
+
+# Check email
+if [ -z "$current_email" ] || [ "$current_email" = "ntk@example.com" ] || [[ "$current_email" =~ @.*\.\(none\) ]]; then
+    echo -e "${YELLOW}⚠️  Email needs to be configured${NC}"
+    needs_config=true
 fi
 
-# Force interactive input for name  
-echo ""
-echo "Please confirm or update your name:"
-printf "Enter your name (current: '%s'): " "$current_name"
-read -r new_name < /dev/tty
-if [ ! -z "$new_name" ]; then
-    git config user.name "$new_name"
-    echo "✓ Name updated to: $new_name"
-else
-    echo "✓ Keeping current name: $current_name"
+# Check name  
+if [ -z "$current_name" ] || [ "$current_name" = "NTK User" ]; then
+    echo -e "${YELLOW}⚠️  Name needs to be configured${NC}"
+    needs_config=true
 fi
-echo ""
 
-echo "========================================="
-echo "Final commit author:"
-echo "  Name:  $(git config user.name)"
-echo "  Email: $(git config user.email)"
-echo "========================================="
+# If configuration is needed, prompt user
+if [ "$needs_config" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Please configure your Git identity:${NC}"
+    
+    # Prompt for email
+    if [ -z "$current_email" ] || [ "$current_email" = "ntk@example.com" ] || [[ "$current_email" =~ @.*\.\(none\) ]]; then
+        echo ""
+        printf "Enter your email address: "
+        read -r new_email < /dev/tty
+        if [ ! -z "$new_email" ] && [[ "$new_email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            git config user.email "$new_email"
+            echo -e "${GREEN}✓ Email set to: $new_email${NC}"
+        else
+            echo -e "${RED}❌ Invalid email format. Commit aborted.${NC}"
+            exit 1
+        fi
+    fi
+    
+    # Prompt for name
+    if [ -z "$current_name" ] || [ "$current_name" = "NTK User" ]; then
+        echo ""
+        printf "Enter your full name: "
+        read -r new_name < /dev/tty
+        if [ ! -z "$new_name" ]; then
+            git config user.name "$new_name"
+            echo -e "${GREEN}✓ Name set to: $new_name${NC}"
+        else
+            echo -e "${RED}❌ Name cannot be empty. Commit aborted.${NC}"
+            exit 1
+        fi
+    fi
+    
+    echo ""
+    echo -e "${GREEN}=========================================${NC}"
+    echo -e "${GREEN}Configuration completed!${NC}"
+    echo -e "${GREEN}Final commit author:${NC}"
+    echo -e "${GREEN}  Name:  $(git config user.name)${NC}"
+    echo -e "${GREEN}  Email: $(git config user.email)${NC}"
+    echo -e "${GREEN}=========================================${NC}"
+else
+    echo -e "${GREEN}✓ Git identity is properly configured${NC}"
+    echo -e "${GREEN}=========================================${NC}"
+fi
+
 echo "Proceeding with commit..."
-
 exit 0
