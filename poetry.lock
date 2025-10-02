@@ -1322,6 +1322,18 @@ files = [
 ]
 
 [[package]]
+name = "nvidia-cuda-runtime-cu13"
+version = "0.0.0a0"
+description = "Zero version placeholder for nvidia-cuda-runtime-cu13"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "nvidia_cuda_runtime_cu13-0.0.0a0-py2.py3-none-any.whl", hash = "sha256:6e892fd541a03d75de4457a46a1064f587d8b71cd3765f27d9f6bc1979ad2c2b"},
+    {file = "nvidia_cuda_runtime_cu13-0.0.0a0.tar.gz", hash = "sha256:5b1e8d14c87a1d812af6c3eb58fce35f58b3db29cb4fa748480dad18a7b0eade"},
+]
+
+[[package]]
 name = "nvidia-cudnn-cu11"
 version = "9.1.0.70"
 description = "cuDNN runtime libraries"
@@ -6040,6 +6052,88 @@ files = [
 widechars = ["wcwidth"]
 
 [[package]]
+name = "tensorrt"
+version = "10.13.3.9"
+description = "TensorRT Metapackage"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "tensorrt-10.13.3.9.tar.gz", hash = "sha256:89ec5c15c6327c17a9bf592a0801f793c786f45b4f0e0089a3a875d639887fa1"},
+]
+
+[package.dependencies]
+tensorrt_cu13 = "10.13.3.9"
+
+[package.source]
+type = "legacy"
+url = "https://pypi.nvidia.com"
+reference = "nvidia-pypi"
+
+[[package]]
+name = "tensorrt-cu13"
+version = "10.13.3.9"
+description = "A high performance deep learning inference library"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "tensorrt_cu13-10.13.3.9.tar.gz", hash = "sha256:413eab91b37313ca6158e70df0773047d278ad8bcce243d1954a17cd8d3feaca"},
+]
+
+[package.dependencies]
+tensorrt_cu13_bindings = "10.13.3.9"
+tensorrt_cu13_libs = "10.13.3.9"
+
+[package.extras]
+numpy = ["numpy"]
+
+[[package]]
+name = "tensorrt-cu13-bindings"
+version = "10.13.3.9"
+description = "A high performance deep learning inference library"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp310-none-manylinux_2_28_x86_64.whl", hash = "sha256:6cd47014553af9b48d19dddab3dd053c9b3cc9d4c9939a8f989566f0821067ff"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp310-none-manylinux_2_35_aarch64.whl", hash = "sha256:9a14b56daadb809059b7d7db509eb7bf4125e4db956f9cf9033c1b9cc02102d7"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp310-none-win_amd64.whl", hash = "sha256:df12c82cdc5fe4f94771a89b0a450f214eeeafd3aa07f3e3c77ca92271010f94"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp311-none-manylinux_2_28_x86_64.whl", hash = "sha256:f40c9e488af125b232fcca85ac4b21e090d7b1be55c3062eeaf48c2a9a9ed808"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp311-none-manylinux_2_35_aarch64.whl", hash = "sha256:0f4950794231287ee4a6b62f0cd3b3363dd958bea55e007f06cb8e68d72982ca"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp311-none-win_amd64.whl", hash = "sha256:cd99d35fb1af73c9023b3df280c65fba0e72596a21305ae98221cd9d3422c921"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp312-none-manylinux_2_28_x86_64.whl", hash = "sha256:9e3adb281af85508518b90979d0bf3a1704a40c3165a99d5b27e2cfee72f1b14"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp312-none-manylinux_2_35_aarch64.whl", hash = "sha256:f4839d8803663eb6c6e0956eda68a6589928c52465575fea205b3815b5ddc90d"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp312-none-win_amd64.whl", hash = "sha256:7ffbc1a20d8845b2f4fa2f825a9ef6358f544379c3368b45573611cab2ac3b9c"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp313-none-manylinux_2_28_x86_64.whl", hash = "sha256:c0530b410c4fa6086dd908d9390959c61c0437efd6d3ebc24cf563dcdd9f10f2"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp313-none-manylinux_2_35_aarch64.whl", hash = "sha256:1da70d9a6e91cb177815957cfab5ab9b7e92f0efbf5e165dd0d9473dafd4b51b"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp313-none-win_amd64.whl", hash = "sha256:753ba0e99b42ab430f083c9e44b404f0359823c91890fe8da5495b2b103cb699"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp38-none-manylinux_2_28_x86_64.whl", hash = "sha256:f78ef4cae8c2cf7a63b760f1c9e7b28e371733e347f0e162298a3427d1319b35"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp38-none-manylinux_2_35_aarch64.whl", hash = "sha256:cd2bcac162a93a705d80f92cfef7b208bf23975be158bb8debb711f1670d7e4f"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp38-none-win_amd64.whl", hash = "sha256:9f3dc8b3c2ef1d7e61a21cb0a5d4bfd4b50de383c8cc530b60b0e4812126e2a8"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp39-none-manylinux_2_28_x86_64.whl", hash = "sha256:b9c4149d996dfa698ba5e083ceb11c6846a307b7de4a2a773bc26b869a5d0071"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp39-none-manylinux_2_35_aarch64.whl", hash = "sha256:e16f06e61f5f42a8a787a2ec8622b49b42f35af73427ca4455cbbdd52e4f4b71"},
+    {file = "tensorrt_cu13_bindings-10.13.3.9-cp39-none-win_amd64.whl", hash = "sha256:b87b562b339716b3d13730b4ef4212e9f7593ccb2f3d531454f00940250db965"},
+]
+
+[package.extras]
+numpy = ["numpy"]
+
+[[package]]
+name = "tensorrt-cu13-libs"
+version = "10.13.3.9"
+description = "TensorRT Libraries"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "tensorrt_cu13_libs-10.13.3.9.tar.gz", hash = "sha256:9726be3d5582a9162a9e0cb3492e9367826960b8c5ad65701d420ce74cc67b0d"},
+]
+
+[package.dependencies]
+nvidia-cuda-runtime-cu13 = "*"
+
+[[package]]
 name = "tkfilebrowser"
 version = "2.3.2"
 description = "File browser for Tkinter, alternative to tkinter.filedialog in linux with GTK bookmarks support."
@@ -6408,4 +6502,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "baeb6e4ead47fd9808d92bef81bc3f70bbb080fac3e06e912de33770c0d9e86d"
+content-hash = "4dec59d3caedac2ea5658da6ee88ccdfa667bc77ef2c6a691acd251d08f8b116"

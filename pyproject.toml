@@ -36,6 +36,7 @@ torchaudio = {version = "^2.7.1", source = "pytorch-gpu"}
 pyqtgraph = "^0.13.7"
 pygltflib = "^1.16.5"
 openmim = "^0.3.9"
+tensorrt = {version = "10.3.0", source = "nvidia-pypi"}
 # pose2sim = "0.4"  # Temporarily disabled due to opencv conflict
 setuptools = "^80.9.0"
 
@@ -47,6 +48,11 @@ flake8 = "^6.0.0"
 [[tool.poetry.source]]
 name = "pytorch-gpu"
 url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "nvidia-pypi"
+url = "https://pypi.nvidia.com"
 priority = "explicit"
 
 [build-system]
