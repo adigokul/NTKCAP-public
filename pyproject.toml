@@ -1,0 +1,54 @@
+[tool.poetry]
+name = "ntkcap"
+version = "0.1.0"
+description = "NTKCAP Motion Capture System"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README_POETRY.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+
+# Core scientific computing
+numpy = "^1.26.0"
+scipy = "^1.13.0"
+matplotlib = "^3.8.0"
+
+# Computer Vision
+opencv-python = "^4.8.0"
+
+# GUI framework
+PyQt6 = "^6.5.0"
+
+# Basic utilities
+beautifulsoup4 = "^4.12.0"
+pyserial = "^3.5"
+openpyxl = "^3.1.0"
+natsort = "^8.4.0"
+multiprocess = "^0.70.18"
+keyboard = "^0.13.5"
+func-timeout = "^4.3.5"
+tkfilebrowser = "^2.3.2"
+torch = {version = "^2.7.1", source = "pytorch-gpu"}
+torchvision = {version = "^0.22.1", source = "pytorch-gpu"}
+torchaudio = {version = "^2.7.1", source = "pytorch-gpu"}
+# ultralytics = "^8.3.204"  # Temporarily disabled due to opencv conflict
+pyqtgraph = "^0.13.7"
+pygltflib = "^1.16.5"
+openmim = "^0.3.9"
+# pose2sim = "0.4"  # Temporarily disabled due to opencv conflict
+setuptools = "^80.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^23.0.0"
+flake8 = "^6.0.0"
+
+[[tool.poetry.source]]
+name = "pytorch-gpu"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
