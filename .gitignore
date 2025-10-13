@@ -24,3 +24,7 @@ NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/NTK_CAP/ThirdParty/TensorRT-8.
 # Installation temporary files
 cuda-keyring_*.deb
 *.run
+
+# Backup folders
+*backup*
+mmdeploy_backup_*/

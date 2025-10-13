@@ -13,6 +13,12 @@ from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from multiprocessing import Event, shared_memory, Manager, Queue, Process
+
+# Add NTK_CAP script_py directory to Python path
+script_py_path = os.path.join(os.path.dirname(__file__), 'NTK_CAP', 'script_py')
+if script_py_path not in sys.path:
+    sys.path.insert(0, script_py_path)
+
 from check_extrinsic import *
 from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
@@ -38,6 +44,12 @@ class MainWindow(QMainWindow):
         self.multi_person_path = os.path.join(self.patient_path, "multi_person")
         self.calib_toml_path = os.path.join(self.calibra_path, "Calib.toml")
         self.extrinsic_path = os.path.join(self.calibra_path,"ExtrinsicCalibration")
+        
+        # Create necessary directories if they don't exist
+        os.makedirs(self.patient_path, exist_ok=True)
+        os.makedirs(self.multi_person_path, exist_ok=True)
+        os.makedirs(self.calibra_path, exist_ok=True)
+        os.makedirs(self.extrinsic_path, exist_ok=True)
         
         self.font_path = os.path.join(self.current_directory, "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
         self.show_result_path = None
@@ -237,11 +249,63 @@ class MainWindow(QMainWindow):
         self.emg_recording_enabled = False
         self.eeg_recording_enabled = False
         
+        # Real-time Pose Detection Control - Create a button and add it to the UI
+        self.btn_rt_pose_detection = QPushButton("RT Pose Detection: OFF")
+        self.btn_rt_pose_detection.setCheckable(True)
+        self.btn_rt_pose_detection.setChecked(False)  # Default to disabled
+        self.btn_rt_pose_detection.setStyleSheet("""
+            QPushButton {
+                background-color: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #51cf66;
+            }
+        """)
+        self.rt_pose_detection_enabled = False  # Default to disabled
+        
+        # Add the button to the Configuration section (next to other buttons)
+        # Find a suitable location in the UI to place the button
+        try:
+            # Try to find the Configuration section or a suitable parent
+            config_widget = self.findChild(QWidget, "Configuration") or self.findChild(QWidget, "tab")
+            if config_widget is None:
+                # If no specific widget found, try to find the main widget
+                config_widget = self.centralWidget()
+            
+            if config_widget:
+                # Create or get the layout
+                layout = config_widget.layout()
+                if layout is None:
+                    layout = QVBoxLayout()
+                    config_widget.setLayout(layout)
+                
+                # Add the button to the layout
+                layout.addWidget(self.btn_rt_pose_detection)
+                print("✅ RT Pose Detection button added to UI")
+            else:
+                print("❌ Could not find suitable parent widget for RT Pose Detection button")
+        except Exception as e:
+            print(f"❌ Error adding RT Pose Detection button to UI: {e}")
+            # If all else fails, just add it to the main window
+            self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
+        
         # Connect checkbox signals
         if self.checkBox_emg_recording:
             self.checkBox_emg_recording.toggled.connect(self.on_emg_recording_toggled)
         if self.checkBox_eeg_recording:
             self.checkBox_eeg_recording.toggled.connect(self.on_eeg_recording_toggled)
+        
+        # Connect RT pose detection button signal
+        self.btn_rt_pose_detection.clicked.connect(self.on_rt_pose_detection_toggled)
+        
+        # Add RT Pose Detection button to the status bar (always visible)
+        self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
+        print("✅ RT Pose Detection button added to status bar")
     # Bio-signal Recording Control
     def on_emg_recording_toggled(self, checked):
         """Handle EMG recording checkbox toggle"""
@@ -258,6 +322,20 @@ class MainWindow(QMainWindow):
             print("✅ EEG recording enabled")
         else:
             print("❌ EEG recording disabled")
+    
+    def on_rt_pose_detection_toggled(self):
+        """Handle real-time pose detection button toggle"""
+        self.rt_pose_detection_enabled = self.btn_rt_pose_detection.isChecked()
+        if self.rt_pose_detection_enabled:
+            print("✅ Real-time pose detection enabled")
+            self.btn_rt_pose_detection.setText("RT Pose Detection: ON")
+            if hasattr(self, 'label_log'):
+                self.label_log.setText("RT pose detection enabled - May require ONNX Runtime")
+        else:
+            print("❌ Real-time pose detection disabled")
+            self.btn_rt_pose_detection.setText("RT Pose Detection: OFF")
+            if hasattr(self, 'label_log'):
+                self.label_log.setText("RT pose detection disabled - Using TensorRT only")
     
     # Main page shortcut
     def button_shortcut_calculation(self):
@@ -854,7 +932,8 @@ class MainWindow(QMainWindow):
                 self.queue[i],
                 self.queue_kp[i],
                 self.shm_lst[i].name,
-                self.shm_kp_lst[i].name
+                self.shm_kp_lst[i].name,
+                enable_pose_detection=self.rt_pose_detection_enabled
             )
             self.tracker_proc_lst.append(p1)
             thread = UpdateThread(
