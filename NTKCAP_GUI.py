@@ -18,41 +18,112 @@ from GUI_source.CameraProcess import CameraProcess
 from GUI_source.UpdateThread import UpdateThread
 from GUI_source.VideoPlayer import VideoPlayer
 
+from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QDialogButtonBox
+
+import sqlite3
+from PyQt6.QtWidgets import QDialog, QFormLayout, QLineEdit, QComboBox, QDialogButtonBox, QListWidget, QVBoxLayout, QLabel
+# Connect to SQLite database
+conn = sqlite3.connect('icd10/icd10.db')
+
+
+
+# Define fuzzy search function
+def fuzzy_search(query):
+    cursor = conn.execute("""
+        SELECT Code, CM2023_英文名稱, CM2023_中文名稱 
+        FROM icd10_fts 
+        WHERE CM2023_英文名稱 LIKE ? 
+        OR CM2023_中文名稱 LIKE ? 
+        OR Code LIKE ?
+    """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+    results = cursor.fetchall()
+    return results
+
+
 class PatientDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("New Patient")
         layout = QFormLayout(self)
 
-        self.id_edit = QLineEdit(self)
+        # Fields for sex, height, weight, age
         self.sex_edit = QComboBox(self)
         self.sex_edit.addItems(["M", "F"])
         self.height_edit = QLineEdit(self)
         self.weight_edit = QLineEdit(self)
         self.age_edit = QLineEdit(self)
 
-        layout.addRow("Patient ID:", self.id_edit)
+        # Symptoms input field and search results
+        self.symptom_edit = QLineEdit(self)  # Symptoms input field
+        self.results_list = QListWidget(self)  # Display search results
+
+        # Layout setup
         layout.addRow("Sex:", self.sex_edit)
         layout.addRow("Height (cm):", self.height_edit)
         layout.addRow("Weight (kg):", self.weight_edit)
         layout.addRow("Age:", self.age_edit)
+        layout.addRow("Symptoms:", self.symptom_edit)  # Added symptoms field
+        layout.addWidget(self.results_list)  # Added the results list for ICD-10 search
 
-        # Correct usage of QDialogButtonBox for PyQt6
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
+        # Buttons for accepting or canceling the dialog
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
+        # Connect symptom input field to search function
+        self.symptom_edit.textChanged.connect(self.search_symptoms)
+
+        # Connect the itemClicked signal to select_result method
+        self.results_list.itemClicked.connect(self.select_result)
+
+    def search_symptoms(self):
+        """Perform a fuzzy search based on the symptom entered."""
+        query = self.symptom_edit.text()
+        if query:
+            # Perform the fuzzy search using ICD-10 database
+            results = fuzzy_search(query)
+            self.results_list.clear()  # Clear previous results
+            if results:
+                # Display ICD-10 code and description
+                for result in results:
+                    self.results_list.addItem(f"Code: {result[0]}, {result[1]} / {result[2]}")
+            else:
+                self.results_list.addItem("No matching results found.")
+
     def get_data(self):
+        """Return the data entered in the dialog."""
         return {
-            "id": self.id_edit.text(),
             "sex": self.sex_edit.currentText(),
             "height": self.height_edit.text(),
             "weight": self.weight_edit.text(),
             "age": self.age_edit.text(),
+            "symptoms": self.symptom_edit.text(),  # Get symptoms from input
+            "symptom_code": None  # Placeholder for ICD-10 code, will be set when a result is selected
         }
+
+    def select_result(self, item):
+        """Handle selecting a symptom result from the list."""
+        selected_text = item.text()
+        # Extract ICD code and descriptions
+        selected_code = selected_text.split(",")[0].split(":")[1].strip()
+        selected_en_description = selected_text.split(",")[1].strip()
+        selected_cn_description = selected_text.split("/")[1].strip() if "/" in selected_text else ""
+
+        # Update the symptom input field with selected ICD-10 code and description
+        self.symptom_edit.setText(f"Code: {selected_code}, {selected_en_description} / {selected_cn_description}")
+        
+        # Optionally, store the code for further use
+        self.symptom_code = selected_code  # Store the selected ICD code
+        self.results_list.clear()  # Clear results after selection
+
+        print(f"Selected: {selected_code} - {selected_en_description} / {selected_cn_description}")
+
+    def closeEvent(self, event):
+        """Close the SQLite connection when the dialog is closed."""
+        conn.close()
+        event.accept()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -429,22 +500,13 @@ class MainWindow(QMainWindow):
             if item != 'multi_person':
                 self.record_list_widget_patient_id.addItem(item)
     def button_create_new_patient(self):
-    # Create the patient dialog instance
-        dialog = PatientDialog(self)
+        text, ok = QInputDialog.getText(self, 'New subject', 'Enter patient ID:')
         
-        # Show the dialog and check if user pressed OK
-        if dialog.exec() == QDialog.accepted:
-            data = dialog.get_data()
-            patient_id = data["id"]
-            sex = data["sex"]
-            height = data["height"]
-            weight = data["weight"]
-            age = data["age"]
+        if ok:
+            patient_id = text  # Store the original patient ID
             
-            patient_dir = os.path.join(self.patient_path, patient_id)
-
-            # Check if the patient directory already exists
-            if os.path.exists(patient_dir):
+            # The original logic stays the same
+            if os.path.exists(os.path.join(self.patient_path, patient_id)):
                 reply = QMessageBox.question(
                     self, 
                     "Patient ID already exists",
@@ -452,30 +514,44 @@ class MainWindow(QMainWindow):
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    shutil.rmtree(patient_dir)
-                    os.mkdir(patient_dir)
-                else:
-                    return
+                    shutil.rmtree(os.path.join(self.patient_path, patient_id))
+                    os.mkdir(os.path.join(self.patient_path, patient_id))
+                    self.label_log.setText(f"Patient ID {patient_id} is selected")
+                    self.record_list_widget_patient_id_list_show()
+                    self.btn_Apose_record.setEnabled(True)
+                    self.record_select_patientID = patient_id
+                    self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+                elif reply == QMessageBox.StandardButton.No:
+                    self.button_create_new_patient()
+            else:
+                # Create patient directory as before
+                self.record_select_patientID = patient_id
+                os.mkdir(os.path.join(self.patient_path, patient_id))
+                self.label_log.setText(f"Patient ID {patient_id} is selected")
+                self.record_list_widget_patient_id_list_show()
+                self.btn_Apose_record.setEnabled(True)
+                self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
 
-            # Create the new patient directory and save their data
-            os.mkdir(patient_dir)
+            # Now collect additional data (sex, height, weight, age, symptoms)
+            dialog = PatientDialog(self)
+            print('Opening patient dialog...')
             
-            # Save patient info in a text file
-            with open(os.path.join(patient_dir, "info.txt"), "w") as f:
-                f.write(f"ID: {patient_id}\n")
-                f.write(f"Sex: {sex}\n")
-                f.write(f"Height: {height}\n")
-                f.write(f"Weight: {weight}\n")
-                f.write(f"Age: {age}\n")
-            
-            # Update UI and logic after creating the patient
-            self.record_select_patientID = patient_id
-            self.label_log.setText(f"Patient {patient_id} selected")
-            self.record_list_widget_patient_id_list_show()
-            self.btn_Apose_record.setEnabled(True)
-            self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                print('Dialog accepted.')
+                data = dialog.get_data()  # Get the collected data
+                
+                # Save the additional data into the patient directory
+                with open(os.path.join(self.patient_path, patient_id, "info.txt"), "a") as f:
+                    print('Writing patient info...')
+                    f.write(f"Sex: {data['sex']}\n")
+                    f.write(f"Height: {data['height']}\n")
+                    f.write(f"Weight: {data['weight']}\n")
+                    f.write(f"Age: {data['age']}\n")
+                    f.write(f"Symptoms: {data['symptoms']}\n")  # Add symptoms to the file
 
-
+                # Update UI after adding the additional patient info
+                self.label_log.setText(f"Patient {patient_id} info updated")
+                self.label_selected_patient.setText(f"Selected patient : {self.record_select_patientID}")
 
     def check_apose_finish(self):
         if not self.apose_rec_evt1.is_set() and not self.apose_rec_evt2.is_set() and not self.apose_rec_evt3.is_set() and not self.apose_rec_evt4.is_set():
