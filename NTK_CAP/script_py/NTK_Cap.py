@@ -20,10 +20,7 @@ sys.path.insert(0, os.getcwd())
 
 from Pose2Sim import Pose2Sim
 
-try:
-    from .gait_analysis import gait1
-except:
-    from gait_analysis import gait1
+from .gait_analysis import gait1
 
 import serial
 

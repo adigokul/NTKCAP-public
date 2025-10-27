@@ -436,7 +436,8 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
             else:
                 a = 1
             count2 += 1
-        fig, axs = plt.subplots(2, 1, figsize=(15, 9))
+    
+    fig, axs = plt.subplots(2, 1, figsize=(15, 9))
     axs[0].plot(vR, linewidth=1.5)
     axs[0].scatter(R_locs_possible_min_n , vR[R_locs_possible_min_n ], color='r', s=100)
     axs[0].scatter(R_locs_possible_min_p, vR[R_locs_possible_min_p], color='y', s=100)

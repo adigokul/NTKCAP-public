@@ -936,7 +936,15 @@ def triangulate_all(coord,config):
         for array in result_list           # Process each 22-element array in the list
     ]
     #import pdb;pdb.set_trace()
-    np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),cam_choose=id_excluded_cams_record_tot,strongness_of_exclusion =strongness_exclusion_tot)
+    # Fix NumPy array shape issue by using object dtype for irregular arrays
+    try:
+        np.savez(os.path.join(project_dir,'User','reprojection_record.npz'),
+                cam_choose=np.array(id_excluded_cams_record_tot, dtype=object),
+                strongness_of_exclusion=np.array(strongness_exclusion_tot, dtype=object))
+    except ValueError as e:
+        print(f"Warning: Failed to save reprojection_record.npz due to array shape issue: {e}")
+        print("Continuing without saving npz file (mat file will still be saved)")
+    
     mdic = {'cam_choose':id_excluded_cams_record_tot,'strongness_of_exclusion':strongness_exclusion_tot}
     savemat(os.path.join(project_dir,'rpj.mat'), mdic)
 

@@ -1,8 +1,10 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import time
 import json
 import copy
 import sys
+import threading
 from datetime import datetime
 import pyqtgraph as pg
 from PyQt6 import uic
@@ -11,6 +13,12 @@ from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from multiprocessing import Event, shared_memory, Manager, Queue, Process
+
+# Add NTK_CAP script_py directory to Python path
+script_py_path = os.path.join(os.path.dirname(__file__), 'NTK_CAP', 'script_py')
+if script_py_path not in sys.path:
+    sys.path.insert(0, script_py_path)
+
 from check_extrinsic import *
 from NTK_CAP.script_py.NTK_Cap import *
 from GUI_source.TrackerProcess import TrackerProcess
@@ -141,6 +149,12 @@ class MainWindow(QMainWindow):
         self.multi_person_path = os.path.join(self.patient_path, "multi_person")
         self.calib_toml_path = os.path.join(self.calibra_path, "Calib.toml")
         self.extrinsic_path = os.path.join(self.calibra_path,"ExtrinsicCalibration")
+        
+        # Create necessary directories if they don't exist
+        os.makedirs(self.patient_path, exist_ok=True)
+        os.makedirs(self.multi_person_path, exist_ok=True)
+        os.makedirs(self.calibra_path, exist_ok=True)
+        os.makedirs(self.extrinsic_path, exist_ok=True)
         
         self.font_path = os.path.join(self.current_directory, "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
         self.show_result_path = None
@@ -288,6 +302,7 @@ class MainWindow(QMainWindow):
         
         self.result_web_view_widget: QWebEngineView = self.findChild(QWebEngineView, "result_web_view_widget")
         # Calculation
+        self.label_cal_selected_tasks = self.findChild(QLabel, "label_cal_selected_tasks")
         self.checkBox_fast_cal = self.findChild(QCheckBox, "checkBox_fast_cal")
         self.checkBox_fast_cal.setChecked(False)
         self.checkBox_fast_cal.toggled.connect(self.on_fast_calculation)
@@ -316,6 +331,117 @@ class MainWindow(QMainWindow):
         self.marker_calculate_process = None
         self.timer_marker_calculate = QTimer()
         self.timer_marker_calculate.timeout.connect(self.check_cal_finish)
+        
+        # EMG Event Recording System
+        self.emg_recorder = None
+        self.emg_recording_active = False
+        self.emg_thread_active = False
+        self.emg_thread = None
+        self.emg_uri = "ws://localhost:31278/ws"  # Complete WebSocket URI
+        self.emg_channel_count = 8  # Default channel count
+        
+        # EEG Event Recording System
+        self.eeg_recorder = None
+        self.eeg_recording_active = False
+        self.eeg_thread_active = False
+        self.eeg_thread = None
+        self.eeg_uri = "ws://127.0.0.1:31279/ws"  # EEG WebSocket URI
+        self.eeg_channel_count = 32  # EEG typically has more channels
+        
+        # Bio-signal Recording Control Checkboxes
+        self.checkBox_emg_recording = self.findChild(QCheckBox, "checkBox_emg_recording")
+        self.checkBox_eeg_recording = self.findChild(QCheckBox, "checkBox_eeg_recording")
+        self.emg_recording_enabled = False
+        self.eeg_recording_enabled = False
+        
+        # Real-time Pose Detection Control - Create a button and add it to the UI
+        self.btn_rt_pose_detection = QPushButton("RT Pose Detection: OFF")
+        self.btn_rt_pose_detection.setCheckable(True)
+        self.btn_rt_pose_detection.setChecked(False)  # Default to disabled
+        self.btn_rt_pose_detection.setStyleSheet("""
+            QPushButton {
+                background-color: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:checked {
+                background-color: #51cf66;
+            }
+        """)
+        self.rt_pose_detection_enabled = False  # Default to disabled
+        
+        # Add the button to the Configuration section (next to other buttons)
+        # Find a suitable location in the UI to place the button
+        try:
+            # Try to find the Configuration section or a suitable parent
+            config_widget = self.findChild(QWidget, "Configuration") or self.findChild(QWidget, "tab")
+            if config_widget is None:
+                # If no specific widget found, try to find the main widget
+                config_widget = self.centralWidget()
+            
+            if config_widget:
+                # Create or get the layout
+                layout = config_widget.layout()
+                if layout is None:
+                    layout = QVBoxLayout()
+                    config_widget.setLayout(layout)
+                
+                # Add the button to the layout
+                layout.addWidget(self.btn_rt_pose_detection)
+                print("✅ RT Pose Detection button added to UI")
+            else:
+                print("❌ Could not find suitable parent widget for RT Pose Detection button")
+        except Exception as e:
+            print(f"❌ Error adding RT Pose Detection button to UI: {e}")
+            # If all else fails, just add it to the main window
+            self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
+        
+        # Connect checkbox signals
+        if self.checkBox_emg_recording:
+            self.checkBox_emg_recording.toggled.connect(self.on_emg_recording_toggled)
+        if self.checkBox_eeg_recording:
+            self.checkBox_eeg_recording.toggled.connect(self.on_eeg_recording_toggled)
+        
+        # Connect RT pose detection button signal
+        self.btn_rt_pose_detection.clicked.connect(self.on_rt_pose_detection_toggled)
+        
+        # Add RT Pose Detection button to the status bar (always visible)
+        self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
+        print("✅ RT Pose Detection button added to status bar")
+    # Bio-signal Recording Control
+    def on_emg_recording_toggled(self, checked):
+        """Handle EMG recording checkbox toggle"""
+        self.emg_recording_enabled = checked
+        if checked:
+            print("✅ EMG recording enabled")
+        else:
+            print("❌ EMG recording disabled")
+    
+    def on_eeg_recording_toggled(self, checked):
+        """Handle EEG recording checkbox toggle"""
+        self.eeg_recording_enabled = checked
+        if checked:
+            print("✅ EEG recording enabled")
+        else:
+            print("❌ EEG recording disabled")
+    
+    def on_rt_pose_detection_toggled(self):
+        """Handle real-time pose detection button toggle"""
+        self.rt_pose_detection_enabled = self.btn_rt_pose_detection.isChecked()
+        if self.rt_pose_detection_enabled:
+            print("✅ Real-time pose detection enabled")
+            self.btn_rt_pose_detection.setText("RT Pose Detection: ON")
+            if hasattr(self, 'label_log'):
+                self.label_log.setText("RT pose detection enabled - May require ONNX Runtime")
+        else:
+            print("❌ Real-time pose detection disabled")
+            self.btn_rt_pose_detection.setText("RT Pose Detection: OFF")
+            if hasattr(self, 'label_log'):
+                self.label_log.setText("RT pose detection disabled - Using TensorRT only")
+    
     # Main page shortcut
     def button_shortcut_calculation(self):
         self.left_tab_changed(1)
@@ -664,10 +790,125 @@ class MainWindow(QMainWindow):
         self.record_opened = True
         self.record_enter_task_name.setEnabled(False)
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        self.label_log.setText("Recording start")
+        
+        # Start EMG and EEG Recording (only if checkboxes are checked)
+        emg_started = False
+        eeg_started = False
+        
+        try:
+            # Add the script_py directory to Python path
+            script_py_path = os.path.join(os.path.dirname(__file__), 'NTK_CAP', 'script_py')
+            if script_py_path not in sys.path:
+                sys.path.append(script_py_path)
+            
+            from NTK_CAP.script_py.emg_localhost import EMGEventRecorder
+            
+            # Start EMG Recording only if checkbox is checked
+            if self.emg_recording_enabled and self.checkBox_emg_recording.isChecked():
+                emg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                             datetime.now().strftime("%Y_%m_%d"), "raw_data", 
+                                             self.record_task_name, "emg_data.csv")
+                # Use cumulative timestamps by default (True)
+                self.emg_recorder = EMGEventRecorder(self.emg_uri, emg_output_path, self.emg_channel_count, use_cumulative_timestamp=True)
+                emg_started = self.emg_recorder.start_recording()
+            
+            # Start EEG Recording only if checkbox is checked
+            if self.eeg_recording_enabled and self.checkBox_eeg_recording.isChecked():
+                eeg_output_path = os.path.join(self.patient_path, self.record_select_patientID, 
+                                             datetime.now().strftime("%Y_%m_%d"), "raw_data", 
+                                             self.record_task_name, "eeg_data.csv")
+                # Use cumulative timestamps by default (True)  
+                self.eeg_recorder = EMGEventRecorder(self.eeg_uri, eeg_output_path, self.eeg_channel_count, use_cumulative_timestamp=True)
+                eeg_started = self.eeg_recorder.start_recording()
+            
+            if emg_started:
+                self.emg_recording_active = True
+                # Start EMG data processing thread
+                self.emg_thread_active = True
+                self.emg_thread = threading.Thread(target=self._emg_processing_loop, daemon=True)
+                self.emg_thread.start()
+                print("✅ EMG recording started successfully")
+            
+            if eeg_started:
+                self.eeg_recording_active = True
+                # Start EEG data processing thread
+                self.eeg_thread_active = True
+                self.eeg_thread = threading.Thread(target=self._eeg_processing_loop, daemon=True)
+                self.eeg_thread.start()
+                print("✅ EEG recording started successfully")
+            
+            # Update status message based on what was started
+            if emg_started and eeg_started:
+                self.label_log.setText("Recording start (EMG + EEG)")
+            elif emg_started:
+                self.label_log.setText("Recording start (EMG only)")
+            elif eeg_started:
+                self.label_log.setText("Recording start (EEG only)")
+            elif not self.emg_recording_enabled and not self.eeg_recording_enabled:
+                self.label_log.setText("Recording start (No bio-signal recording selected)")
+            else:
+                self.label_log.setText("Recording start (Bio-signal connection failed)")
+                
+        except Exception as e:
+            print(f"❌ EMG/EEG recording failed to start: {e}")
+            self.emg_recording_active = False
+            self.eeg_recording_active = False
+            self.label_log.setText("Recording start (Bio-signal recording failed)")
+    
     def stoprecord_task(self): 
         if not self.record_opened:
             return
+        
+        # Stop EMG and EEG Recording
+        emg_stopped = False
+        eeg_stopped = False
+        
+        # Stop EMG Recording
+        if self.emg_recording_active and self.emg_recorder:
+            try:
+                # Add recording stop event marker
+                self.emg_recorder.add_event_marker(141, "Recording End")
+                
+                # Stop the EMG processing thread
+                self.emg_thread_active = False
+                if hasattr(self, 'emg_thread') and self.emg_thread is not None:
+                    # Wait a bit for the thread to finish
+                    self.emg_thread.join(timeout=2.0)
+                
+                # Stop EMG recording
+                self.emg_recorder.stop_recording()
+                self.emg_recording_active = False
+                emg_stopped = True
+                print("✅ EMG recording stopped successfully")
+            except Exception as e:
+                print(f"❌ Error stopping EMG recording: {e}")
+                # Force stop
+                self.emg_thread_active = False
+                self.emg_recording_active = False
+        
+        # Stop EEG Recording
+        if self.eeg_recording_active and self.eeg_recorder:
+            try:
+                # Add recording stop event marker
+                self.eeg_recorder.add_event_marker(141, "Recording End")
+                
+                # Stop the EEG processing thread
+                self.eeg_thread_active = False
+                if hasattr(self, 'eeg_thread') and self.eeg_thread is not None:
+                    # Wait a bit for the thread to finish
+                    self.eeg_thread.join(timeout=2.0)
+                
+                # Stop EEG recording
+                self.eeg_recorder.stop_recording()
+                self.eeg_recording_active = False
+                eeg_stopped = True
+                print("✅ EEG recording stopped successfully")
+            except Exception as e:
+                print(f"❌ Error stopping EEG recording: {e}")
+                # Force stop
+                self.eeg_thread_active = False
+                self.eeg_recording_active = False
+        
         self.record_opened = False
         self.task_stop_rec_evt.set()
         self.task_rec_evt.clear()
@@ -677,9 +918,109 @@ class MainWindow(QMainWindow):
         self.list_widget_patient_id_record.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self.btn_pg1_reset.setEnabled(True)
         self.btnStopRecording.setEnabled(False)
-        self.label_log.setText("Record end")
+        
+        if emg_stopped and eeg_stopped:
+            self.label_log.setText("Record end (EMG + EEG)")
+        elif emg_stopped:
+            self.label_log.setText("Record end (EMG only)")
+        elif eeg_stopped:
+            self.label_log.setText("Record end (EEG only)")
+        else:
+            self.label_log.setText("Record end")
+            
         self.lw_patient_task_record()
         self.cal_load_folders()
+        
+    def add_bio_event_marker(self, event_id=None, event_description="Manual Event"):
+        """Add an event marker to both EMG and EEG recordings"""
+        emg_success = False
+        eeg_success = False
+        
+        if event_id is None:
+            event_id = 999  # Default event ID for manual events
+        
+        # Add event to EMG recording
+        if self.emg_recording_active and self.emg_recorder:
+            try:
+                self.emg_recorder.add_event_marker(event_id, event_description)
+                emg_success = True
+                print(f"EMG Event added: ID={event_id}, Description='{event_description}'")
+            except Exception as e:
+                print(f"Error adding EMG event marker: {e}")
+        
+        # Add event to EEG recording
+        if self.eeg_recording_active and self.eeg_recorder:
+            try:
+                self.eeg_recorder.add_event_marker(event_id, event_description)
+                eeg_success = True
+                print(f"EEG Event added: ID={event_id}, Description='{event_description}'")
+            except Exception as e:
+                print(f"Error adding EEG event marker: {e}")
+        
+        if emg_success or eeg_success:
+            return True
+        else:
+            print("No bio-signal recording active, cannot add event marker")
+            return False
+    
+    # Keep the old method name for backward compatibility
+    def add_emg_event_marker(self, event_id=None, event_description="Manual Event"):
+        """Legacy method - redirects to add_bio_event_marker"""
+        return self.add_bio_event_marker(event_id, event_description)
+    
+    def _emg_processing_loop(self):
+        """Background thread for EMG data processing"""
+        print("🎯 EMG processing thread started")
+        
+        first_data_received = False
+        
+        while self.emg_thread_active and self.emg_recording_active and self.emg_recorder:
+            try:
+                # Process one data packet with timeout
+                if self.emg_recorder.process_and_save_data(timeout=0.1):
+                    # Successfully processed data
+                    if not first_data_received:
+                        # Add recording start event marker on first successful data reception
+                        self.emg_recorder.add_event_marker(130, "Recording Start")
+                        first_data_received = True
+                        print("✅ First EMG data received, added start event marker")
+                    continue
+                else:
+                    # No data received within timeout, continue loop
+                    time.sleep(0.01)  # Small delay to prevent busy waiting
+                    
+            except Exception as e:
+                print(f"❌ EMG processing error: {e}")
+                time.sleep(0.1)  # Wait before retrying
+                
+        print("🛑 EMG processing thread ended")
+        
+    def _eeg_processing_loop(self):
+        """Background thread for EEG data processing"""
+        print("🎯 EEG processing thread started")
+        
+        first_data_received = False
+        
+        while self.eeg_thread_active and self.eeg_recording_active and self.eeg_recorder:
+            try:
+                # Process one data packet with timeout
+                if self.eeg_recorder.process_and_save_data(timeout=0.1):
+                    # Successfully processed data
+                    if not first_data_received:
+                        # Add recording start event marker on first successful data reception
+                        self.eeg_recorder.add_event_marker(130, "Recording Start")
+                        first_data_received = True
+                        print("✅ First EEG data received, added start event marker")
+                    continue
+                else:
+                    # No data received within timeout, continue loop
+                    time.sleep(0.01)  # Small delay to prevent busy waiting
+                    
+            except Exception as e:
+                print(f"❌ EEG processing error: {e}")
+                time.sleep(0.1)  # Wait before retrying
+                
+        print("🛑 EEG processing thread ended")
         
     def image_update_slot(self, image, label):
         label.setPixmap(QPixmap.fromImage(image))
@@ -722,7 +1063,8 @@ class MainWindow(QMainWindow):
                 self.queue[i],
                 self.queue_kp[i],
                 self.shm_lst[i].name,
-                self.shm_kp_lst[i].name
+                self.shm_kp_lst[i].name,
+                enable_pose_detection=self.rt_pose_detection_enabled
             )
             self.tracker_proc_lst.append(p1)
             thread = UpdateThread(
@@ -1008,6 +1350,7 @@ class MainWindow(QMainWindow):
             self.cal_select_date = item.text()
             if os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date) not in self.cal_select_list:
                 self.cal_select_list.append(os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date))
+            self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
             self.cal_show_selected_folder()
             self.cal_select_date = None
             self.cal_select_depth = 0
@@ -1021,7 +1364,8 @@ class MainWindow(QMainWindow):
     def cal_selected_folder_selcted_delete(self):
         self.cal_select_list.remove(self.listwidget_selected_cal_date_item_selected)
         self.cal_show_selected_folder()
-
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
+    
     # Show result tab 
     def select_back_path(self):
         if self.result_select_depth == 1:
@@ -1094,8 +1438,12 @@ class MainWindow(QMainWindow):
         self.result_load_folders()
 
     def update_slider(self):
-        self.result_video_slider.setValue(int(self.video_player.progress * 100))
-        self.frame_label.setText(str(int(self.video_player.progress * 100)))
+        # Update slider position based on video player progress
+        slider_value = int(self.video_player.progress * 100)
+        self.result_video_slider.blockSignals(True)  # Prevent signal loop
+        self.result_video_slider.setValue(slider_value)
+        self.result_video_slider.blockSignals(False)
+        self.frame_label.setText(str(slider_value))
 
     def select_result_cal_task(self, patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task):
         self.show_result_path = os.path.join(patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task)
@@ -1142,23 +1490,59 @@ class MainWindow(QMainWindow):
 
     def play_stop(self):
         if self.is_playing:
+            # Stop both 3D animation and video timer
             self.result_web_view_widget.page().runJavaScript("stopAnimation();")
             self.video_player.timer.stop()
             self.is_playing = False
+            print("Playback stopped")
         else:
+            # Start both 3D animation and video timer
             self.result_web_view_widget.page().runJavaScript("startAnimation();")
-            self.video_player.timer.start(15)
+            self.video_player.timer.start(33)  # ~30 FPS for smoother sync
             self.is_playing = True
+            print("Playback started")
 
     def slider_changed(self, value):
+        # Pause playback when user drags slider
+        was_playing = self.is_playing
         if self.is_playing:
             self.play_stop()
-        self.video_player.progress = value/100
+            
+        # Update progress and sync all components
+        self.video_player.progress = value / 100
         self.video_player.slider_changed()
         self.result_video_slider.setValue(value)
         self.frame_label.setText(str(value))
+        
+        # Resume playback if it was playing before
+        # Note: Don't auto-resume to give user control
+        print(f"Slider changed to: {value}%")
 
     def closeEvent(self, event):
+        # Stop EMG recording if active
+        if self.emg_recording_active:
+            try:
+                self.emg_thread_active = False
+                if hasattr(self, 'emg_thread') and self.emg_thread is not None:
+                    self.emg_thread.join(timeout=1.0)
+                if self.emg_recorder:
+                    self.emg_recorder.stop_recording()
+                print("EMG recording stopped on application close")
+            except Exception as e:
+                print(f"Error stopping EMG on close: {e}")
+        
+        # Stop EEG recording if active
+        if self.eeg_recording_active:
+            try:
+                self.eeg_thread_active = False
+                if hasattr(self, 'eeg_thread') and self.eeg_thread is not None:
+                    self.eeg_thread.join(timeout=1.0)
+                if self.eeg_recorder:
+                    self.eeg_recorder.stop_recording()
+                print("EEG recording stopped on application close")
+            except Exception as e:
+                print(f"Error stopping EEG on close: {e}")
+        
         self.closeCamera()
         if self.marker_calculate_process and self.marker_calculate_process.is_alive():
             self.marker_calculate_process.terminate()
@@ -1166,7 +1550,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     App = QApplication(sys.argv)
-    App.setWindowIcon(QIcon("GUI_source/Team_logo.jpg"))
+    App.setWindowIcon(QIcon("GUI_source/TeamLogo.jpg"))
     window = MainWindow()
     window.show()
     sys.exit(App.exec())

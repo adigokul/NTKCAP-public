@@ -98,7 +98,7 @@ skeleton = VISUALIZATION_CFG['halpe26']['skeleton']
 link_color = VISUALIZATION_CFG['halpe26']['link_color']
 point_color = VISUALIZATION_CFG['halpe26']['point_color']
 class TrackerProcess(Process):
-    def __init__(self, start_evt, cam_id, stop_evt, queue_cam, queue_kp, shm, shm_kp, *args, **kwargs):
+    def __init__(self, start_evt, cam_id, stop_evt, queue_cam, queue_kp, shm, shm_kp, enable_pose_detection=False, *args, **kwargs):
         super().__init__()
         self.start_evt = start_evt
         self.cam_id = cam_id
@@ -111,14 +111,25 @@ class TrackerProcess(Process):
         self.recording = False
         self.frame_width = 1920
         self.frame_height = 1080
+        self.enable_pose_detection = enable_pose_detection
         
     def run(self):
         shape = (1080, 1920, 3)
         existing_shm = shared_memory.SharedMemory(name=self.shm)
         shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
         
-        tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+        # Only initialize pose tracker if pose detection is enabled
+        tracker = None
+        state = None
+        if self.enable_pose_detection:
+            try:
+                tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
+                state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+                print(f"✅ Pose tracker initialized for camera {self.cam_id}")
+            except Exception as e:
+                print(f"❌ Failed to initialize pose tracker for camera {self.cam_id}: {e}")
+                print(f"📋 Running camera {self.cam_id} without pose detection")
+                self.enable_pose_detection = False
         
         existing_shm_kp = shared_memory.SharedMemory(name=self.shm_kp)
         shared_array_kp = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm_kp.buf)
@@ -130,12 +141,18 @@ class TrackerProcess(Process):
                 time.sleep(0.01)
                 continue
             frame = shared_array[idx_get, : ]
-            keypoints, _ = tracker(state, frame, detect=-1)[:2]
             
-            scores = keypoints[..., 2]
-            keypoints = np.round(keypoints[..., :2], 3)
+            # Only run pose detection if enabled and tracker is available
+            if self.enable_pose_detection and tracker is not None and state is not None:
+                try:
+                    keypoints, _ = tracker(state, frame, detect=-1)[:2]
+                    scores = keypoints[..., 2]
+                    keypoints = np.round(keypoints[..., :2], 3)
+                    self.draw_frame(frame, keypoints, scores, palette, skeleton, link_color, point_color)
+                except Exception as e:
+                    print(f"❌ Pose detection error on camera {self.cam_id}: {e}")
+                    # Continue without pose detection for this frame
             
-            self.draw_frame(frame, keypoints, scores, palette, skeleton, link_color, point_color)
             np.copyto(shared_array_kp[idx,:], frame)
             self.queue_kp.put(idx) # !!!!idx?
             idx = (idx+1) % self.buffer_length
