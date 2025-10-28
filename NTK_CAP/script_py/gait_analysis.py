@@ -390,6 +390,13 @@ def find_foot_strike(data,vr30,vl30,SR,dir_task,title):
     R_locs_possible_min_p = locs_possible_min_R[p_R]  # replace with actual data
     L_locs_possible_min_p = locs_possible_min_L[p_L]  # replace with actual data
 
+    # Check if arrays are empty before accessing indices
+    if len(R_locs_possible_min_n) == 0 or len(L_locs_possible_min_n) == 0:
+        print(f"Warning: Empty gait detection arrays. R_heel: {len(R_locs_possible_min_n)}, L_heel: {len(L_locs_possible_min_n)}")
+        print("Returning default values for foot strike detection.")
+        # Return default/fallback values
+        return [0], [0], [len(data)-1], [len(data)-1]
+    
     a = np.argmin([R_locs_possible_min_n[0], L_locs_possible_min_n[0]]) + 1
     count1 = 0
     count2 = 0

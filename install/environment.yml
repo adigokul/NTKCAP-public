@@ -1,16 +1,8 @@
-name: ntkcap
+name: ntkcap_env
 channels:
-  - conda-forge
   - opensim-org
   - defaults
 dependencies:
   - python=3.10
   - pip
-  - opensim=4.5
-  - numpy
-  - scipy
-  - matplotlib
-  # opencv moved to Poetry (pyproject.toml) to avoid conflicts
-  - vtk
-  - pip:
-    # Add any pip-only packages here if needed
+  - opensim=4.5=py310np121

@@ -4,7 +4,7 @@
 Write-Host "ðŸš€ Activating NTKCAP environment..." -ForegroundColor Green
 
 # Activate conda environment
-conda activate ntkcap
+conda activate ntkcap_env
 
 # Check CUDA availability
 if (Get-Command nvcc -ErrorAction SilentlyContinue) {

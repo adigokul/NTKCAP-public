@@ -1,3 +1,13 @@
+# MMEngine ecosystem - installed via mim in setup.ps1
+# mim install mmengine
+# mim install "mmcv==2.1.0"
+# mim install "mmdet>=3.3.0"
+# MMPose - installed via pip install -e . in setup.ps1
+# cd NTK_CAP\ThirdParty\mmpose && pip install -r requirements.txt && pip install -v -e .
+# PyTorch - installed via pip with CUDA 11.8 binding in setup.ps1
+# pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+# ==================================DONE by ps1======================================
+
 [tool.poetry]
 name = "ntkcap"
 version = "0.1.0"
@@ -9,61 +19,51 @@ package-mode = false
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 
-# Core scientific computing
-numpy = "^1.26.0"
-scipy = "^1.13.0"
-matplotlib = "^3.8.0"
+mmdeploy = "1.3.1"
+mmdeploy-runtime-gpu = "1.3.1"
+onnxruntime-gpu = "1.17.1"
+pycuda = "*"
+tensorrt = { path = "install/wheels/tensorrt-8.6.1-cp310-none-win_amd64.whl" }
+tensorrt_lean = { path = "install/wheels/tensorrt_lean-8.6.1-cp310-none-win_amd64.whl" }
+tensorrt_dispatch = { path = "install/wheels/tensorrt_dispatch-8.6.1-cp310-none-win_amd64.whl" }
 
-# Computer Vision
-opencv-python = "^4.8.0"
+# PyTorch CUDA 11.8 - using PyTorch index URL
+torch = {version = "2.0.1+cu118", source = "pytorch"}
+torchvision = {version = "0.15.2+cu118", source = "pytorch"}
+torchaudio = {version = "2.0.2+cu118", source = "pytorch"}
 
-# GUI framework
-PyQt6 = "^6.5.0"
-PyQt6-WebEngine = "^6.5.0"
+# Additional dependencies
+func_timeout = "*"
+pygltflib = "*"
+natsort = "*"
+openpyxl = "*"
+pyqtgraph = "*"
+numpy = "1.22.4"
+# PyQt6 = "6.8.1"
+# PyQt6-WebEngine = "6.9.0"
+cupy-cuda11x = "*"
+bs4 = "*"
+multiprocess = "*"
+keyboard = "*"
+import_ipynb = "*"
+kivy = "*"  # Removed due to PyQt5 conflict with PyQt6
+# Pose2Sim = "0.4"  # Core dependency - required for full workflow
+scipy = "1.13.0"
+ultralytics = "*"  # May cause PyQt5 conflict
+tkfilebrowser = "*"
+matplotlib = "3.8.4"
+pyserial = "*"
 
-# Basic utilities
-beautifulsoup4 = "^4.12.0"
-pyserial = "^3.5"
-openpyxl = "^3.1.0"
-natsort = "^8.4.0"
-multiprocess = "^0.70.18"
-keyboard = "^0.13.5"
-func-timeout = "^4.3.5"
-tkfilebrowser = "^2.3.2"
-toml = "^0.10.2"
-torch = {version = "^2.7.1", source = "pytorch-gpu"}
-torchvision = {version = "^0.22.1", source = "pytorch-gpu"}
-torchaudio = {version = "^2.7.1", source = "pytorch-gpu"}
-# ultralytics = "^8.3.204"  # Temporarily disabled due to opencv conflict
-pyqtgraph = "^0.13.7"
-pygltflib = "^1.16.5"
-openmim = "^0.3.9"
-tensorrt = {version = "10.3.0", source = "nvidia-pypi"}
-# pose2sim = "0.4"  # Temporarily disabled due to opencv conflict
-setuptools = "^80.9.0"
-
-# Additional dependencies for NTKCAP
-ipython = "^8.15.0"
-cupy-cuda11x = "^11.6.0"
-mmdeploy-runtime-gpu = "^1.3.0"
-websocket-client = "^1.6.0"
-onnxruntime-gpu = "^1.20.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-black = "^23.0.0"
-flake8 = "^6.0.0"
-
-[[tool.poetry.source]]
-name = "pytorch-gpu"
-url = "https://download.pytorch.org/whl/cu118"
-priority = "explicit"
-
-[[tool.poetry.source]]
-name = "nvidia-pypi"
-url = "https://pypi.nvidia.com"
-priority = "explicit"
+#pip install "Pose2Sim==0.4"
+#pip install PyQt6==6.8.1
+#pip install PyQt6-WebEngine==6.9.0
+#pip install numpy==1.22.4
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"

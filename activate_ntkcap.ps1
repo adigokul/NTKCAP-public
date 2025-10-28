@@ -4,7 +4,7 @@
 Write-Host "ðŸš€ Activating NTKCAP environment..." -ForegroundColor Green
 
 # Activate conda environment
-conda activate ntkcap
+conda activate ntkcap_env
 
 # Check CUDA availability
 if (Get-Command nvcc -ErrorAction SilentlyContinue) {
@@ -32,4 +32,6 @@ Write-Host "ðŸŽ‰ NTKCAP environment activated!" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Available commands:" -ForegroundColor Cyan
 Write-Host "  python NTKCAP_GUI.py          # Run main GUI" -ForegroundColor White
+Write-Host "  python final_NTK_Cap_GUI.py   # Run alternative GUI" -ForegroundColor White
+Write-Host "  poetry run <command>          # Run with Poetry" -ForegroundColor White
 Write-Host ""

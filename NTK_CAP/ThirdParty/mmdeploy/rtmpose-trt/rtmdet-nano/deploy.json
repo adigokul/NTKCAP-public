@@ -4,9 +4,9 @@
     "models": [
         {
             "name": "rtmdet",
-            "net": "end2end.onnx",
+            "net": "end2end.engine",
             "weights": "",
-            "backend": "onnxruntime",
+            "backend": "tensorrt",
             "precision": "FP32",
             "batch_size": 1,
             "dynamic_shape": false

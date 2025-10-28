@@ -67,19 +67,19 @@
                     {
                         "type": "Collect",
                         "meta_keys": [
-                            "flip",
                             "img_norm_cfg",
-                            "img_id",
+                            "pad_shape",
                             "valid_ratio",
-                            "ori_shape",
-                            "ori_filename",
-                            "flip_direction",
-                            "scale_factor",
-                            "pad_param",
                             "img_shape",
                             "filename",
+                            "ori_shape",
+                            "scale_factor",
+                            "flip_direction",
+                            "flip",
                             "img_path",
-                            "pad_shape"
+                            "pad_param",
+                            "ori_filename",
+                            "img_id"
                         ],
                         "keys": [
                             "img"
