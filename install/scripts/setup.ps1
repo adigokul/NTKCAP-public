@@ -249,18 +249,27 @@ function Check-Poetry {
         Write-Warning-Custom "Poetry not found in PATH. Installing Poetry via pip..."
         try {
             pip install poetry
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
             Write-Info "✅ Poetry installed via pip"
         } catch {
-            Write-Error-Custom "Poetry installation via pip failed. Please install manually."
+            Write-Error-Custom "Poetry installation via pip failed"
         }
     }
     # Configure Poetry to use conda environment
     Write-Log "Configuring Poetry to use conda environment..."
-    poetry config virtualenvs.create false
-    poetry config virtualenvs.in-project false
-    poetry config keyring.enabled false
-    Write-Info "✅ Poetry configured to use conda environment."
-    return $true
+    try {
+        poetry config virtualenvs.create false
+        if ($LASTEXITCODE -ne 0) { throw "poetry config failed" }
+        poetry config virtualenvs.in-project false
+        if ($LASTEXITCODE -ne 0) { throw "poetry config failed" }
+        poetry config keyring.enabled false
+        if ($LASTEXITCODE -ne 0) { throw "poetry config failed" }
+        Write-Info "✅ Poetry configured to use conda environment."
+        return $true
+    }
+    catch {
+        Write-Error-Custom "Poetry configuration failed"
+    }
 }
 
 # Create conda environment from environment.yml
@@ -285,6 +294,9 @@ function New-CondaEnvironment {
             if ($response -eq 'y' -or $response -eq 'Y' -or $response -eq 'yes' -or $response -eq 'Yes') {
                 Write-Info "Removing existing ntkcap_env environment..."
                 conda env remove -n ntkcap_env -y
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error-Custom "Failed to remove existing environment"
+                }
             }
             else {
                 Write-Info "Keeping existing environment. Skipping environment creation."
@@ -427,16 +439,23 @@ function Install-PythonDependencies {
     Write-Log "Ensuring opensim 4.5 is installed..."
     try {
         conda install -c opensim-org opensim=4.5=py310np121 -y
+        if ($LASTEXITCODE -ne 0) { throw "conda install failed" }
         Write-Info "✅ OpenSim installed successfully"
     }
     catch {
-        Write-Warning-Custom "OpenSim installation failed (may already be installed)"
+        Write-Error-Custom "OpenSim installation failed"
     }
 
     # Install PyTorch CUDA 11.8 (always install)
     Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
-    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-    Write-Info "✅ PyTorch and related packages installed"
+    try {
+        pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ PyTorch and related packages installed"
+    }
+    catch {
+        Write-Error-Custom "PyTorch installation failed"
+    }
     
     Write-Info "✅ Basic Python dependencies installation completed"
 }
@@ -471,16 +490,14 @@ function Install-PoetryDependencies {
         conda activate ntkcap_env
         Write-Log "Regenerating Poetry lockfile to resolve dependency conflicts..."
         poetry lock --no-cache
+        if ($LASTEXITCODE -ne 0) { throw "poetry lock failed" }
         Write-Log "Installing Poetry dependencies..."
         poetry install
+        if ($LASTEXITCODE -ne 0) { throw "poetry install failed" }
         Write-Info "✅ Poetry install completed"
     }
     catch {
-        Write-Warning-Custom "Poetry install failed"
-        Write-Info "Please run manually in conda environment:"
-        Write-Host "  conda activate ntkcap_env" -ForegroundColor White
-        Write-Host "  poetry lock --no-cache" -ForegroundColor White
-        Write-Host "  poetry install" -ForegroundColor White
+        Write-Error-Custom "Poetry install failed"
     }
     
     Write-Info "✅ Poetry dependencies installation completed"
@@ -499,6 +516,7 @@ function Install-MMComponents {
     Write-Log "Installing openmim..."
     try {
         pip install -U openmim
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
         Write-Info "✅ openmim installed successfully"
     }
     catch {
@@ -509,28 +527,31 @@ function Install-MMComponents {
     Write-Log "Installing mmengine via mim..."
     try {
         mim install mmengine
+        if ($LASTEXITCODE -ne 0) { throw "mim install failed" }
         Write-Info "✅ mmengine installed"
     }
     catch {
-        Write-Warning-Custom "mmengine installation failed"
+        Write-Error-Custom "mmengine installation failed"
     }
     
     Write-Log "Installing mmcv (2.1.0) via mim..."
     try {
         mim install "mmcv==2.1.0"
+        if ($LASTEXITCODE -ne 0) { throw "mim install failed" }
         Write-Info "✅ mmcv 2.1.0 installed"
     }
     catch {
-        Write-Warning-Custom "mmcv installation failed"
+        Write-Error-Custom "mmcv installation failed"
     }
     
     Write-Log "Installing mmdet via mim..."
     try {
         mim install "mmdet>=3.3.0"
+        if ($LASTEXITCODE -ne 0) { throw "mim install failed" }
         Write-Info "✅ mmdet installed"
     }
     catch {
-        Write-Warning-Custom "mmdet installation failed"
+        Write-Error-Custom "mmdet installation failed"
     }
     
     Write-Info "✅ MMEngine ecosystem installed"
@@ -545,15 +566,17 @@ function Install-MMComponents {
         Write-Log "Installing MMPose requirements..."
         try {
             pip install -r requirements.txt
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
             Write-Info "✅ MMPose requirements installed"
         }
         catch {
-            Write-Warning-Custom "MMPose requirements installation failed"
+            Write-Error-Custom "MMPose requirements installation failed"
         }
         
         Write-Log "Installing MMPose in editable mode..."
         try {
             pip install -v -e .
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
             Write-Info "✅ MMPose installed successfully"
         }
         catch {
@@ -563,41 +586,45 @@ function Install-MMComponents {
         Set-Location $ntkcapPath
     }
     else {
-        Write-Warning-Custom "MMPose directory not found at: $mmposePath"
+        Write-Error-Custom "MMPose directory not found at: $mmposePath"
     }
     
     # Install mmdeploy and related packages (after MMPose)
     Write-Log "Installing mmdeploy and related packages..."
     try {
         pip install mmdeploy==1.3.1
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
         Write-Info "✅ mmdeploy 1.3.1 installed"
     }
     catch {
-        Write-Warning-Custom "mmdeploy installation failed"
+        Write-Error-Custom "mmdeploy installation failed"
     }
     
     try {
         pip install mmdeploy-runtime-gpu==1.3.1
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
         Write-Info "✅ mmdeploy-runtime-gpu 1.3.1 installed"
     }
     catch {
-        Write-Warning-Custom "mmdeploy-runtime-gpu installation failed"
+        Write-Error-Custom "mmdeploy-runtime-gpu installation failed"
     }
     
     try {
         pip install onnxruntime-gpu==1.17.1
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
         Write-Info "✅ onnxruntime-gpu 1.17.1 installed"
     }
     catch {
-        Write-Warning-Custom "onnxruntime-gpu installation failed"
+        Write-Error-Custom "onnxruntime-gpu installation failed"
     }
     
     try {
         pip install pycuda
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
         Write-Info "✅ pycuda installed"
     }
     catch {
-        Write-Warning-Custom "pycuda installation failed"
+        Write-Error-Custom "pycuda installation failed"
     }
     
     # try {
@@ -623,14 +650,15 @@ function Install-MMComponents {
                 if (Test-Path $wheel) {
                     try {
                         pip install $wheel
+                        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
                         Write-Info "✅ Installed $(Split-Path $wheel -Leaf)"
                     }
                     catch {
-                        Write-Warning-Custom "Failed to install $(Split-Path $wheel -Leaf)"
+                        Write-Error-Custom "Failed to install $(Split-Path $wheel -Leaf)"
                     }
                 }
                 else {
-                    Write-Warning-Custom "TensorRT wheel not found: $wheel"
+                    Write-Error-Custom "TensorRT wheel not found: $wheel"
                 }
             }
             
@@ -638,25 +666,27 @@ function Install-MMComponents {
             Write-Log "Applying numpy version correction for TensorRT and MM compatibility..."
             try {
                 pip uninstall numpy -y
+                if ($LASTEXITCODE -ne 0) { throw "pip uninstall failed" }
                 pip install numpy==1.23.5
+                if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
                 Write-Info "✅ numpy 1.23.5 installed (cleaned and reinstalled for compatibility)"
                 
                 # Verify numpy version
                 $numpyVersion = python -c "import numpy; print(numpy.__version__)" 2>$null
+                if ($LASTEXITCODE -ne 0) { throw "python check failed" }
                 if ($numpyVersion -eq "1.23.5") {
                     Write-Info "✅ numpy version verified: $numpyVersion"
                 }
                 else {
-                    Write-Warning-Custom "numpy version mismatch: expected 1.23.5, got $numpyVersion"
+                    Write-Error-Custom "numpy version mismatch: expected 1.23.5, got $numpyVersion. Installation cannot continue."
                 }
             }
             catch {
-                Write-Warning-Custom "numpy version correction failed"
+                Write-Error-Custom "numpy version correction failed. Installation cannot continue."
             }
         }
         else {
-            Write-Warning-Custom "TensorRT wheels directory not found at: $wheelsDir"
-            Write-Info "TensorRT wheels will be downloaded later if needed"
+            Write-Error-Custom "TensorRT wheels directory not found at: $wheelsDir. Please ensure TensorRT wheels are available."
         }    # Deploy models to TensorRT format (after all MM components are installed)
     Write-Log "Deploying models to TensorRT format..."
     $response = Read-Host "Do you want to deploy models to TensorRT format? This may take some time (y/N)"
@@ -670,27 +700,29 @@ function Install-MMComponents {
             Write-Log "Deploying RTMDet model to TensorRT..."
             try {
                 python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-320x320.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-nano --device cuda:0 --show --dump-info
+                if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
                 Write-Info "✅ RTMDet model deployed to TensorRT"
             }
             catch {
-                Write-Warning-Custom "RTMDet TensorRT deployment failed"
+                Write-Error-Custom "RTMDet TensorRT deployment failed"
             }
             
             # Deploy RTMPose model
             Write-Log "Deploying RTMPose model to TensorRT..."
             try {
                 python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-m --device cuda:0 --show --dump-info
+                if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
                 Write-Info "✅ RTMPose model deployed to TensorRT"
             }
             catch {
-                Write-Warning-Custom "RTMPose TensorRT deployment failed"
+                Write-Error-Custom "RTMPose TensorRT deployment failed"
             }
             
             Set-Location $ntkcapPath
             Write-Info "✅ TensorRT model deployment completed"
         }
         else {
-            Write-Warning-Custom "MMDeploy directory not found at: $mmdeployPath"
+            Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
         }
     }
     else {
@@ -706,26 +738,28 @@ function Install-MMComponents {
         Write-Log "Installing setuptools 69.5.0..."
         try {
             pip install setuptools==69.5.0
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
             Write-Info "✅ setuptools 69.5.0 installed"
         }
         catch {
-            Write-Warning-Custom "setuptools installation failed"
+            Write-Error-Custom "setuptools installation failed"
         }
         
         Write-Log "Installing EasyMocap in development mode..."
         try {
             python setup.py develop --user
+            if ($LASTEXITCODE -ne 0) { throw "python setup failed" }
             Write-Info "✅ EasyMocap installed successfully"
         }
         catch {
-            Write-Warning-Custom "EasyMocap installation failed"
+            Write-Error-Custom "EasyMocap installation failed"
         }
         
         Set-Location $ntkcapPath
         Write-Info "✅ EasyMocap installation completed"
     }
     else {
-        Write-Warning-Custom "EasyMocap directory not found at: $easymocapPath"
+        Write-Error-Custom "EasyMocap directory not found at: $easymocapPath"
     }
 }
 
@@ -793,20 +827,20 @@ function Apply-CompatibilityFixes {
     try {
         Write-Info "Installing specific versions to resolve PyQt5/PyQt6 conflicts..."
         pip install "Pose2Sim==0.4"
+        if ($LASTEXITCODE -ne 0) { throw "pip install Pose2Sim failed" }
         pip uninstall PyQt6 PyQt6-WebEngine PyQt6-Qt6 PyQt6-WebEngine-Qt6 PyQt6-sip -y
+        if ($LASTEXITCODE -ne 0) { throw "pip uninstall PyQt6 failed" }
         # 使用穩定的 6.7.0 版本（避免 DLL 問題）
         pip install PyQt6==6.7.0
+        if ($LASTEXITCODE -ne 0) { throw "pip install PyQt6 failed" }
         pip install PyQt6-WebEngine==6.7.0
+        if ($LASTEXITCODE -ne 0) { throw "pip install PyQt6-WebEngine failed" }
         pip install "numpy==1.22.4"
+        if ($LASTEXITCODE -ne 0) { throw "pip install numpy failed" }
         Write-Info "✅ PyQt compatibility fixes applied"
     }
     catch {
-        Write-Warning-Custom "PyQt compatibility fixes failed"
-        Write-Info "Please run manually if needed:"
-        Write-Host "  pip install 'Pose2Sim==0.4'" -ForegroundColor White
-        Write-Host "  pip install 'PyQt6==6.8.1'" -ForegroundColor White
-        Write-Host "  pip install 'PyQt6-WebEngine==6.9.0'" -ForegroundColor White
-        Write-Host "  pip install 'numpy==1.22.4'" -ForegroundColor White
+        Write-Error-Custom "PyQt compatibility fixes failed"
     }
     
     Write-Info "✅ Final compatibility fixes completed"
@@ -838,8 +872,14 @@ function Start-Installation {
 
     # Install PyTorch and related packages immediately after environment creation
     Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
-    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-    Write-Info "✅ PyTorch and related packages installed"
+    try {
+        pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ PyTorch and related packages installed"
+    }
+    catch {
+        Write-Error-Custom "PyTorch installation failed"
+    }
 
     Check-Poetry
     Install-MMComponents
