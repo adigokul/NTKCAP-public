@@ -1,25 +1,28 @@
-pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-pip install -U openmim
-mim install mmengine
-mim install "mmcv>=2.0.1" (2.1.0)
-mim install "mmdet>=3.3.0"
-cd NTK_CAP\ThirdParty\mmpose
-pip install -r requirements.txt
-pip install -v -e .
-pip install mmdeploy==1.3.1
-pip install mmdeploy-runtime-gpu==1.3.1
-pip install onnxruntime-gpu==1.17.1
-pip install pycuda
+OK pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+OK pip install -U openmim
+OK mim install mmengine
+OK mim install "mmcv>=2.0.1" (2.1.0)
+OK mim install "mmdet>=3.3.0"
+OK cd NTK_CAP\ThirdParty\mmpose
+OK pip install -r requirements.txt
+OK pip install -v -e .
+OK pip install mmdeploy==1.3.1
+OK pip install mmdeploy-runtime-gpu==1.3.1
+OK pip install onnxruntime-gpu==1.17.1
+OK pip install pycuda
 
-cd ..
-cd TensorRT-8.6.1.6\python
-pip install tensorrt_dispatch-8.6.1-cp310-none-win_amd64.whl
-pip install tensorrt_lean-8.6.1-cp310-none-win_amd64.whl
-pip install tensorrt-8.6.1-cp310-none-win_amd64.whl
+OK cd ..
+OK cd TensorRT-8.6.1.6\python
+OK pip install tensorrt_dispatch-8.6.1-cp310-none-win_amd64.whl
+OK pip install tensorrt_lean-8.6.1-cp310-none-win_amd64.whl
+OK pip install tensorrt-8.6.1-cp310-none-win_amd64.whl
 
-pip install tensorrt_dispatch-8.6.1-cp310-none-win_amd64.whl --force-reinstall
-pip install tensorrt_lean-8.6.1-cp310-none-win_amd64.whl --force-reinstall
-pip install tensorrt-8.6.1-cp310-none-win_amd64.whl --force-reinstall
+OK pip install numpy==1.21.6 
+
+python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-320x320.py C:/Users/MyUser/Desktop/NTKCAP_stable/NTK_CAP/ThirdParty/mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth C:/Users/MyUser/Desktop/NTKCAP_stable/NTK_CAP/ThirdParty/mmdeploy/demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-nano --device cuda:0 --show --dump-info
+
+python tools/deploy.py C:/Users/MyUser/Desktop/NTKCAP_stable/NTK_CAP/ThirdParty/mmdeploy/configs/mmpose/pose-detection_tensorrt_static-384x288.py C:/Users/MyUser/Desktop/NTKCAP_stable/NTK_CAP/ThirdParty/mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth C:/Users/MyUser/Desktop/NTKCAP_stable/NTK_CAP/ThirdParty/mmdeploy/demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-m --device cuda:0 --show --dump-info
+
  
 cd EasyMocap
 pip install setuptools==69.5.0
@@ -35,9 +38,16 @@ pip install numpy==1.21.6
 pip install scipy==1.13.0
 pip install ultralytics
 pip install tkfilebrowser
-pip install kivy
 pip install matplotlib==3.8.4
 pip install pyserial
-conda install opensim-org::opensim
+conda or mamba install -c opensim-org opensim=4.5=py310np121
 pip install func_timeout
 pip install pygltflib
+pip install natsort
+pip install openpyxl
+pip install pyqtgraph
+pip install numpy==1.21.6 
+pip install PyQt6==6.8.1
+pip install PyQt6-WebEngine==6.9.0
+pip install cupy-cuda11x 
+pip install numpy==1.22.4
