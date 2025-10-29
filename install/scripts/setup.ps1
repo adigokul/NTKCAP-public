@@ -13,11 +13,17 @@
 # New-ActivationScript - 建立啟動腳本
 
 param(
-    [switch]$SkipCudaCheck = $false
+    [switch]$SkipCudaCheck = $false,
+    [switch]$SkipPoetry = $false
 )
 
 # Set error action preference
 $ErrorActionPreference = "Stop"
+
+# ==================== Global Configuration ====================
+# Root directory - Change this if NTKCAP is installed elsewhere
+$NTKCAP_ROOT = "D:\NTKCAP"
+# ================================================================
 
 # Colors for output
 function Write-Log {
@@ -82,23 +88,40 @@ function Download-TensorRTWheels {
     Write-Host "Target: $outputFile" -ForegroundColor Gray
     
     try {
-        # Use PowerShell's Invoke-WebRequest to download
-        $ProgressPreference = 'SilentlyContinue'  # Disable progress bar for faster download
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing
+        # Install gdown if not available
+        if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+            Write-Error-Custom "Python not found. Please ensure conda environment is activated."
+        }
+        
+        Write-Info "Installing gdown for Google Drive downloads..."
+        pip install gdown -q
+        if ($LASTEXITCODE -ne 0) { throw "gdown installation failed" }
+        
+        # Use gdown to download from Google Drive (handles confirmation tokens)
+        Write-Info "Downloading with gdown..."
+        python -m gdown $downloadUrl -O $outputFile
+        if ($LASTEXITCODE -ne 0) { throw "gdown download failed" }
         Write-Info "✅ Download completed"
         
         # Extract the tar file
         if (Test-Path $outputFile) {
             Write-Log "Extracting TensorRT wheels..."
             
+            # Create temporary extraction directory
+            $tempExtractDir = Join-Path $wheelsDir "temp_extract"
+            if (Test-Path $tempExtractDir) {
+                Remove-Item $tempExtractDir -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $tempExtractDir -Force | Out-Null
+            
             # Check if tar is available (Windows 10 1903+ has built-in tar)
             if (Get-Command tar -ErrorAction SilentlyContinue) {
-                tar -xf $outputFile -C $wheelsDir
+                tar -xf $outputFile -C $tempExtractDir
                 Write-Info "✅ Extraction completed using built-in tar"
             }
             # Fallback: try to use 7-Zip if available
             elseif (Test-Path "${env:ProgramFiles}\7-Zip\7z.exe") {
-                & "${env:ProgramFiles}\7-Zip\7z.exe" x $outputFile -o"$wheelsDir" -y
+                & "${env:ProgramFiles}\7-Zip\7z.exe" x $outputFile -o"$tempExtractDir" -y
                 Write-Info "✅ Extraction completed using 7-Zip"
             }
             # Fallback: use PowerShell's Expand-Archive if it's a zip-compatible format
@@ -106,12 +129,24 @@ function Download-TensorRTWheels {
                 Write-Warning-Custom "No extraction tool found (tar, 7-Zip). Please extract manually:"
                 Write-Host "  Extract: $outputFile" -ForegroundColor White
                 Write-Host "  To: $wheelsDir" -ForegroundColor White
+                Remove-Item $tempExtractDir -Recurse -Force
                 return
             }
             
-            # Clean up tar file after extraction
+            # Move wheel files from nested directory to wheelsDir
+            $wheelFiles = Get-ChildItem -Path $tempExtractDir -Filter "*.whl" -Recurse
+            if ($wheelFiles.Count -gt 0) {
+                foreach ($wheel in $wheelFiles) {
+                    $destPath = Join-Path $wheelsDir $wheel.Name
+                    Copy-Item -Path $wheel.FullName -Destination $destPath -Force
+                    Write-Info "  Moved: $($wheel.Name)"
+                }
+            }
+            
+            # Clean up temporary directory and tar file
+            Remove-Item $tempExtractDir -Recurse -Force
             Remove-Item $outputFile -Force
-            Write-Info "Cleaned up archive file"
+            Write-Info "Cleaned up temporary files"
             
             # Verify extraction
             $extractedWheels = Get-ChildItem -Path $wheelsDir -Filter "*.whl" | Measure-Object
@@ -264,7 +299,17 @@ function Check-Poetry {
         if ($LASTEXITCODE -ne 0) { throw "poetry config failed" }
         poetry config keyring.enabled false
         if ($LASTEXITCODE -ne 0) { throw "poetry config failed" }
-        Write-Info "✅ Poetry configured to use conda environment."
+        
+        # Configure Poetry to use Aliyun mirror (more reliable in China)
+        Write-Info "Configuring Poetry to use Aliyun PyPI mirror..."
+        poetry source add --priority primary aliyun https://mirrors.aliyun.com/pypi/simple/
+        if ($LASTEXITCODE -ne 0) { Write-Warning-Custom "Could not add Aliyun mirror, continuing..." }
+        
+        # Keep PyTorch source explicit
+        poetry source add --priority explicit pytorch https://download.pytorch.org/whl/cu118
+        if ($LASTEXITCODE -ne 0) { Write-Warning-Custom "Could not add PyTorch source, continuing..." }
+        
+        Write-Info "✅ Poetry configured to use conda environment and mirror sources."
         return $true
     }
     catch {
@@ -277,12 +322,11 @@ function New-CondaEnvironment {
     Write-Log "Setting up conda/mamba environment..."
 
     # Change to NTKCAP directory
-    $ntkcapPath = "D:\NTKCAP"
-    if (-not (Test-Path $ntkcapPath)) {
-        Write-Error-Custom "NTKCAP directory not found at $ntkcapPath"
+    if (-not (Test-Path $NTKCAP_ROOT)) {
+        Write-Error-Custom "NTKCAP directory not found at $NTKCAP_ROOT"
     }
 
-    Set-Location $ntkcapPath
+    Set-Location $NTKCAP_ROOT
 
     # Check if environment already exists
     try {
@@ -462,6 +506,37 @@ function Install-PythonDependencies {
 
 # Install Poetry dependencies (after MMEngine ecosystem)
 function Install-PoetryDependencies {
+    # Check if Poetry installation should be skipped
+    if ($SkipPoetry) {
+        Write-Warning-Custom "Poetry installation SKIPPED (--SkipPoetry flag enabled)"
+        Write-Info "You can run Poetry manually later with:"
+        Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
+        Write-Host "  conda activate ntkcap_env" -ForegroundColor White
+        Write-Host "  poetry lock --no-cache" -ForegroundColor White
+        Write-Host "  poetry install" -ForegroundColor White
+        return
+    }
+    
+    # Ask user if they want to install Poetry dependencies
+    Write-Host ""
+    Write-Host "================================" -ForegroundColor Cyan
+    Write-Host "Poetry Dependency Installation" -ForegroundColor Cyan
+    Write-Host "================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Poetry will now generate a lockfile and install dependencies." -ForegroundColor White
+    Write-Host "This may take some time (5-10 minutes) depending on network speed." -ForegroundColor White
+    Write-Host ""
+    $response = Read-Host "Do you want to proceed with Poetry dependency installation? (y/N)"
+    if ($response -ne 'y' -and $response -ne 'Y') {
+        Write-Warning-Custom "Poetry dependency installation SKIPPED by user"
+        Write-Info "You can run Poetry manually later with:"
+        Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
+        Write-Host "  conda activate ntkcap_env" -ForegroundColor White
+        Write-Host "  poetry lock --no-cache" -ForegroundColor White
+        Write-Host "  poetry install" -ForegroundColor White
+        return
+    }
+    
     Write-Log "Installing Poetry dependencies..."
     
     # Activate conda environment
@@ -558,8 +633,7 @@ function Install-MMComponents {
     
     # Install MMPose from source (before mmdeploy)
     Write-Log "Installing MMPose from source..."
-    $ntkcapPath = "D:\NTKCAP"
-    $mmposePath = Join-Path $ntkcapPath "NTK_CAP\ThirdParty\mmpose"
+    $mmposePath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmpose"
     
     if (Test-Path $mmposePath) {
         Set-Location $mmposePath
@@ -583,7 +657,7 @@ function Install-MMComponents {
             Write-Error-Custom "MMPose installation failed"
         }
         
-        Set-Location $ntkcapPath
+        Set-Location $NTKCAP_ROOT
     }
     else {
         Write-Error-Custom "MMPose directory not found at: $mmposePath"
@@ -691,7 +765,7 @@ function Install-MMComponents {
     Write-Log "Deploying models to TensorRT format..."
     $response = Read-Host "Do you want to deploy models to TensorRT format? This may take some time (y/N)"
     if ($response -eq 'y' -or $response -eq 'Y') {
-        $mmdeployPath = Join-Path $ntkcapPath "NTK_CAP\ThirdParty\mmdeploy"
+        $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
         
         if (Test-Path $mmdeployPath) {
             Set-Location $mmdeployPath
@@ -718,7 +792,7 @@ function Install-MMComponents {
                 Write-Error-Custom "RTMPose TensorRT deployment failed"
             }
             
-            Set-Location $ntkcapPath
+            Set-Location $NTKCAP_ROOT
             Write-Info "✅ TensorRT model deployment completed"
         }
         else {
@@ -731,7 +805,7 @@ function Install-MMComponents {
     
     # Install EasyMocap
     Write-Log "Installing EasyMocap..."
-    $easymocapPath = "NTK_CAP\ThirdParty\EasyMocap"
+    $easymocapPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\EasyMocap"
     
     if (Test-Path $easymocapPath) {
         Set-Location $easymocapPath
@@ -755,7 +829,17 @@ function Install-MMComponents {
             Write-Error-Custom "EasyMocap installation failed"
         }
         
-        Set-Location $ntkcapPath
+        # Return to root directory - use parent of parent path to be safe
+        $rootPath = Split-Path (Split-Path (Split-Path $easymocapPath -Parent) -Parent) -Parent
+        if (Test-Path $rootPath) {
+            Set-Location $rootPath
+            Write-Info "✅ Returned to: $rootPath"
+        }
+        else {
+            # Fallback to NTKCAP_ROOT if calculation failed
+            Set-Location $NTKCAP_ROOT
+            Write-Info "✅ Returned to: $NTKCAP_ROOT"
+        }
         Write-Info "✅ EasyMocap installation completed"
     }
     else {
@@ -846,6 +930,34 @@ function Apply-CompatibilityFixes {
     Write-Info "✅ Final compatibility fixes completed"
 }
 
+# Cleanup function to restore state on failure
+function Cleanup-OnFailure {
+    Write-Host ""
+    Write-Warning-Custom "Installation failed. Cleaning up..."
+    
+    # Return to project root
+    Write-Info "Returning to project root directory..."
+    if (Test-Path $NTKCAP_ROOT) {
+        Set-Location $NTKCAP_ROOT
+        Write-Info "✅ Returned to: $NTKCAP_ROOT"
+    }
+    
+    # Deactivate conda environment
+    Write-Info "Deactivating conda environment..."
+    try {
+        conda deactivate
+        Write-Info "✅ Conda environment deactivated"
+    }
+    catch {
+        Write-Warning-Custom "Could not deactivate conda environment: $($_.Exception.Message)"
+    }
+    
+    Write-Host ""
+    Write-Host "❌ Installation failed and rolled back" -ForegroundColor Red
+    Write-Host "Please review the errors above and try again." -ForegroundColor Red
+    Write-Host ""
+}
+
 # Main installation function
 function Start-Installation {
     Write-Host "======================================" -ForegroundColor Cyan
@@ -854,56 +966,71 @@ function Start-Installation {
     Write-Host "======================================" -ForegroundColor Cyan
     Write-Host ""
     
-    Test-SystemRequirements
-    
-    if (-not $SkipCudaCheck) {
-        $cudaAvailable = Test-CudaInstallation
-        if (-not $cudaAvailable) {
-            Write-Warning-Custom "Continuing without CUDA support"
-        }
+    # Display active options
+    if ($SkipCudaCheck) {
+        Write-Warning-Custom "CUDA check SKIPPED (--SkipCudaCheck flag enabled)"
     }
-    
-    New-CondaEnvironment
-    
-    # Verify environment was created and we can activate it
-    if (-not (Ensure-CondaEnvironment "ntkcap_env")) {
-        Write-Error-Custom "Failed to create or activate ntkcap_env environment. Cannot continue."
+    if ($SkipPoetry) {
+        Write-Warning-Custom "Poetry installation SKIPPED (--SkipPoetry flag enabled)"
     }
-
-    # Install PyTorch and related packages immediately after environment creation
-    Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
+    Write-Host ""
+    
     try {
-        pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
-        Write-Info "✅ PyTorch and related packages installed"
+        Test-SystemRequirements
+        
+        if (-not $SkipCudaCheck) {
+            $cudaAvailable = Test-CudaInstallation
+            if (-not $cudaAvailable) {
+                Write-Warning-Custom "Continuing without CUDA support"
+            }
+        }
+        
+        New-CondaEnvironment
+        
+        # Verify environment was created and we can activate it
+        if (-not (Ensure-CondaEnvironment "ntkcap_env")) {
+            throw "Failed to create or activate ntkcap_env environment. Cannot continue."
+        }
+
+        # Install PyTorch and related packages immediately after environment creation
+        Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
+        try {
+            pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+            Write-Info "✅ PyTorch and related packages installed"
+        }
+        catch {
+            throw "PyTorch installation failed: $($_.Exception.Message)"
+        }
+
+        Check-Poetry
+        
+        # Download TensorRT wheels before MM components are installed
+        Download-TensorRTWheels
+        
+        Install-MMComponents
+        Install-PoetryDependencies
+        Apply-CompatibilityFixes
+        New-ActivationScript
+        
+        Write-Host ""
+        Write-Host "======================================" -ForegroundColor Green
+        Write-Host "        Installation Complete!       " -ForegroundColor Green
+        Write-Host "======================================" -ForegroundColor Green
+        Write-Host ""
+        
+        Write-Host "To activate the environment:" -ForegroundColor Cyan
+        Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
+        Write-Host "  .\activate_ntkcap.ps1" -ForegroundColor White
+        Write-Host "  # OR from install directory:" -ForegroundColor Gray
+        Write-Host "  .\install\activate_ntkcap.ps1" -ForegroundColor White
+        Write-Host ""
+        Write-Host "🎉 NTKCAP environment setup completed successfully!" -ForegroundColor Green
     }
     catch {
-        Write-Error-Custom "PyTorch installation failed"
+        Write-Error-Custom "Fatal error: $($_.Exception.Message)"
+        Cleanup-OnFailure
     }
-
-    Check-Poetry
-    Install-MMComponents
-    
-    # Download TensorRT wheels after MM components are installed
-    Download-TensorRTWheels
-    
-    Install-PoetryDependencies
-    Apply-CompatibilityFixes
-    New-ActivationScript
-    
-    Write-Host ""
-    Write-Host "======================================" -ForegroundColor Green
-    Write-Host "        Installation Complete!       " -ForegroundColor Green
-    Write-Host "======================================" -ForegroundColor Green
-    Write-Host ""
-    
-    Write-Host "To activate the environment:" -ForegroundColor Cyan
-    Write-Host "  cd D:\NTKCAP" -ForegroundColor White
-    Write-Host "  .\activate_ntkcap.ps1" -ForegroundColor White
-    Write-Host "  # OR from install directory:" -ForegroundColor Gray
-    Write-Host "  .\install\activate_ntkcap.ps1" -ForegroundColor White
-    Write-Host ""
-    Write-Host "🎉 NTKCAP environment setup completed successfully!" -ForegroundColor Green
 }
 
 # Run main installation
