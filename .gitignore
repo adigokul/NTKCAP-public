@@ -11,14 +11,21 @@ Patient_data/*
 !Patient_data/Patient_ID/**
 #calibration/
 
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-l/
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/
-NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-x/NTK_CAP/ThirdParty/TensorRT-8.6.1.6/
+# mmdeploy - exclude all generated model files in rtmpose-trt
+NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/
+
+# TensorRT installation
+NTK_CAP/ThirdParty/TensorRT-8.6.1.6/
+
+# Model and deployment files
 *.dll
 *.onnx
 *.caffemodel
 *.engine
+*.pth
+*.pt
+
+# Package files
 *.deb
 
 # Installation temporary files
