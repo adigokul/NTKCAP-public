@@ -989,49 +989,226 @@ function Install-MMComponents {
         else {
             Write-Error-Custom "TensorRT wheels directory not found at: $wheelsDir. Please ensure TensorRT wheels are available."
         }    # Deploy models to TensorRT format (after all MM components are installed)
-    Write-Log "Deploying models to TensorRT format..."
+    Write-Log "Setting up TensorRT models..."
     if ($SkipTensorRTDeploy) {
-        Write-Info "⏭️  Skipping TensorRT model deployment (--SkipTensorRTDeploy flag enabled)"
+        Write-Info "⏭️  Skipping TensorRT model setup (--SkipTensorRTDeploy flag enabled)"
     } elseif ($AutoYes) {
-        Write-Info "⏭️  Skipping TensorRT model deployment (--AutoYes flag enabled, use --SkipTensorRTDeploy=false to force deploy)"
+        Write-Info "⏭️  Skipping TensorRT model setup (--AutoYes flag enabled, use --SkipTensorRTDeploy=false to force setup)"
     } else {
-        $response = Read-Host "Do you want to deploy models to TensorRT format? This may take some time (y/N)"
-        if ($response -eq 'y' -or $response -eq 'Y') {
-        $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
+        Write-Host ""
+        Write-Host "TensorRT Model Setup Options" -ForegroundColor Cyan
+        Write-Host "============================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Choose how to obtain TensorRT models:" -ForegroundColor White
+        Write-Host "  1. Deploy from source (slow but customizable)" -ForegroundColor White
+        Write-Host "     - Convert PyTorch models to TensorRT format" -ForegroundColor Gray
+        Write-Host "     - Takes 10-30 minutes depending on GPU" -ForegroundColor Gray
+        Write-Host "     - Allows custom configurations" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  2. Download pre-converted models (fast)" -ForegroundColor White
+        Write-Host "     - Download ready-to-use TensorRT models" -ForegroundColor Gray
+        Write-Host "     - Takes 2-5 minutes depending on network" -ForegroundColor Gray
+        Write-Host "     - Standard configurations only" -ForegroundColor Gray
+        Write-Host ""
+        
+        do {
+            $setupChoice = Read-Host "Enter your choice (1=deploy, 2=download, N=skip)"
+            if ($setupChoice -eq "1") {
+                Write-Info "User selected: Deploy models from source"
+                break
+            } elseif ($setupChoice -eq "2") {
+                Write-Info "User selected: Download pre-converted models"
+                break
+            } elseif ($setupChoice -eq "N" -or $setupChoice -eq "n") {
+                Write-Info "User selected: Skip TensorRT model setup"
+                $setupChoice = "skip"
+                break
+            } else {
+                Write-Warning-Custom "Invalid choice. Please enter 1, 2, or N"
+            }
+        } while ($true)
+        
+        if ($setupChoice -eq "skip") {
+            Write-Info "⏭️  Skipping TensorRT model setup"
+        } elseif ($setupChoice -eq "2") {
+            # Download pre-converted models using gdown
+            Write-Log "Downloading pre-converted TensorRT models..."
+            $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
+            $rtmposeTrtPath = Join-Path $mmdeployPath "rtmpose-trt"
+            
+            if (Test-Path $mmdeployPath) {
+                Set-Location $mmdeployPath
+                
+                # Install gdown if not available
+                Write-Info "Installing gdown for Google Drive downloads..."
+                try {
+                    pip install gdown -q
+                    if ($LASTEXITCODE -ne 0) { throw "gdown installation failed" }
+                    Write-Info "✅ gdown installed successfully"
+                }
+                catch {
+                    Write-Error-Custom "Failed to install gdown: $($_.Exception.Message)"
+                }
+                
+                # Download and extract models
+                Write-Log "Downloading TensorRT models from Google Drive..."
+                $driveFileId = "1kay99Uur733IMP4Zuxs_gHoYMw7IgHR-"
+                $downloadUrl = "https://drive.google.com/uc?export=download&id=$driveFileId"
+                $tempZipFile = "rtmpose-trt-models.zip"
+                
+                try {
+                    # Backup existing rtmpose-trt folder if it exists
+                    if (Test-Path $rtmposeTrtPath) {
+                        $backupPath = "${rtmposeTrtPath}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                        Write-Info "Backing up existing rtmpose-trt to: $backupPath"
+                        Move-Item -Path $rtmposeTrtPath -Destination $backupPath -Force
+                    }
+                    
+                    # Download the zip file
+                    Write-Info "Downloading models archive..."
+                    python -m gdown $downloadUrl -O $tempZipFile
+                    if ($LASTEXITCODE -ne 0) { throw "gdown download failed" }
+                    Write-Info "✅ Download completed"
+                    
+                    # Extract the zip file
+                    Write-Log "Extracting TensorRT models..."
+                    if (Get-Command tar -ErrorAction SilentlyContinue) {
+                        # Use built-in tar for zip files (Windows 10 1903+)
+                        tar -xf $tempZipFile
+                    } elseif (Test-Path "${env:ProgramFiles}\7-Zip\7z.exe") {
+                        # Use 7-Zip if available
+                        & "${env:ProgramFiles}\7-Zip\7z.exe" x $tempZipFile -y
+                    } else {
+                        # Use PowerShell Expand-Archive as fallback
+                        Expand-Archive -Path $tempZipFile -DestinationPath "." -Force
+                    }
+                    Write-Info "✅ Extraction completed"
+                    
+                    # Clean up temporary file
+                    Remove-Item $tempZipFile -Force
+                    Write-Info "Cleaned up temporary files"
+                    
+                    # Verify extraction
+                    if (Test-Path $rtmposeTrtPath) {
+                        $modelDirs = Get-ChildItem -Path $rtmposeTrtPath -Directory | Measure-Object
+                        Write-Info "✅ TensorRT models downloaded successfully ($($modelDirs.Count) model directories found)"
+                    } else {
+                        Write-Error-Custom "Model extraction failed: rtmpose-trt directory not found"
+                    }
+                }
+                catch {
+                    Write-Error-Custom "Failed to download TensorRT models: $($_.Exception.Message)"
+                    Write-Info "Please download manually from: https://drive.google.com/file/d/1kay99Uur733IMP4Zuxs_gHoYMw7IgHR-/view?usp=sharing"
+                    Write-Info "Extract to: $rtmposeTrtPath"
+                }
+                
+                Set-Location $NTKCAP_ROOT
+            } else {
+                Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
+            }
+        } elseif ($setupChoice -eq "1") {
+            # Deploy models from source
+            Write-Log "Deploying models to TensorRT format from source..."
+            $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
         
         if (Test-Path $mmdeployPath) {
             Set-Location $mmdeployPath
             
-            # Deploy RTMDet model
-            Write-Log "Deploying RTMDet model to TensorRT..."
-            try {
-                python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-320x320.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-nano --device cuda:0 --show --dump-info
-                if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                Write-Info "✅ RTMDet model deployed to TensorRT"
-            }
-            catch {
-                Write-Error-Custom "RTMDet TensorRT deployment failed"
+            Write-Host ""
+            Write-Host "Available models for TensorRT deployment:" -ForegroundColor Cyan
+            Write-Host "  1. RTMDet-nano (320x320) - Fast, lightweight detection" -ForegroundColor White
+            Write-Host "  2. RTMDet-m (640x640) - Medium accuracy detection" -ForegroundColor White
+            Write-Host "  3. RTMPose-m (384x288) - Medium accuracy pose estimation" -ForegroundColor White
+            Write-Host "  4. RTMPose-l (384x288) - High accuracy pose estimation" -ForegroundColor White
+            Write-Host "  5. RTMPose-t (256x192) - Tiny, fast pose estimation" -ForegroundColor White
+            Write-Host ""
+            
+            # Deploy RTMDet-nano model
+            $response = Read-Host "Deploy RTMDet-nano model to TensorRT? (y/N)"
+            if ($response -eq 'y' -or $response -eq 'Y') {
+                Write-Log "Deploying RTMDet-nano model to TensorRT..."
+                try {
+                    python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-320x320.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-nano --device cuda:0 --show --dump-info
+                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
+                    Write-Info "✅ RTMDet-nano model deployed to TensorRT"
+                }
+                catch {
+                    Write-Error-Custom "RTMDet-nano TensorRT deployment failed"
+                }
+            } else {
+                Write-Info "⏭️  Skipping RTMDet-nano deployment"
             }
             
-            # Deploy RTMPose model
-            Write-Log "Deploying RTMPose model to TensorRT..."
-            try {
-                python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-m --device cuda:0 --show --dump-info
-                if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                Write-Info "✅ RTMPose model deployed to TensorRT"
+            # Deploy RTMDet-m model
+            $response = Read-Host "Deploy RTMDet-m model to TensorRT? (y/N)"
+            if ($response -eq 'y' -or $response -eq 'Y') {
+                Write-Log "Deploying RTMDet-m model to TensorRT..."
+                try {
+                    python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-640x640.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-m --device cuda:0 --show --dump-info
+                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
+                    Write-Info "✅ RTMDet-m model deployed to TensorRT"
+                }
+                catch {
+                    Write-Error-Custom "RTMDet-m TensorRT deployment failed"
+                }
+            } else {
+                Write-Info "⏭️  Skipping RTMDet-m deployment"
             }
-            catch {
-                Write-Error-Custom "RTMPose TensorRT deployment failed"
+            
+            # Deploy RTMPose-m model
+            $response = Read-Host "Deploy RTMPose-m model to TensorRT? (y/N)"
+            if ($response -eq 'y' -or $response -eq 'Y') {
+                Write-Log "Deploying RTMPose-m model to TensorRT..."
+                try {
+                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-m --device cuda:0 --show --dump-info
+                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
+                    Write-Info "✅ RTMPose-m model deployed to TensorRT"
+                }
+                catch {
+                    Write-Error-Custom "RTMPose-m TensorRT deployment failed"
+                }
+            } else {
+                Write-Info "⏭️  Skipping RTMPose-m deployment"
+            }
+            
+            # Deploy RTMPose-l model
+            $response = Read-Host "Deploy RTMPose-l model to TensorRT? (y/N)"
+            if ($response -eq 'y' -or $response -eq 'Y') {
+                Write-Log "Deploying RTMPose-l model to TensorRT..."
+                try {
+                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-l_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-l --device cuda:0 --show --dump-info
+                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
+                    Write-Info "✅ RTMPose-l model deployed to TensorRT"
+                }
+                catch {
+                    Write-Error-Custom "RTMPose-l TensorRT deployment failed"
+                }
+            } else {
+                Write-Info "⏭️  Skipping RTMPose-l deployment"
+            }
+            
+            # Deploy RTMPose-t model
+            $response = Read-Host "Deploy RTMPose-t model to TensorRT? (y/N)"
+            if ($response -eq 'y' -or $response -eq 'Y') {
+                Write-Log "Deploying RTMPose-t model to TensorRT..."
+                try {
+                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-256x192_halpe.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-t_8xb1024-700e_body8-halpe26-256x192.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-t_simcc-body7_pt-body7-halpe26_700e-256x192-6020f8a6_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-t --device cuda:0 --show --dump-info
+                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
+                    Write-Info "✅ RTMPose-t model deployed to TensorRT"
+                }
+                catch {
+                    Write-Error-Custom "RTMPose-t TensorRT deployment failed"
+                }
+            } else {
+                Write-Info "⏭️  Skipping RTMPose-t deployment"
             }
             
             Set-Location $NTKCAP_ROOT
-            Write-Info "✅ TensorRT model deployment completed"
+            Write-Info "✅ TensorRT model deployment process completed"
         }
         else {
             Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
         }
-        } else {
-            Write-Info "⏭️  Skipping TensorRT model deployment"
         }
     }
     
