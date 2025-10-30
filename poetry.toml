@@ -1,0 +1,32 @@
+[repositories]
+# 使用國內 PyPI 鏡像
+aliyun = "https://mirrors.aliyun.com/pypi/simple/"
+tsinghua = "https://pypi.tsinghua.edu.cn/simple"
+official = "https://pypi.org/simple/"
+
+[repositories.pytorch]
+url = "https://download.pytorch.org/whl/cu118"
+
+# 禁用 SSL 驗證（如果有證書問題）
+# [ssl-verify]
+# verify = false
+
+[[tool.poetry.sources]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+priority = "primary"
+
+[[tool.poetry.sources]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
+[virtualenvs]
+create = false
+in-project = false
+
+[keyring]
+enabled = false
+
+[http-basic]
+# 避免認證問題
