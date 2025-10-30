@@ -12,6 +12,11 @@ files = [
     {file = "addict-2.4.0.tar.gz", hash = "sha256:b3b2210e0e067a281f5646c8c5db92e99b7231ea8b0eb5f74dbdf9e259d4e494"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "aenum"
 version = "3.1.16"
@@ -23,6 +28,11 @@ files = [
     {file = "aenum-3.1.16-py2-none-any.whl", hash = "sha256:7810cbb6b4054b7654e5a7bafbe16e9ee1d25ef8e397be699f63f2f3a5800433"},
     {file = "aenum-3.1.16-py3-none-any.whl", hash = "sha256:9035092855a98e41b66e3d0998bd7b96280e85ceb3a04cc035636138a1943eaf"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "asttokens"
@@ -40,6 +50,11 @@ files = [
 astroid = ["astroid (>=2,<4)"]
 test = ["astroid (>=2,<4)", "pytest", "pytest-cov", "pytest-xdist"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "attrs"
 version = "25.4.0"
@@ -51,6 +66,11 @@ files = [
     {file = "attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373"},
     {file = "attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "babel"
@@ -66,6 +86,11 @@ files = [
 
 [package.extras]
 dev = ["backports.zoneinfo ; python_version < \"3.9\"", "freezegun (>=1.0,<2.0)", "jinja2 (>=3.0)", "pytest (>=6.0)", "pytest-cov", "pytz", "setuptools", "tzdata ; sys_platform == \"win32\""]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "beautifulsoup4"
@@ -90,6 +115,11 @@ charset-normalizer = ["charset-normalizer"]
 html5lib = ["html5lib"]
 lxml = ["lxml"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "bs4"
 version = "0.0.2"
@@ -105,6 +135,11 @@ files = [
 [package.dependencies]
 beautifulsoup4 = "*"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "certifi"
 version = "2025.10.5"
@@ -116,6 +151,11 @@ files = [
     {file = "certifi-2025.10.5-py3-none-any.whl", hash = "sha256:0f212c2744a9bb6de0c56639a6f68afe01ecd92d91f14ae897c4fe7bbeeef0de"},
     {file = "certifi-2025.10.5.tar.gz", hash = "sha256:47c09d31ccf2acf0be3f701ea53595ee7e0b8fa08801c6624be771df09ae7b43"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "charset-normalizer"
@@ -240,6 +280,11 @@ files = [
     {file = "charset_normalizer-3.4.4.tar.gz", hash = "sha256:94537985111c35f28720e43603b8e7b43a6ecfb2ce1d3058bbe955b73404e21a"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "cmake"
 version = "4.1.2"
@@ -270,6 +315,11 @@ files = [
     {file = "cmake-4.1.2.tar.gz", hash = "sha256:bee98458447b3a3b937b72849489e6e37ba0076d46df2fbb3af26739e1a3ed10"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -282,6 +332,11 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "coloredlogs"
@@ -300,6 +355,11 @@ humanfriendly = ">=9.1"
 
 [package.extras]
 cron = ["capturer (>=2.4)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "contourpy"
@@ -365,6 +425,11 @@ mypy = ["contourpy[bokeh,docs]", "docutils-stubs", "mypy (==1.8.0)", "types-Pill
 test = ["Pillow", "contourpy[test-no-images]", "matplotlib"]
 test-no-images = ["pytest", "pytest-cov", "pytest-xdist", "wurlitzer"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "cupy-cuda11x"
 version = "13.6.0"
@@ -398,6 +463,11 @@ numpy = ">=1.22,<2.6"
 all = ["Cython (>=3)", "optuna (>=2.0)", "scipy (>=1.7,<1.17)"]
 test = ["hypothesis (>=6.37.2,<6.55.0)", "mpmath", "packaging", "pytest (>=7.2)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "cycler"
 version = "0.12.1"
@@ -414,12 +484,17 @@ files = [
 docs = ["ipython", "matplotlib", "numpydoc", "sphinx"]
 tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "dataclasses-json"
 version = "0.6.7"
 description = "Easily serialize dataclasses to and from JSON."
 optional = false
-python-versions = "<4.0,>=3.7"
+python-versions = ">=3.7,<4.0"
 groups = ["main"]
 files = [
     {file = "dataclasses_json-0.6.7-py3-none-any.whl", hash = "sha256:0dbf33f26c8d5305befd61b39d2b3414e8a407bedc2834dea9b8d642666fb40a"},
@@ -429,6 +504,11 @@ files = [
 [package.dependencies]
 marshmallow = ">=3.18.0,<4.0.0"
 typing-inspect = ">=0.4.0,<1"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "decorator"
@@ -442,12 +522,17 @@ files = [
     {file = "decorator-5.2.1.tar.gz", hash = "sha256:65f266143752f734b0a7cc83c46f4618af75b8c5911b00ccb61d0ac9b6da0360"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "deprecated"
 version = "1.2.18"
 description = "Python @deprecated decorator to deprecate old python classes, functions or methods."
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 groups = ["main"]
 files = [
     {file = "Deprecated-1.2.18-py2.py3-none-any.whl", hash = "sha256:bd5011788200372a32418f888e326a09ff80d0214bd961147cfed01b5c018eec"},
@@ -459,6 +544,11 @@ wrapt = ">=1.10,<2"
 
 [package.extras]
 dev = ["PyTest", "PyTest-Cov", "bump2version (<1)", "setuptools ; python_version >= \"3.12\"", "tox"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "dill"
@@ -476,6 +566,11 @@ files = [
 graph = ["objgraph (>=1.7.2)"]
 profile = ["gprof2dot (>=2022.7.29)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "docutils"
 version = "0.22.2"
@@ -488,6 +583,11 @@ files = [
     {file = "docutils-0.22.2.tar.gz", hash = "sha256:9fdb771707c8784c8f2728b67cb2c691305933d68137ef95a75db5f4dfbc213d"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "et-xmlfile"
 version = "2.0.0"
@@ -499,6 +599,11 @@ files = [
     {file = "et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"},
     {file = "et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "exceptiongroup"
@@ -519,6 +624,11 @@ typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.13\""}
 [package.extras]
 test = ["pytest (>=6)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "executing"
 version = "2.2.1"
@@ -534,6 +644,11 @@ files = [
 [package.extras]
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich ; python_version >= \"3.11\""]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "fastjsonschema"
 version = "2.21.2"
@@ -548,6 +663,11 @@ files = [
 
 [package.extras]
 devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benchmark", "pytest-cache", "validictory"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "fastrlock"
@@ -628,6 +748,11 @@ files = [
     {file = "fastrlock-0.8.3.tar.gz", hash = "sha256:4af6734d92eaa3ab4373e6c9a1dd0d5ad1304e172b1521733c6c3b3d73c8fa5d"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "filelock"
 version = "3.20.0"
@@ -639,6 +764,11 @@ files = [
     {file = "filelock-3.20.0-py3-none-any.whl", hash = "sha256:339b4732ffda5cd79b13f4e2711a31b0365ce445d95d243bb996273d072546a2"},
     {file = "filelock-3.20.0.tar.gz", hash = "sha256:711e943b4ec6be42e1d4e6690b48dc175c822967466bb31c0c293f34334c13f4"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "filetype"
@@ -652,6 +782,11 @@ files = [
     {file = "filetype-1.2.0.tar.gz", hash = "sha256:66b56cd6474bf41d8c54660347d37afcc3f7d1970648de365c102ef77548aadb"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "flatbuffers"
 version = "25.9.23"
@@ -663,6 +798,11 @@ files = [
     {file = "flatbuffers-25.9.23-py2.py3-none-any.whl", hash = "sha256:255538574d6cb6d0a79a17ec8bc0d30985913b87513a01cce8bcdb6b4c44d0e2"},
     {file = "flatbuffers-25.9.23.tar.gz", hash = "sha256:676f9fa62750bb50cf531b42a0a2a118ad8f7f797a511eda12881c016f093b12"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "fonttools"
@@ -745,6 +885,11 @@ type1 = ["xattr ; sys_platform == \"darwin\""]
 unicode = ["unicodedata2 (>=15.1.0) ; python_version <= \"3.12\""]
 woff = ["brotli (>=1.0.1) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=0.8.0) ; platform_python_implementation != \"CPython\"", "zopfli (>=0.1.4)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "func-timeout"
 version = "4.3.5"
@@ -755,6 +900,11 @@ groups = ["main"]
 files = [
     {file = "func_timeout-4.3.5.tar.gz", hash = "sha256:74cd3c428ec94f4edfba81f9b2f14904846d5ffccc27c92433b8b5939b5575dd"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "grpcio"
@@ -833,6 +983,11 @@ typing-extensions = ">=4.12,<5.0"
 [package.extras]
 protobuf = ["grpcio-tools (>=1.76.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "humanfriendly"
 version = "10.0"
@@ -847,6 +1002,11 @@ files = [
 
 [package.dependencies]
 pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_version >= \"3.8\""}
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "idna"
@@ -863,6 +1023,11 @@ files = [
 [package.extras]
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "import-ipynb"
 version = "0.2"
@@ -878,6 +1043,11 @@ files = [
 [package.dependencies]
 IPython = "*"
 nbformat = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "ipython"
@@ -919,6 +1089,11 @@ qtconsole = ["qtconsole"]
 test = ["packaging", "pickleshare", "pytest", "pytest-asyncio (<0.22)", "testpath"]
 test-extra = ["curio", "ipython[test]", "jupyter_ai", "matplotlib (!=3.2.0)", "nbformat", "numpy (>=1.23)", "pandas", "trio"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "ipython"
 version = "9.6.0"
@@ -953,6 +1128,11 @@ matplotlib = ["matplotlib (>3.7)"]
 test = ["packaging", "pytest", "pytest-asyncio", "testpath"]
 test-extra = ["curio", "ipykernel", "ipython[matplotlib]", "ipython[test]", "jupyter_ai", "nbclient", "nbformat", "numpy (>=1.25)", "pandas (>2.0)", "trio"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "ipython-pygments-lexers"
 version = "1.1.1"
@@ -968,6 +1148,11 @@ files = [
 
 [package.dependencies]
 pygments = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "jedi"
@@ -989,6 +1174,11 @@ docs = ["Jinja2 (==2.11.3)", "MarkupSafe (==1.1.1)", "Pygments (==2.8.1)", "alab
 qa = ["flake8 (==5.0.4)", "mypy (==0.971)", "types-setuptools (==67.2.0.1)"]
 testing = ["Django", "attrs", "colorama", "docopt", "pytest (<9.0.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "jinja2"
 version = "3.1.6"
@@ -1006,6 +1196,11 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "jsonschema"
@@ -1029,6 +1224,11 @@ rpds-py = ">=0.7.1"
 format = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3987", "uri-template", "webcolors (>=1.11)"]
 format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3986-validator (>0.1.0)", "rfc3987-syntax (>=1.1.0)", "uri-template", "webcolors (>=24.6.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "jsonschema-specifications"
 version = "2025.9.1"
@@ -1043,6 +1243,11 @@ files = [
 
 [package.dependencies]
 referencing = ">=0.31.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "jupyter-core"
@@ -1064,6 +1269,11 @@ traitlets = ">=5.3"
 docs = ["intersphinx-registry", "myst-parser", "pydata-sphinx-theme", "sphinx-autodoc-typehints", "sphinxcontrib-spelling", "traitlets"]
 test = ["ipykernel", "pre-commit", "pytest (<9)", "pytest-cov", "pytest-timeout"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "keyboard"
 version = "0.13.5"
@@ -1078,6 +1288,11 @@ files = [
 
 [package.dependencies]
 pyobjc = {version = "*", markers = "sys_platform == \"darwin\""}
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "kivy"
@@ -1136,6 +1351,11 @@ media = ["ffpyplayer ; sys_platform == \"linux\" or sys_platform == \"darwin\"",
 sdl2 = ["kivy-deps.sdl2 (>=0.8.0,<0.9.0) ; sys_platform == \"win32\""]
 tuio = ["oscpy"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "kivy-deps-angle"
 version = "0.4.0"
@@ -1159,6 +1379,11 @@ files = [
     {file = "kivy_deps.angle-0.4.0-cp39-cp39-win32.whl", hash = "sha256:6546a62aba2b7e18a800b3df79daa757af3a980c297646c986896522395794e2"},
     {file = "kivy_deps.angle-0.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:bfaf9b37f2ecc3e4e7736657eed507716477af35cdd3118903e999d9d567ae8c"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "kivy-deps-glew"
@@ -1185,6 +1410,11 @@ files = [
     {file = "kivy_deps_glew-0.3.1-cp314-cp314-win_amd64.whl", hash = "sha256:f12bd302dc65ed683bdc03cbbb301f23c2220d8837bca444529858a8b1767acc"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "kivy-deps-sdl2"
 version = "0.8.0"
@@ -1202,20 +1432,29 @@ files = [
     {file = "kivy_deps.sdl2-0.8.0-cp39-cp39-win_amd64.whl", hash = "sha256:dbaa6718e66e8cd4967c2d4021e05114c558342e2468a86c0bce917bea10003f"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "kivy-garden"
 version = "0.1.5"
-description = ""
+description = "UNKNOWN"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "Kivy Garden-0.1.5.tar.gz", hash = "sha256:2b8377378e87501d5d271f33d94f0e44c089884572c64f89c9d609b1f86a2748"},
     {file = "Kivy_Garden-0.1.5-py3-none-any.whl", hash = "sha256:ef50f44b96358cf10ac5665f27a4751bb34ef54051c54b93af891f80afe42929"},
 ]
 
 [package.dependencies]
 requests = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "kiwisolver"
@@ -1328,6 +1567,11 @@ files = [
     {file = "kiwisolver-1.4.9.tar.gz", hash = "sha256:c3b22c26c6fd6811b0ae8363b95ca8ce4ea3c202d3d0975b2914310ceb1bcc4d"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "lit"
 version = "18.1.8"
@@ -1340,6 +1584,11 @@ files = [
     {file = "lit-18.1.8-py3-none-any.whl", hash = "sha256:a873ff7acd76e746368da32eb7355625e2e55a2baaab884c9cc130f2ee0300f7"},
     {file = "lit-18.1.8.tar.gz", hash = "sha256:47c174a186941ae830f04ded76a3444600be67d5e5fb8282c3783fba671c4edb"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "mako"
@@ -1360,6 +1609,11 @@ MarkupSafe = ">=0.9.2"
 babel = ["Babel"]
 lingua = ["lingua"]
 testing = ["pytest"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "markdown-it-py"
@@ -1384,6 +1638,11 @@ plugins = ["mdit-py-plugins (>=0.5.0)"]
 profiling = ["gprof2dot"]
 rtd = ["ipykernel", "jupyter_sphinx", "mdit-py-plugins (>=0.5.0)", "myst-parser", "pyyaml", "sphinx", "sphinx-book-theme (>=1.0,<2.0)", "sphinx-copybutton", "sphinx-design"]
 testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions", "requests"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "markupsafe"
@@ -1484,6 +1743,11 @@ files = [
     {file = "markupsafe-3.0.3.tar.gz", hash = "sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "marshmallow"
 version = "3.26.1"
@@ -1503,6 +1767,11 @@ packaging = ">=17.0"
 dev = ["marshmallow[tests]", "pre-commit (>=3.5,<5.0)", "tox"]
 docs = ["autodocsumm (==0.2.14)", "furo (==2024.8.6)", "sphinx (==8.1.3)", "sphinx-copybutton (==0.5.2)", "sphinx-issues (==5.0.0)", "sphinxext-opengraph (==0.9.1)"]
 tests = ["pytest", "simplejson"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "matplotlib"
@@ -1553,6 +1822,11 @@ pillow = ">=8"
 pyparsing = ">=2.3.1"
 python-dateutil = ">=2.7"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "matplotlib-inline"
 version = "0.2.1"
@@ -1571,6 +1845,11 @@ traitlets = "*"
 [package.extras]
 test = ["flake8", "nbdime", "nbval", "notebook", "pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "mdurl"
 version = "0.1.2"
@@ -1582,6 +1861,11 @@ files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "mmdeploy"
@@ -1614,6 +1898,11 @@ build = ["cython", "numpy", "packaging", "setuptools"]
 optional = ["h5py", "tqdm"]
 tests = ["asynctest", "coverage", "flake8", "interrogate", "isort (==4.3.21)", "openpyxl (==3.0.9)", "pandas", "pytest", "pyyaml", "xlrd (==1.2.0)", "yapf"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "mmdeploy-runtime-gpu"
 version = "1.3.1"
@@ -1635,6 +1924,11 @@ files = [
     {file = "mmdeploy_runtime_gpu-1.3.1-cp39-none-manylinux2014_x86_64.whl", hash = "sha256:4941f9c2ac64a46d7707a736027f78207c9ab9896cc7f052347947e2b13ec38d"},
     {file = "mmdeploy_runtime_gpu-1.3.1-cp39-none-win_amd64.whl", hash = "sha256:0e563b640695c81b4370ccf851b09ef8406c48b495d9a871fcfb4b460770bcaa"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "mmengine"
@@ -1663,6 +1957,11 @@ yapf = "*"
 all = ["addict", "aim (<=3.17.5) ; sys_platform != \"win32\"", "bitsandbytes", "clearml", "coverage", "dadaptation", "dvclive", "lion-pytorch", "lmdb", "matplotlib", "mlflow", "numpy", "parameterized", "pydantic (==1.10.9)", "pytest", "pyyaml", "regex ; sys_platform == \"win32\"", "rich", "termcolor", "transformers", "yapf"]
 tests = ["aim (<=3.17.5) ; sys_platform != \"win32\"", "bitsandbytes", "clearml", "coverage", "dadaptation", "dvclive", "lion-pytorch", "lmdb", "mlflow", "parameterized", "pydantic (==1.10.9)", "pytest", "transformers"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "mpmath"
 version = "1.3.0"
@@ -1680,6 +1979,11 @@ develop = ["codecov", "pycodestyle", "pytest (>=4.6)", "pytest-cov", "wheel"]
 docs = ["sphinx"]
 gmpy = ["gmpy2 (>=2.1.0a4) ; platform_python_implementation != \"PyPy\""]
 tests = ["pytest (>=4.6)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "multiprocess"
@@ -1713,6 +2017,11 @@ files = [
 [package.dependencies]
 dill = ">=0.4.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "mypy-extensions"
 version = "1.1.0"
@@ -1724,6 +2033,11 @@ files = [
     {file = "mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505"},
     {file = "mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "natsort"
@@ -1740,6 +2054,11 @@ files = [
 [package.extras]
 fast = ["fastnumbers (>=2.0.0)"]
 icu = ["PyICU (>=1.0.0)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "nbformat"
@@ -1763,6 +2082,11 @@ traitlets = ">=5.1"
 docs = ["myst-parser", "pydata-sphinx-theme", "sphinx", "sphinxcontrib-github-alt", "sphinxcontrib-spelling"]
 test = ["pep440", "pre-commit", "pytest", "testpath"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "networkx"
 version = "3.4.2"
@@ -1783,6 +2107,11 @@ doc = ["intersphinx-registry", "myst-nb (>=1.1)", "numpydoc (>=1.8.0)", "pillow 
 example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "momepy (>=0.7.2)", "osmnx (>=1.9)", "scikit-learn (>=1.5)", "seaborn (>=0.13)"]
 extra = ["lxml (>=4.6)", "pydot (>=3.0.1)", "pygraphviz (>=1.14)", "sympy (>=1.10)"]
 test = ["pytest (>=7.2)", "pytest-cov (>=4.0)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "networkx"
@@ -1805,6 +2134,11 @@ example = ["cairocffi (>=1.7)", "contextily (>=1.6)", "igraph (>=0.11)", "momepy
 extra = ["lxml (>=4.6)", "pydot (>=3.0.1)", "pygraphviz (>=1.14)", "sympy (>=1.10)"]
 test = ["pytest (>=7.2)", "pytest-cov (>=4.0)", "pytest-xdist (>=3.0)"]
 test-extras = ["pytest-mpl", "pytest-randomly"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "numpy"
@@ -1837,6 +2171,11 @@ files = [
     {file = "numpy-1.22.4-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0791fbd1e43bf74b3502133207e378901272f3c156c4df4954cad833b1380207"},
     {file = "numpy-1.22.4.zip", hash = "sha256:425b390e4619f58d8526b3dcf656dde069133ae5c240229821f01b5f44ea07af"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "onnx"
@@ -1881,6 +2220,11 @@ protobuf = ">=3.20.2"
 [package.extras]
 reference = ["Pillow", "google-re2"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "onnxruntime-gpu"
 version = "1.17.1"
@@ -1909,6 +2253,11 @@ packaging = "*"
 protobuf = "*"
 sympy = "*"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "opencv-python"
 version = "4.7.0.72"
@@ -1929,6 +2278,11 @@ files = [
 
 [package.dependencies]
 numpy = {version = ">=1.22.0", markers = "python_version >= \"3.11\""}
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "opencv-python"
@@ -1954,6 +2308,11 @@ numpy = [
     {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version == \"3.10\""},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "openpyxl"
 version = "3.1.5"
@@ -1969,6 +2328,11 @@ files = [
 [package.dependencies]
 et-xmlfile = "*"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "packaging"
 version = "25.0"
@@ -1980,6 +2344,11 @@ files = [
     {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
     {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pandas"
@@ -2020,6 +2389,11 @@ pytz = ">=2020.1"
 [package.extras]
 test = ["hypothesis (>=5.5.3)", "pytest (>=6.0)", "pytest-xdist (>=1.31)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "parso"
 version = "0.8.5"
@@ -2036,6 +2410,11 @@ files = [
 qa = ["flake8 (==5.0.4)", "mypy (==0.971)", "types-setuptools (==67.2.0.1)"]
 testing = ["docopt", "pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pexpect"
 version = "4.9.0"
@@ -2051,6 +2430,11 @@ files = [
 
 [package.dependencies]
 ptyprocess = ">=0.5"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pillow"
@@ -2177,6 +2561,11 @@ tests = ["check-manifest", "coverage (>=7.4.2)", "defusedxml", "markdown2", "ole
 typing = ["typing-extensions ; python_version < \"3.10\""]
 xmp = ["defusedxml"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "platformdirs"
 version = "4.4.0"
@@ -2193,6 +2582,11 @@ files = [
 docs = ["furo (>=2024.8.6)", "proselint (>=0.14)", "sphinx (>=8.1.3)", "sphinx-autodoc-typehints (>=3)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.4)", "pytest-cov (>=6)", "pytest-mock (>=3.14)"]
 type = ["mypy (>=1.14.1)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "prettytable"
@@ -2212,6 +2606,11 @@ wcwidth = "*"
 [package.extras]
 tests = ["pytest", "pytest-cov", "pytest-lazy-fixtures"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
@@ -2226,6 +2625,11 @@ files = [
 
 [package.dependencies]
 wcwidth = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "protobuf"
@@ -2258,6 +2662,11 @@ files = [
     {file = "protobuf-3.20.2-py2.py3-none-any.whl", hash = "sha256:c9cdf251c582c16fd6a9f5e95836c90828d51b0069ad22f463761d27c6c19019"},
     {file = "protobuf-3.20.2.tar.gz", hash = "sha256:712dca319eee507a1e7df3591e639a2b112a2f4a62d40fe7832a16fd19151750"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "psutil"
@@ -2292,6 +2701,11 @@ files = [
 dev = ["abi3audit", "black", "check-manifest", "coverage", "packaging", "pylint", "pyperf", "pypinfo", "pyreadline ; os_name == \"nt\"", "pytest", "pytest-cov", "pytest-instafail", "pytest-subtests", "pytest-xdist", "pywin32 ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "requests", "rstcheck", "ruff", "setuptools", "sphinx", "sphinx_rtd_theme", "toml-sort", "twine", "validate-pyproject[all]", "virtualenv", "vulture", "wheel", "wheel ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "wmi ; os_name == \"nt\" and platform_python_implementation != \"PyPy\""]
 test = ["pytest", "pytest-instafail", "pytest-subtests", "pytest-xdist", "pywin32 ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "setuptools", "wheel ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "wmi ; os_name == \"nt\" and platform_python_implementation != \"PyPy\""]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "ptyprocess"
 version = "0.7.0"
@@ -2304,6 +2718,11 @@ files = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
     {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pure-eval"
@@ -2320,6 +2739,11 @@ files = [
 [package.extras]
 tests = ["pytest"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "py-cpuinfo"
 version = "9.0.0"
@@ -2331,6 +2755,11 @@ files = [
     {file = "py-cpuinfo-9.0.0.tar.gz", hash = "sha256:3cdbbf3fac90dc6f118bfd64384f309edeadd902d7c8fb17f02ffa1fc3f49690"},
     {file = "py_cpuinfo-9.0.0-py3-none-any.whl", hash = "sha256:859625bc251f64e21f077d099d4162689c762b5d6a4c3c97553d56241c9674d5"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pycuda"
@@ -2348,6 +2777,11 @@ mako = "*"
 platformdirs = ">=2.2.0"
 pytools = ">=2011.2"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pygltflib"
 version = "1.16.5"
@@ -2364,6 +2798,11 @@ files = [
 dataclasses-json = ">=0.0.25"
 deprecated = "*"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pygments"
 version = "2.19.2"
@@ -2378,6 +2817,11 @@ files = [
 
 [package.extras]
 windows-terminal = ["colorama (>=0.4.6)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc"
@@ -2559,6 +3003,11 @@ pyobjc-framework-WebKit = "12.0"
 [package.extras]
 allbindings = ["pyobjc-core (==12.0)", "pyobjc-framework-ARKit (==12.0)", "pyobjc-framework-AVFoundation (==12.0)", "pyobjc-framework-AVKit (==12.0)", "pyobjc-framework-AVRouting (==12.0)", "pyobjc-framework-Accessibility (==12.0)", "pyobjc-framework-Accounts (==12.0)", "pyobjc-framework-AdServices (==12.0)", "pyobjc-framework-AdSupport (==12.0)", "pyobjc-framework-AddressBook (==12.0)", "pyobjc-framework-AppTrackingTransparency (==12.0)", "pyobjc-framework-AppleScriptKit (==12.0)", "pyobjc-framework-AppleScriptObjC (==12.0)", "pyobjc-framework-ApplicationServices (==12.0)", "pyobjc-framework-AudioVideoBridging (==12.0)", "pyobjc-framework-AuthenticationServices (==12.0)", "pyobjc-framework-AutomaticAssessmentConfiguration (==12.0)", "pyobjc-framework-Automator (==12.0)", "pyobjc-framework-BackgroundAssets (==12.0)", "pyobjc-framework-BrowserEngineKit (==12.0)", "pyobjc-framework-BusinessChat (==12.0)", "pyobjc-framework-CFNetwork (==12.0)", "pyobjc-framework-CalendarStore (==12.0)", "pyobjc-framework-CallKit (==12.0)", "pyobjc-framework-Carbon (==12.0)", "pyobjc-framework-Cinematic (==12.0)", "pyobjc-framework-ClassKit (==12.0)", "pyobjc-framework-CloudKit (==12.0)", "pyobjc-framework-Cocoa (==12.0)", "pyobjc-framework-Collaboration (==12.0)", "pyobjc-framework-ColorSync (==12.0)", "pyobjc-framework-CompositorServices (==12.0)", "pyobjc-framework-Contacts (==12.0)", "pyobjc-framework-ContactsUI (==12.0)", "pyobjc-framework-CoreAudio (==12.0)", "pyobjc-framework-CoreAudioKit (==12.0)", "pyobjc-framework-CoreBluetooth (==12.0)", "pyobjc-framework-CoreData (==12.0)", "pyobjc-framework-CoreHaptics (==12.0)", "pyobjc-framework-CoreLocation (==12.0)", "pyobjc-framework-CoreMIDI (==12.0)", "pyobjc-framework-CoreML (==12.0)", "pyobjc-framework-CoreMedia (==12.0)", "pyobjc-framework-CoreMediaIO (==12.0)", "pyobjc-framework-CoreMotion (==12.0)", "pyobjc-framework-CoreServices (==12.0)", "pyobjc-framework-CoreSpotlight (==12.0)", "pyobjc-framework-CoreText (==12.0)", "pyobjc-framework-CoreWLAN (==12.0)", "pyobjc-framework-CryptoTokenKit (==12.0)", "pyobjc-framework-DVDPlayback (==12.0)", "pyobjc-framework-DataDetection (==12.0)", "pyobjc-framework-DeviceCheck (==12.0)", "pyobjc-framework-DeviceDiscoveryExtension (==12.0)", "pyobjc-framework-DictionaryServices (==12.0)", "pyobjc-framework-DiscRecording (==12.0)", "pyobjc-framework-DiscRecordingUI (==12.0)", "pyobjc-framework-DiskArbitration (==12.0)", "pyobjc-framework-EventKit (==12.0)", "pyobjc-framework-ExceptionHandling (==12.0)", "pyobjc-framework-ExecutionPolicy (==12.0)", "pyobjc-framework-ExtensionKit (==12.0)", "pyobjc-framework-ExternalAccessory (==12.0)", "pyobjc-framework-FSEvents (==12.0)", "pyobjc-framework-FSKit (==12.0)", "pyobjc-framework-FileProvider (==12.0)", "pyobjc-framework-FileProviderUI (==12.0)", "pyobjc-framework-FinderSync (==12.0)", "pyobjc-framework-GameCenter (==12.0)", "pyobjc-framework-GameController (==12.0)", "pyobjc-framework-GameKit (==12.0)", "pyobjc-framework-GameSave (==12.0)", "pyobjc-framework-GameplayKit (==12.0)", "pyobjc-framework-HealthKit (==12.0)", "pyobjc-framework-IOBluetooth (==12.0)", "pyobjc-framework-IOBluetoothUI (==12.0)", "pyobjc-framework-IOSurface (==12.0)", "pyobjc-framework-ImageCaptureCore (==12.0)", "pyobjc-framework-InputMethodKit (==12.0)", "pyobjc-framework-InstallerPlugins (==12.0)", "pyobjc-framework-InstantMessage (==12.0)", "pyobjc-framework-Intents (==12.0)", "pyobjc-framework-IntentsUI (==12.0)", "pyobjc-framework-KernelManagement (==12.0)", "pyobjc-framework-LatentSemanticMapping (==12.0)", "pyobjc-framework-LaunchServices (==12.0)", "pyobjc-framework-LinkPresentation (==12.0)", "pyobjc-framework-LocalAuthentication (==12.0)", "pyobjc-framework-LocalAuthenticationEmbeddedUI (==12.0)", "pyobjc-framework-MLCompute (==12.0)", "pyobjc-framework-MailKit (==12.0)", "pyobjc-framework-MapKit (==12.0)", "pyobjc-framework-MediaAccessibility (==12.0)", "pyobjc-framework-MediaExtension (==12.0)", "pyobjc-framework-MediaLibrary (==12.0)", "pyobjc-framework-MediaPlayer (==12.0)", "pyobjc-framework-MediaToolbox (==12.0)", "pyobjc-framework-Metal (==12.0)", "pyobjc-framework-MetalFX (==12.0)", "pyobjc-framework-MetalKit (==12.0)", "pyobjc-framework-MetalPerformanceShaders (==12.0)", "pyobjc-framework-MetalPerformanceShadersGraph (==12.0)", "pyobjc-framework-MetricKit (==12.0)", "pyobjc-framework-ModelIO (==12.0)", "pyobjc-framework-MultipeerConnectivity (==12.0)", "pyobjc-framework-NaturalLanguage (==12.0)", "pyobjc-framework-NetFS (==12.0)", "pyobjc-framework-Network (==12.0)", "pyobjc-framework-NetworkExtension (==12.0)", "pyobjc-framework-NotificationCenter (==12.0)", "pyobjc-framework-OSAKit (==12.0)", "pyobjc-framework-OSLog (==12.0)", "pyobjc-framework-OpenDirectory (==12.0)", "pyobjc-framework-PHASE (==12.0)", "pyobjc-framework-PassKit (==12.0)", "pyobjc-framework-PencilKit (==12.0)", "pyobjc-framework-Photos (==12.0)", "pyobjc-framework-PhotosUI (==12.0)", "pyobjc-framework-PreferencePanes (==12.0)", "pyobjc-framework-PubSub (==12.0)", "pyobjc-framework-PushKit (==12.0)", "pyobjc-framework-Quartz (==12.0)", "pyobjc-framework-QuickLookThumbnailing (==12.0)", "pyobjc-framework-ReplayKit (==12.0)", "pyobjc-framework-SafariServices (==12.0)", "pyobjc-framework-SafetyKit (==12.0)", "pyobjc-framework-SceneKit (==12.0)", "pyobjc-framework-ScreenCaptureKit (==12.0)", "pyobjc-framework-ScreenSaver (==12.0)", "pyobjc-framework-ScreenTime (==12.0)", "pyobjc-framework-ScriptingBridge (==12.0)", "pyobjc-framework-SearchKit (==12.0)", "pyobjc-framework-Security (==12.0)", "pyobjc-framework-SecurityFoundation (==12.0)", "pyobjc-framework-SecurityInterface (==12.0)", "pyobjc-framework-SecurityUI (==12.0)", "pyobjc-framework-SensitiveContentAnalysis (==12.0)", "pyobjc-framework-ServiceManagement (==12.0)", "pyobjc-framework-SharedWithYou (==12.0)", "pyobjc-framework-SharedWithYouCore (==12.0)", "pyobjc-framework-ShazamKit (==12.0)", "pyobjc-framework-Social (==12.0)", "pyobjc-framework-SoundAnalysis (==12.0)", "pyobjc-framework-Speech (==12.0)", "pyobjc-framework-SpriteKit (==12.0)", "pyobjc-framework-StoreKit (==12.0)", "pyobjc-framework-Symbols (==12.0)", "pyobjc-framework-SyncServices (==12.0)", "pyobjc-framework-SystemConfiguration (==12.0)", "pyobjc-framework-SystemExtensions (==12.0)", "pyobjc-framework-ThreadNetwork (==12.0)", "pyobjc-framework-UniformTypeIdentifiers (==12.0)", "pyobjc-framework-UserNotifications (==12.0)", "pyobjc-framework-UserNotificationsUI (==12.0)", "pyobjc-framework-VideoSubscriberAccount (==12.0)", "pyobjc-framework-VideoToolbox (==12.0)", "pyobjc-framework-Virtualization (==12.0)", "pyobjc-framework-Vision (==12.0)", "pyobjc-framework-WebKit (==12.0)", "pyobjc-framework-iTunesLibrary (==12.0)", "pyobjc-framework-libdispatch (==12.0)", "pyobjc-framework-libxpc (==12.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-core"
 version = "12.0"
@@ -2577,6 +3026,11 @@ files = [
     {file = "pyobjc_core-12.0-cp314-cp314t-macosx_10_15_universal2.whl", hash = "sha256:eb6b987e53291e7cafd8f71a80a2dd44d7afec4202a143a3e47b75cb9cdb5716"},
     {file = "pyobjc_core-12.0.tar.gz", hash = "sha256:7e05c805a776149a937b61b892a0459895d32d9002bedc95ce2be31ef1e37a29"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-accessibility"
@@ -2602,6 +3056,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-accounts"
 version = "12.0"
@@ -2618,6 +3077,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-addressbook"
@@ -2642,6 +3106,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-adservices"
 version = "12.0"
@@ -2658,6 +3127,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-adsupport"
@@ -2676,6 +3150,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-applescriptkit"
 version = "12.0"
@@ -2693,6 +3172,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-applescriptobjc"
 version = "12.0"
@@ -2709,6 +3193,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-applicationservices"
@@ -2735,6 +3224,11 @@ pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreText = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-apptrackingtransparency"
 version = "12.0"
@@ -2752,6 +3246,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-arkit"
 version = "12.0"
@@ -2768,6 +3267,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-audiovideobridging"
@@ -2792,6 +3296,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-authenticationservices"
 version = "12.0"
@@ -2814,6 +3323,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-automaticassessmentconfiguration"
@@ -2838,6 +3352,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-automator"
 version = "12.0"
@@ -2860,6 +3379,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-avfoundation"
@@ -2887,6 +3411,11 @@ pyobjc-framework-CoreAudio = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-avkit"
 version = "12.0"
@@ -2911,6 +3440,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-avrouting"
 version = "12.0"
@@ -2934,6 +3468,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-backgroundassets"
 version = "12.0"
@@ -2956,6 +3495,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-browserenginekit"
@@ -2983,6 +3527,11 @@ pyobjc-framework-CoreAudio = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-businesschat"
 version = "12.0"
@@ -3000,6 +3549,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-calendarstore"
 version = "12.0"
@@ -3016,6 +3570,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-callkit"
@@ -3040,6 +3599,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-carbon"
 version = "12.0"
@@ -3056,6 +3620,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-cfnetwork"
@@ -3080,6 +3649,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-cinematic"
 version = "12.0"
@@ -3099,6 +3673,11 @@ pyobjc-framework-AVFoundation = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 pyobjc-framework-Metal = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-classkit"
@@ -3123,6 +3702,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-cloudkit"
 version = "12.0"
@@ -3142,6 +3726,11 @@ pyobjc-framework-Accounts = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreData = ">=12.0"
 pyobjc-framework-CoreLocation = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-cocoa"
@@ -3165,6 +3754,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-collaboration"
 version = "12.0"
@@ -3181,6 +3775,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-colorsync"
@@ -3199,6 +3798,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-compositorservices"
 version = "12.0"
@@ -3216,6 +3820,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Metal = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-contacts"
@@ -3239,6 +3848,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-contactsui"
@@ -3264,6 +3878,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Contacts = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-coreaudio"
 version = "12.0"
@@ -3286,6 +3905,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coreaudiokit"
@@ -3311,6 +3935,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreAudio = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-corebluetooth"
 version = "12.0"
@@ -3333,6 +3962,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coredata"
@@ -3357,6 +3991,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-corehaptics"
 version = "12.0"
@@ -3373,6 +4012,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-corelocation"
@@ -3397,6 +4041,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-coremedia"
 version = "12.0"
@@ -3419,6 +4068,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coremediaio"
@@ -3443,6 +4097,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-coremidi"
 version = "12.0"
@@ -3465,6 +4124,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coreml"
@@ -3489,6 +4153,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-coremotion"
 version = "12.0"
@@ -3511,6 +4180,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coreservices"
@@ -3536,6 +4210,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-FSEvents = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-corespotlight"
 version = "12.0"
@@ -3558,6 +4237,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-coretext"
@@ -3583,6 +4267,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-corewlan"
 version = "12.0"
@@ -3605,6 +4294,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-cryptotokenkit"
@@ -3629,6 +4323,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-datadetection"
 version = "12.0"
@@ -3645,6 +4344,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-devicecheck"
@@ -3663,6 +4367,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-devicediscoveryextension"
 version = "12.0"
@@ -3680,6 +4389,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-dictionaryservices"
 version = "12.0"
@@ -3696,6 +4410,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-CoreServices = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-discrecording"
@@ -3720,6 +4439,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-discrecordingui"
 version = "12.0"
@@ -3738,6 +4462,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-DiscRecording = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-diskarbitration"
 version = "12.0"
@@ -3754,6 +4483,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-dvdplayback"
@@ -3772,6 +4506,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-eventkit"
 version = "12.0"
@@ -3788,6 +4527,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-exceptionhandling"
@@ -3806,6 +4550,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-executionpolicy"
 version = "12.0"
@@ -3822,6 +4571,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-extensionkit"
@@ -3846,6 +4600,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-externalaccessory"
 version = "12.0"
@@ -3868,6 +4627,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-fileprovider"
@@ -3892,6 +4656,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-fileproviderui"
 version = "12.0"
@@ -3909,6 +4678,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-FileProvider = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-findersync"
 version = "12.0"
@@ -3925,6 +4699,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-fsevents"
@@ -3949,6 +4728,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-fskit"
 version = "12.0"
@@ -3971,6 +4755,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-gamecenter"
@@ -3995,6 +4784,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-gamecontroller"
 version = "12.0"
@@ -4017,6 +4811,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-gamekit"
@@ -4042,6 +4841,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-gameplaykit"
 version = "12.0"
@@ -4066,6 +4870,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-SpriteKit = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-gamesave"
 version = "12.0"
@@ -4082,6 +4891,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-healthkit"
@@ -4106,6 +4920,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-imagecapturecore"
 version = "12.0"
@@ -4128,6 +4947,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-inputmethodkit"
@@ -4152,6 +4976,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-installerplugins"
 version = "12.0"
@@ -4168,6 +4997,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-instantmessage"
@@ -4186,6 +5020,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-intents"
@@ -4210,6 +5049,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-intentsui"
 version = "12.0"
@@ -4232,6 +5076,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Intents = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-iobluetooth"
@@ -4256,6 +5105,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-iobluetoothui"
 version = "12.0"
@@ -4272,6 +5126,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-IOBluetooth = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-iosurface"
@@ -4290,6 +5149,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-ituneslibrary"
 version = "12.0"
@@ -4306,6 +5170,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-kernelmanagement"
@@ -4324,6 +5193,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-latentsemanticmapping"
 version = "12.0"
@@ -4341,6 +5215,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-launchservices"
 version = "12.0"
@@ -4357,6 +5236,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-CoreServices = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-libdispatch"
@@ -4381,6 +5265,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-libxpc"
 version = "12.0"
@@ -4404,6 +5293,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-linkpresentation"
 version = "12.0"
@@ -4421,6 +5315,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-localauthentication"
@@ -4446,6 +5345,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Security = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-localauthenticationembeddedui"
 version = "12.0"
@@ -4464,6 +5368,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-LocalAuthentication = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-mailkit"
 version = "12.0"
@@ -4480,6 +5389,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-mapkit"
@@ -4506,6 +5420,11 @@ pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreLocation = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-mediaaccessibility"
 version = "12.0"
@@ -4522,6 +5441,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-mediaextension"
@@ -4548,6 +5472,11 @@ pyobjc-framework-AVFoundation = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-medialibrary"
 version = "12.0"
@@ -4566,6 +5495,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-mediaplayer"
 version = "12.0"
@@ -4582,6 +5516,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-AVFoundation = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-mediatoolbox"
@@ -4606,6 +5545,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-metal"
 version = "12.0"
@@ -4629,6 +5573,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-metalfx"
 version = "12.0"
@@ -4651,6 +5600,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Metal = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-metalkit"
@@ -4676,6 +5630,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Metal = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-metalperformanceshaders"
 version = "12.0"
@@ -4699,6 +5658,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Metal = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-metalperformanceshadersgraph"
 version = "12.0"
@@ -4715,6 +5679,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-MetalPerformanceShaders = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-metrickit"
@@ -4739,6 +5708,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-mlcompute"
 version = "12.0"
@@ -4755,6 +5729,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-modelio"
@@ -4780,6 +5759,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-multipeerconnectivity"
 version = "12.0"
@@ -4803,6 +5787,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-naturallanguage"
 version = "12.0"
@@ -4820,6 +5809,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-netfs"
 version = "12.0"
@@ -4836,6 +5830,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-network"
@@ -4860,6 +5859,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-networkextension"
 version = "12.0"
@@ -4882,6 +5886,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-notificationcenter"
@@ -4906,6 +5915,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-opendirectory"
 version = "12.0"
@@ -4923,6 +5937,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-osakit"
 version = "12.0"
@@ -4939,6 +5958,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-oslog"
@@ -4965,6 +5989,11 @@ pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-passkit"
 version = "12.0"
@@ -4988,6 +6017,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-pencilkit"
 version = "12.0"
@@ -5005,6 +6039,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-phase"
 version = "12.0"
@@ -5021,6 +6060,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-AVFoundation = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-photos"
@@ -5045,6 +6089,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-photosui"
 version = "12.0"
@@ -5068,6 +6117,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-preferencepanes"
 version = "12.0"
@@ -5085,6 +6139,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-pubsub"
 version = "12.0"
@@ -5101,6 +6160,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-pushkit"
@@ -5125,6 +6189,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-quartz"
 version = "12.0"
@@ -5148,6 +6217,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-quicklookthumbnailing"
 version = "12.0"
@@ -5165,6 +6239,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-replaykit"
@@ -5189,6 +6268,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-safariservices"
 version = "12.0"
@@ -5211,6 +6295,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-safetykit"
@@ -5236,6 +6325,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-scenekit"
 version = "12.0"
@@ -5259,6 +6353,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-screencapturekit"
@@ -5284,6 +6383,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-screensaver"
 version = "12.0"
@@ -5307,6 +6411,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-screentime"
 version = "12.0"
@@ -5323,6 +6432,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-scriptingbridge"
@@ -5347,6 +6461,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-searchkit"
 version = "12.0"
@@ -5363,6 +6482,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-CoreServices = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-security"
@@ -5387,6 +6511,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-securityfoundation"
 version = "12.0"
@@ -5404,6 +6533,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Security = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-securityinterface"
@@ -5429,6 +6563,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Security = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-securityui"
 version = "12.0"
@@ -5446,6 +6585,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Security = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-sensitivecontentanalysis"
@@ -5465,6 +6609,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-servicemanagement"
 version = "12.0"
@@ -5481,6 +6630,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-sharedwithyou"
@@ -5505,6 +6659,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-SharedWithYouCore = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-sharedwithyoucore"
 version = "12.0"
@@ -5527,6 +6686,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-shazamkit"
@@ -5551,6 +6715,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-social"
 version = "12.0"
@@ -5568,6 +6737,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-soundanalysis"
 version = "12.0"
@@ -5584,6 +6758,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-speech"
@@ -5607,6 +6786,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-spritekit"
@@ -5632,6 +6816,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-storekit"
 version = "12.0"
@@ -5655,6 +6844,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-symbols"
 version = "12.0"
@@ -5671,6 +6865,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-syncservices"
@@ -5696,6 +6895,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreData = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-systemconfiguration"
 version = "12.0"
@@ -5718,6 +6922,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-systemextensions"
@@ -5742,6 +6951,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-threadnetwork"
 version = "12.0"
@@ -5759,6 +6973,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-uniformtypeidentifiers"
 version = "12.0"
@@ -5775,6 +6994,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-usernotifications"
@@ -5799,6 +7023,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-usernotificationsui"
 version = "12.0"
@@ -5817,6 +7046,11 @@ pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-UserNotifications = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-videosubscriberaccount"
 version = "12.0"
@@ -5833,6 +7067,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-videotoolbox"
@@ -5859,6 +7098,11 @@ pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreMedia = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-virtualization"
 version = "12.0"
@@ -5881,6 +7125,11 @@ files = [
 [package.dependencies]
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyobjc-framework-vision"
@@ -5907,6 +7156,11 @@ pyobjc-framework-Cocoa = ">=12.0"
 pyobjc-framework-CoreML = ">=12.0"
 pyobjc-framework-Quartz = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyobjc-framework-webkit"
 version = "12.0"
@@ -5930,6 +7184,11 @@ files = [
 pyobjc-core = ">=12.0"
 pyobjc-framework-Cocoa = ">=12.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyparsing"
 version = "3.2.5"
@@ -5945,10 +7204,15 @@ files = [
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pypiwin32"
 version = "223"
-description = ""
+description = "UNKNOWN"
 optional = false
 python-versions = "*"
 groups = ["main"]
@@ -5960,6 +7224,11 @@ files = [
 
 [package.dependencies]
 pywin32 = ">=223"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyqtgraph"
@@ -5975,6 +7244,11 @@ files = [
 
 [package.dependencies]
 numpy = ">=1.22.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyreadline3"
@@ -5992,6 +7266,11 @@ files = [
 [package.extras]
 dev = ["build", "flake8", "mypy", "pytest", "twine"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pyserial"
 version = "3.5"
@@ -6007,6 +7286,11 @@ files = [
 [package.extras]
 cp2110 = ["hidapi"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
@@ -6021,6 +7305,11 @@ files = [
 
 [package.dependencies]
 six = ">=1.5"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pytools"
@@ -6043,6 +7332,11 @@ typing-extensions = ">=4.5"
 numpy = ["numpy (>=1.6)"]
 test = ["basedpyright", "optype", "pytest", "ruff"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "pytz"
 version = "2025.2"
@@ -6054,6 +7348,11 @@ files = [
     {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
     {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pywin32"
@@ -6085,6 +7384,11 @@ files = [
     {file = "pywin32-311-cp39-cp39-win_amd64.whl", hash = "sha256:e0c4cfb0621281fe40387df582097fd796e80430597cb9944f0ae70447bacd91"},
     {file = "pywin32-311-cp39-cp39-win_arm64.whl", hash = "sha256:62ea666235135fee79bb154e695f3ff67370afefd71bd7fea7512fc70ef31e3d"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "pyyaml"
@@ -6169,6 +7473,11 @@ files = [
     {file = "pyyaml-6.0.3.tar.gz", hash = "sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "referencing"
 version = "0.37.0"
@@ -6185,6 +7494,11 @@ files = [
 attrs = ">=22.2.0"
 rpds-py = ">=0.7.0"
 typing-extensions = {version = ">=4.4.0", markers = "python_version < \"3.13\""}
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "regex"
@@ -6312,6 +7626,11 @@ files = [
     {file = "regex-2025.10.23.tar.gz", hash = "sha256:8cbaf8ceb88f96ae2356d01b9adf5e6306fa42fa6f7eab6b97794e37c959ac26"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "requests"
 version = "2.32.5"
@@ -6334,6 +7653,11 @@ urllib3 = ">=1.21.1,<3"
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "rich"
 version = "14.1.0"
@@ -6352,6 +7676,11 @@ pygments = ">=2.13.0,<3.0.0"
 
 [package.extras]
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "rpds-py"
@@ -6478,6 +7807,11 @@ files = [
     {file = "rpds_py-0.28.0.tar.gz", hash = "sha256:abd4df20485a0983e2ca334a216249b6186d6e3c1627e106651943dbdb791aea"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "scipy"
 version = "1.13.0"
@@ -6521,6 +7855,11 @@ dev = ["cython-lint (>=0.12.2)", "doit (>=0.36.0)", "mypy", "pycodestyle", "pyde
 doc = ["jupyterlite-pyodide-kernel", "jupyterlite-sphinx (>=0.12.0)", "jupytext", "matplotlib (>=3.5)", "myst-nb", "numpydoc", "pooch", "pydata-sphinx-theme (>=0.15.2)", "sphinx (>=5.0.0)", "sphinx-design (>=0.4.0)"]
 test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "pooch", "pytest", "pytest-cov", "pytest-timeout", "pytest-xdist", "scikit-umfpack", "threadpoolctl"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "seaborn"
 version = "0.13.2"
@@ -6542,6 +7881,11 @@ pandas = ">=1.2"
 dev = ["flake8", "flit", "mypy", "pandas-stubs", "pre-commit", "pytest", "pytest-cov", "pytest-xdist"]
 docs = ["ipykernel", "nbconvert", "numpydoc", "pydata_sphinx_theme (==0.10.0rc2)", "pyyaml", "sphinx (<6.0.0)", "sphinx-copybutton", "sphinx-design", "sphinx-issues"]
 stats = ["scipy (>=1.7)", "statsmodels (>=0.12)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "siphash24"
@@ -6608,17 +7952,27 @@ files = [
     {file = "siphash24-1.8.tar.gz", hash = "sha256:aa932f0af4a7335caef772fdaf73a433a32580405c41eb17ff24077944b0aa97"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 groups = ["main"]
 files = [
     {file = "six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"},
     {file = "six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "soupsieve"
@@ -6631,6 +7985,11 @@ files = [
     {file = "soupsieve-2.8-py3-none-any.whl", hash = "sha256:0cc76456a30e20f5d7f2e14a98a4ae2ee4e5abdc7c5ea0aafe795f344bc7984c"},
     {file = "soupsieve-2.8.tar.gz", hash = "sha256:e2dd4a40a628cb5f28f6d4b0db8800b8f581b65bb380b97de22ba5ca8d72572f"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "stack-data"
@@ -6652,6 +8011,11 @@ pure-eval = "*"
 [package.extras]
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "sympy"
 version = "1.14.0"
@@ -6669,6 +8033,11 @@ mpmath = ">=1.1.0,<1.4"
 
 [package.extras]
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "tensorrt"
@@ -6739,6 +8108,11 @@ files = [
 [package.extras]
 tests = ["pytest", "pytest-cov"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "terminaltables"
 version = "3.1.10"
@@ -6750,6 +8124,11 @@ files = [
     {file = "terminaltables-3.1.10-py2.py3-none-any.whl", hash = "sha256:e4fdc4179c9e4aab5f674d80f09d76fa436b96fdc698a8505e0a36bf0804a874"},
     {file = "terminaltables-3.1.10.tar.gz", hash = "sha256:ba6eca5cb5ba02bba4c9f4f985af80c54ec3dccf94cfcd190154386255e47543"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "tkfilebrowser"
@@ -6770,6 +8149,11 @@ psutil = "*"
 
 [package.extras]
 tk-8-6-0 = ["Pillow"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "tomli"
@@ -6813,6 +8197,11 @@ files = [
     {file = "tomli-2.2.1-py3-none-any.whl", hash = "sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc"},
     {file = "tomli-2.2.1.tar.gz", hash = "sha256:cd45e1dc79c835ce60f7404ec8119f2eb06d38b1deba146f07ced3bbc44505ff"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "torch"
@@ -6928,6 +8317,11 @@ notebook = ["ipywidgets (>=6)"]
 slack = ["slack-sdk"]
 telegram = ["requests"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "traitlets"
 version = "5.14.3"
@@ -6943,6 +8337,11 @@ files = [
 [package.extras]
 docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,<8.2)", "pytest-mock", "pytest-mypy-testing"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "triton"
@@ -6974,6 +8373,11 @@ torch = "*"
 tests = ["autopep8", "flake8", "isort", "numpy", "pytest", "scipy (>=1.7.1)"]
 tutorials = ["matplotlib", "pandas", "tabulate"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "typing-extensions"
 version = "4.15.0"
@@ -6985,6 +8389,11 @@ files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "typing-inspect"
@@ -7001,6 +8410,11 @@ files = [
 [package.dependencies]
 mypy-extensions = ">=0.3.0"
 typing-extensions = ">=3.7.4"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "ultralytics"
@@ -7038,6 +8452,11 @@ export = ["coremltools (>=7.0) ; platform_system != \"Windows\" and python_versi
 extra = ["albumentations (>=1.4.6)", "hub-sdk (>=0.0.5)", "ipython", "pycocotools (>=2.0.7)"]
 logging = ["comet", "dvclive (>=2.12.0)", "tensorboard (>=2.13.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "ultralytics-thop"
 version = "2.0.17"
@@ -7053,6 +8472,11 @@ files = [
 [package.dependencies]
 numpy = "*"
 torch = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "urllib3"
@@ -7072,6 +8496,11 @@ h2 = ["h2 (>=4,<5)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "wcwidth"
 version = "0.2.14"
@@ -7083,6 +8512,11 @@ files = [
     {file = "wcwidth-0.2.14-py2.py3-none-any.whl", hash = "sha256:a7bb560c8aee30f9957e5f9895805edd20602f2d7f720186dfd906e82b4982e1"},
     {file = "wcwidth-0.2.14.tar.gz", hash = "sha256:4d478375d31bc5395a3c55c40ccdf3354688364cd61c4f6adacaa9215d0b3605"},
 ]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
 
 [[package]]
 name = "wrapt"
@@ -7175,6 +8609,11 @@ files = [
     {file = "wrapt-1.17.3.tar.gz", hash = "sha256:f66eb08feaa410fe4eebd17f2a2c8e2e46d3476e9f8c783daa8e09e0faa666d0"},
 ]
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [[package]]
 name = "yapf"
 version = "0.43.0"
@@ -7191,7 +8630,12 @@ files = [
 platformdirs = ">=3.5.1"
 tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "4535394a425dcaea35ddf535c85f9ed0ee57a5b46f76a88799b974042f81a21d"
+content-hash = "7058bde5fa9d38e2012e0bfbb0d04081b71da3d27d0bdbe522910208005d3716"

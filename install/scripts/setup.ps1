@@ -1,31 +1,45 @@
 # NTKCAP Complete Environment Setup Script for Windows
-# This script sets up the complete NTKCAP environment with Poetry, CUDA, and all dependencies
+# This script sets up the complete NTKCAP environment with Poetry or direct pip, CUDA, and all dependencies
 # Requirements: Windows 10/11 with Anaconda/Miniconda
+#
+# Usage:
+#   .\setup.ps1                              # Interactive installation (prompts for environment name)
+#   .\setup.ps1 -UseDirectPip                # Use direct pip instead of Poetry  
+#   .\setup.ps1 -CondaEnvName "my_env"       # Use specific environment name (skip prompt)
+#   .\setup.ps1 -SkipCudaCheck               # Skip CUDA installation check
+#   .\setup.ps1 -SkipPoetry                  # Skip Poetry dependencies
+#   .\setup.ps1 -ForceRecreateEnv            # Force recreate existing environment
+#   .\setup.ps1 -SkipTensorRTDeploy          # Skip TensorRT model deployment
+#   .\setup.ps1 -AutoYes                     # Auto-answer yes to all prompts (uses default env name)
+#   .\setup.ps1 -CondaEnvName "ntkcap_fast" -UseDirectPip -AutoYes  # Fully automated
+#
+# Functions:
 # Test-SystemRequirements - 系統需求檢查
 # Test-CudaInstallation - CUDA 檢查
-# New-CondaEnvironment - 建立 conda 環境
+# New-CondaEnvironment - 建立 conda 環境 (支援自訂名稱)
 # Ensure-CondaEnvironment - 確保在正確環境
 # pip install torch - 安裝 PyTorch (在 Check-Poetry 之前)
 # Check-Poetry - 檢查並安裝 Poetry
 # Install-MMComponents - 安裝 MM 生態系、MMPose、mmdeploy、TensorRT wheels、部署模型、EasyMocap
 # Install-PoetryDependencies - Poetry 安裝依賴
+# Install-DirectPipDependencies - 直接 pip 安裝依賴 (替代 Poetry)
 # Apply-CompatibilityFixes - 最後的 pip 補正（Pose2Sim, PyQt6, numpy==1.22.4）
 # New-ActivationScript - 建立啟動腳本
 
 param(
     [switch]$SkipCudaCheck = $false,
-    [switch]$SkipPoetry = $false
+    [switch]$SkipPoetry = $false,
+    [switch]$UseDirectPip = $false,
+    [switch]$ForceRecreateEnv = $false,
+    [switch]$SkipTensorRTDeploy = $false,
+    [switch]$AutoYes = $false,
+    [string]$CondaEnvName = ""
 )
 
 # Set error action preference
 $ErrorActionPreference = "Stop"
 
-# ==================== Global Configuration ====================
-# Root directory - Change this if NTKCAP is installed elsewhere
-$NTKCAP_ROOT = "D:\NTKCAP"
-# ================================================================
-
-# Colors for output
+# Colors for output functions - Define early for use throughout script
 function Write-Log {
     param([string]$Message)
     Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $Message" -ForegroundColor Green
@@ -46,6 +60,54 @@ function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Cyan
 }
+
+# ==================== Global Configuration ====================
+# Root directory - Change this if NTKCAP is installed elsewhere
+$NTKCAP_ROOT = "D:\NTKCAP"
+# Conda environment name - Handle interactive input or parameter
+if ([string]::IsNullOrWhiteSpace($CondaEnvName)) {
+    if ($AutoYes) {
+        $ENV_NAME = "ntkcap_env"
+        Write-Info "Using default environment name: ntkcap_env (--AutoYes flag enabled)"
+    } else {
+        Write-Host ""
+        Write-Host "Environment Name Configuration" -ForegroundColor Cyan
+        Write-Host "==============================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Please specify a name for your conda environment." -ForegroundColor White
+        Write-Host "This allows you to have multiple NTKCAP installations." -ForegroundColor White
+        Write-Host ""
+        Write-Host "Examples:" -ForegroundColor Gray
+        Write-Host "  ntkcap_env      (default)" -ForegroundColor Gray
+        Write-Host "  ntkcap_dev      (for development)" -ForegroundColor Gray
+        Write-Host "  ntkcap_prod     (for production)" -ForegroundColor Gray
+        Write-Host "  ntkcap_v2       (version 2)" -ForegroundColor Gray
+        Write-Host ""
+        
+        do {
+            $userInput = Read-Host "Enter environment name (press Enter for default 'ntkcap_env')"
+            if ([string]::IsNullOrWhiteSpace($userInput)) {
+                $ENV_NAME = "ntkcap_env"
+                Write-Info "Using default environment name: ntkcap_env"
+                break
+            } else {
+                $ENV_NAME = $userInput.Trim()
+                # Validate environment name
+                if ($ENV_NAME -match "^[a-zA-Z0-9_-]+$" -and $ENV_NAME.Length -ge 3 -and $ENV_NAME.Length -le 50) {
+                    Write-Info "Using environment name: $ENV_NAME"
+                    break
+                } else {
+                    Write-Warning-Custom "Invalid environment name. Please use only letters, numbers, underscores, and hyphens (3-50 characters)."
+                }
+            }
+        } while ($true)
+        Write-Host ""
+    }
+} else {
+    $ENV_NAME = $CondaEnvName.Trim()
+    Write-Info "Using environment name from parameter: $ENV_NAME"
+}
+# ================================================================
 
 # Download TensorRT wheels from Google Drive
 function Download-TensorRTWheels {
@@ -265,6 +327,11 @@ function Test-CudaInstallation {
         Write-Host "  3. Restart this script after installation" -ForegroundColor White
         Write-Host ""
         
+        if ($AutoYes) {
+            Write-Warning-Custom "Auto-continuing without CUDA (--AutoYes flag enabled)"
+            return $false
+        }
+        
         $response = Read-Host "Do you want to continue without CUDA? (y/N)"
         if ($response -ne 'y' -and $response -ne 'Y') {
             Write-Error-Custom "CUDA installation is required. Please install and retry."
@@ -319,7 +386,7 @@ function Check-Poetry {
 
 # Create conda environment from environment.yml
 function New-CondaEnvironment {
-    Write-Log "Setting up conda/mamba environment..."
+    Write-Log "Setting up conda/mamba environment ($ENV_NAME)..."
 
     # Change to NTKCAP directory
     if (-not (Test-Path $NTKCAP_ROOT)) {
@@ -331,66 +398,77 @@ function New-CondaEnvironment {
     # Check if environment already exists
     try {
         $envList = conda env list 2>$null
-        $envExists = $envList | Select-String "ntkcap_env"
+        $envExists = $envList | Select-String $ENV_NAME
         if ($envExists) {
-            Write-Warning-Custom "ntkcap_env environment already exists."
-            $response = Read-Host "Do you want to remove the existing environment and create a new one? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y' -or $response -eq 'yes' -or $response -eq 'Yes') {
-                Write-Info "Removing existing ntkcap_env environment..."
-                conda env remove -n ntkcap_env -y
+            Write-Warning-Custom "$ENV_NAME environment already exists."
+            if ($ForceRecreateEnv -or $AutoYes) {
+                Write-Info "Auto-removing existing $ENV_NAME environment (--ForceRecreateEnv or --AutoYes flag enabled)..."
+                conda env remove -n $ENV_NAME -y
                 if ($LASTEXITCODE -ne 0) {
                     Write-Error-Custom "Failed to remove existing environment"
                 }
-            }
-            else {
-                Write-Info "Keeping existing environment. Skipping environment creation."
-                Write-Info "✅ Using existing ntkcap_env environment"
-                return
+            } else {
+                $response = Read-Host "Do you want to remove the existing environment and create a new one? (y/N)"
+                if ($response -eq 'y' -or $response -eq 'Y' -or $response -eq 'yes' -or $response -eq 'Yes') {
+                    Write-Info "Removing existing $ENV_NAME environment..."
+                    conda env remove -n $ENV_NAME -y
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Error-Custom "Failed to remove existing environment"
+                    }
+                }
+                else {
+                    Write-Info "Keeping existing environment. Skipping environment creation."
+                    Write-Info "✅ Using existing $ENV_NAME environment"
+                    return
+                }
             }
         }
         
         # Get conda info to find envs directory
         $condaInfo = conda info --json 2>$null | ConvertFrom-Json
         $envsDir = $condaInfo.envs_dirs[0]  # First envs directory
-        $envPath = Join-Path $envsDir "ntkcap_env"
+        $envPath = Join-Path $envsDir $ENV_NAME
         
         # Check for non-conda folder at the envs location
         if (Test-Path $envPath) {
-            Write-Warning-Custom "A folder exists at the ntkcap_env location but it's not a valid conda environment."
+            Write-Warning-Custom "A folder exists at the $ENV_NAME location but it's not a valid conda environment."
             Write-Host "Path: $envPath" -ForegroundColor Gray
-            $response = Read-Host "Do you want to remove this folder and create a new conda environment? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Info "Removing invalid folder..."
-                try {
-                    # Force remove with all attributes
-                    if (Test-Path $envPath) {
-                        Remove-Item -Path $envPath -Recurse -Force -ErrorAction Stop
-                        Start-Sleep -Seconds 2  # Wait a moment for filesystem
-                    }
-                    
-                    # Verify removal
-                    if (Test-Path $envPath) {
-                        Write-Warning-Custom "Folder still exists. Trying alternative removal method..."
-                        # Use takeown and icacls for stubborn folders
-                        takeown /F $envPath /R /D Y 2>$null
-                        icacls $envPath /grant administrators:F /T 2>$null
-                        Remove-Item -Path $envPath -Recurse -Force -ErrorAction Stop
-                    }
-                    
-                    if (-not (Test-Path $envPath)) {
-                        Write-Info "✅ Invalid folder removed successfully."
-                    }
-                    else {
-                        Write-Error-Custom "Failed to remove folder. Please manually delete: $envPath"
-                    }
-                }
-                catch {
-                    Write-Error-Custom "Failed to remove invalid folder: $($_.Exception.Message)"
+            if ($ForceRecreateEnv -or $AutoYes) {
+                Write-Info "Auto-removing invalid folder (--ForceRecreateEnv or --AutoYes flag enabled)..."
+            } else {
+                $response = Read-Host "Do you want to remove this folder and create a new conda environment? (y/N)"
+                if ($response -ne 'y' -and $response -ne 'Y') {
+                    Write-Warning-Custom "Cannot proceed with environment creation while invalid folder exists."
+                    Write-Error-Custom "Please manually remove the folder: $envPath"
                 }
             }
-            else {
-                Write-Warning-Custom "Cannot proceed with environment creation while invalid folder exists."
-                Write-Error-Custom "Please manually remove the folder: $envPath"
+            
+            Write-Info "Removing invalid folder..."
+            try {
+                # Force remove with all attributes
+                if (Test-Path $envPath) {
+                    Remove-Item -Path $envPath -Recurse -Force -ErrorAction Stop
+                    Start-Sleep -Seconds 2  # Wait a moment for filesystem
+                }
+                
+                # Verify removal
+                if (Test-Path $envPath) {
+                    Write-Warning-Custom "Folder still exists. Trying alternative removal method..."
+                    # Use takeown and icacls for stubborn folders
+                    takeown /F $envPath /R /D Y 2>$null
+                    icacls $envPath /grant administrators:F /T 2>$null
+                    Remove-Item -Path $envPath -Recurse -Force -ErrorAction Stop
+                }
+                
+                if (-not (Test-Path $envPath)) {
+                    Write-Info "✅ Invalid folder removed successfully."
+                }
+                else {
+                    Write-Error-Custom "Failed to remove folder. Please manually delete: $envPath"
+                }
+            }
+            catch {
+                Write-Error-Custom "Failed to remove invalid folder: $($_.Exception.Message)"
             }
         }
     }
@@ -408,23 +486,40 @@ function New-CondaEnvironment {
     }
 
     # Create environment from YAML
-    Write-Log "Creating ntkcap_env environment from environment.yml..."
+    Write-Log "Creating $ENV_NAME environment from environment.yml..."
     if (Test-Path "install\environment.yml") {
+        # Modify environment.yml to use custom name if needed
+        if ($ENV_NAME -ne "ntkcap_env") {
+            Write-Log "Modifying environment.yml to use custom environment name: $ENV_NAME"
+            $yamlContent = Get-Content "install\environment.yml" -Raw
+            $yamlContent = $yamlContent -replace "name: ntkcap_env", "name: $ENV_NAME"
+            $tempYamlPath = "install\environment_temp.yml"
+            $yamlContent | Out-File -FilePath $tempYamlPath -Encoding UTF8
+            $yamlFile = $tempYamlPath
+        } else {
+            $yamlFile = "install\environment.yml"
+        }
+        
         try {
             if ($useMamba) {
-                mamba env create -f install\environment.yml
+                mamba env create -f $yamlFile
             } else {
-                conda env create -f install\environment.yml
+                conda env create -f $yamlFile
+            }
+            
+            # Clean up temporary file if created
+            if ($ENV_NAME -ne "ntkcap_env" -and (Test-Path $tempYamlPath)) {
+                Remove-Item $tempYamlPath -Force
             }
             
             # Verify environment was created successfully
             $envList = conda env list 2>$null
-            $envCreated = $envList | Select-String "ntkcap_env"
+            $envCreated = $envList | Select-String $ENV_NAME
             if ($envCreated) {
-                Write-Info "✅ ntkcap_env environment created successfully"
+                Write-Info "✅ $ENV_NAME environment created successfully"
             }
             else {
-                Write-Error-Custom "Environment creation failed - ntkcap_env not found in environment list"
+                Write-Error-Custom "Environment creation failed - $ENV_NAME not found in environment list"
             }
         }
         catch {
@@ -433,7 +528,7 @@ function New-CondaEnvironment {
             Write-Host "  2. libmamba solver issues" -ForegroundColor Yellow
             Write-Host "  3. Permission problems" -ForegroundColor Yellow
             Write-Host ""
-            Write-Error-Custom "Cannot proceed without a valid ntkcap_env environment"
+            Write-Error-Custom "Cannot proceed without a valid $ENV_NAME environment"
         }
     } else {
         Write-Error-Custom "install\environment.yml not found"
@@ -442,7 +537,7 @@ function New-CondaEnvironment {
 
 # Ensure we're in the correct conda environment
 function Ensure-CondaEnvironment {
-    param([string]$EnvName = "ntkcap_env")
+    param([string]$EnvName = $ENV_NAME)
     
     Write-Log "Ensuring we're in $EnvName environment..."
     
@@ -477,7 +572,7 @@ function Install-PythonDependencies {
     Write-Log "Installing Python dependencies..."
     
     # Activate conda environment
-    conda activate ntkcap_env
+    conda activate $ENV_NAME
 
     # Ensure opensim 4.5 is installed (from conda)
     Write-Log "Ensuring opensim 4.5 is installed..."
@@ -504,6 +599,122 @@ function Install-PythonDependencies {
     Write-Info "✅ Basic Python dependencies installation completed"
 }
 
+# Install dependencies directly via pip (alternative to Poetry)
+function Install-DirectPipDependencies {
+    Write-Log "Installing dependencies directly via pip..."
+    
+    # Activate conda environment
+    conda activate $ENV_NAME
+    
+    # Ensure we're in the correct environment
+    if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
+        Write-Error-Custom "Cannot proceed without $ENV_NAME environment"
+    }
+    
+    # Install OpenSim first (from conda)
+    Write-Log "Ensuring opensim 4.5 is installed..."
+    try {
+        if (Get-Command mamba -ErrorAction SilentlyContinue) {
+            mamba install -c opensim-org opensim=4.5=py310np121 -y
+        } else {
+            conda install -c opensim-org opensim=4.5=py310np121 -y
+        }
+        if ($LASTEXITCODE -ne 0) { throw "conda install failed" }
+        Write-Info "✅ OpenSim installed successfully"
+    }
+    catch {
+        Write-Error-Custom "OpenSim installation failed"
+    }
+    
+    # Install packages in the specified order
+    $packages = @(
+        "bs4",
+        "multiprocess", 
+        "keyboard",
+        "import_ipynb",
+        "kivy",
+        "Pose2Sim==0.4",
+        "numpy==1.21.6",
+        "scipy==1.13.0",
+        "ultralytics",
+        "tkfilebrowser",
+        "matplotlib==3.8.4",
+        "pyserial",
+        "func_timeout",
+        "pygltflib",
+        "natsort",
+        "openpyxl",
+        "pyqtgraph"
+    )
+    
+    foreach ($package in $packages) {
+        Write-Log "Installing $package..."
+        try {
+            pip install $package
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+            Write-Info "✅ $package installed successfully"
+        }
+        catch {
+            Write-Warning-Custom "Failed to install $package, continuing..."
+        }
+    }
+    
+    # Install numpy 1.21.6 again to ensure version
+    Write-Log "Ensuring numpy==1.21.6..."
+    try {
+        pip install numpy==1.21.6 --force-reinstall
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ numpy 1.21.6 installed"
+    }
+    catch {
+        Write-Warning-Custom "Failed to install numpy 1.21.6"
+    }
+    
+    # Install PyQt6 packages
+    Write-Log "Installing PyQt6 packages..."
+    try {
+        pip install PyQt6==6.7.0
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ PyQt6==6.7.0 installed"
+    }
+    catch {
+        Write-Warning-Custom "Failed to install PyQt6==6.7.0"
+    }
+    
+    try {
+        pip install PyQt6-WebEngine==6.7.0
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ PyQt6-WebEngine==6.7.0 installed"
+    }
+    catch {
+        Write-Warning-Custom "Failed to install PyQt6-WebEngine==6.7.0"
+    }
+    
+    # Install cupy-cuda11x
+    Write-Log "Installing cupy-cuda11x..."
+    try {
+        pip install cupy-cuda11x
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ cupy-cuda11x installed"
+    }
+    catch {
+        Write-Warning-Custom "Failed to install cupy-cuda11x"
+    }
+    
+    # Final numpy version fix
+    Write-Log "Final numpy version correction to 1.22.4..."
+    try {
+        pip install numpy==1.22.4 --force-reinstall
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Info "✅ numpy==1.22.4 installed (final version)"
+    }
+    catch {
+        Write-Warning-Custom "Failed to install final numpy version"
+    }
+    
+    Write-Info "✅ Direct pip dependencies installation completed"
+}
+
 # Install Poetry dependencies (after MMEngine ecosystem)
 function Install-PoetryDependencies {
     # Check if Poetry installation should be skipped
@@ -511,7 +722,7 @@ function Install-PoetryDependencies {
         Write-Warning-Custom "Poetry installation SKIPPED (--SkipPoetry flag enabled)"
         Write-Info "You can run Poetry manually later with:"
         Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
-        Write-Host "  conda activate ntkcap_env" -ForegroundColor White
+        Write-Host "  conda activate $ENV_NAME" -ForegroundColor White
         Write-Host "  poetry lock --no-cache" -ForegroundColor White
         Write-Host "  poetry install" -ForegroundColor White
         return
@@ -529,9 +740,25 @@ function Install-PoetryDependencies {
     $response = Read-Host "Do you want to proceed with Poetry dependency installation? (y/N)"
     if ($response -ne 'y' -and $response -ne 'Y') {
         Write-Warning-Custom "Poetry dependency installation SKIPPED by user"
+
+        # If user explicitly requested direct pip install via flag, or AutoYes, run direct pip path
+        if ($UseDirectPip -or $AutoYes) {
+            Write-Info "Proceeding with direct pip installation (--UseDirectPip or --AutoYes detected)..."
+            Install-DirectPipDependencies
+            return
+        }
+
+        # Ask whether to fallback to direct pip installation
+        $pipResponse = Read-Host "Do you want to install dependencies via direct pip instead? (y/N)"
+        if ($pipResponse -eq 'y' -or $pipResponse -eq 'Y') {
+            Write-Info "User selected direct pip installation. Running direct pip installer..."
+            Install-DirectPipDependencies
+            return
+        }
+
         Write-Info "You can run Poetry manually later with:"
         Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
-        Write-Host "  conda activate ntkcap_env" -ForegroundColor White
+        Write-Host "  conda activate $ENV_NAME" -ForegroundColor White
         Write-Host "  poetry lock --no-cache" -ForegroundColor White
         Write-Host "  poetry install" -ForegroundColor White
         return
@@ -540,7 +767,7 @@ function Install-PoetryDependencies {
     Write-Log "Installing Poetry dependencies..."
     
     # Activate conda environment
-    conda activate ntkcap_env
+    conda activate $ENV_NAME
 
     # Check if Poetry is available - only proceed if Poetry is installed
     if (-not (Get-Command poetry -ErrorAction SilentlyContinue)) {
@@ -562,7 +789,7 @@ function Install-PoetryDependencies {
     Write-Info "Note: Installing dependencies via Poetry after MMEngine ecosystem"
     try {
         # Ensure we're in conda environment and clear any existing lockfile conflicts
-        conda activate ntkcap_env
+        conda activate $ENV_NAME
         Write-Log "Regenerating Poetry lockfile to resolve dependency conflicts..."
         poetry lock --no-cache
         if ($LASTEXITCODE -ne 0) { throw "poetry lock failed" }
@@ -583,8 +810,8 @@ function Install-MMComponents {
     Write-Log "Installing MMEngine ecosystem and MMPose..."
     
     # Ensure we're in the correct environment
-    if (-not (Ensure-CondaEnvironment "ntkcap_env")) {
-        Write-Error-Custom "Cannot proceed without ntkcap_env environment"
+    if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
+        Write-Error-Custom "Cannot proceed without $ENV_NAME environment"
     }
     
     # Install openmim first (required for mim commands)
@@ -763,8 +990,13 @@ function Install-MMComponents {
             Write-Error-Custom "TensorRT wheels directory not found at: $wheelsDir. Please ensure TensorRT wheels are available."
         }    # Deploy models to TensorRT format (after all MM components are installed)
     Write-Log "Deploying models to TensorRT format..."
-    $response = Read-Host "Do you want to deploy models to TensorRT format? This may take some time (y/N)"
-    if ($response -eq 'y' -or $response -eq 'Y') {
+    if ($SkipTensorRTDeploy) {
+        Write-Info "⏭️  Skipping TensorRT model deployment (--SkipTensorRTDeploy flag enabled)"
+    } elseif ($AutoYes) {
+        Write-Info "⏭️  Skipping TensorRT model deployment (--AutoYes flag enabled, use --SkipTensorRTDeploy=false to force deploy)"
+    } else {
+        $response = Read-Host "Do you want to deploy models to TensorRT format? This may take some time (y/N)"
+        if ($response -eq 'y' -or $response -eq 'Y') {
         $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
         
         if (Test-Path $mmdeployPath) {
@@ -798,9 +1030,9 @@ function Install-MMComponents {
         else {
             Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
         }
-    }
-    else {
-        Write-Info "⏭️  Skipping TensorRT model deployment"
+        } else {
+            Write-Info "⏭️  Skipping TensorRT model deployment"
+        }
     }
     
     # Install EasyMocap
@@ -850,31 +1082,31 @@ function Install-MMComponents {
 # Create activation script
 function New-ActivationScript {
     Write-Log "Creating environment activation script..."
-    $activationScript = @'
+    $activationScript = @"
 # NTKCAP Environment Activation Script for Windows
 # Run this script to activate the NTKCAP environment
 
-Write-Host "🚀 Activating NTKCAP environment..." -ForegroundColor Green
+Write-Host "🚀 Activating NTKCAP environment ($ENV_NAME)..." -ForegroundColor Green
 
 # Activate conda environment
-conda activate ntkcap_env
+conda activate $ENV_NAME
 
 # Check CUDA availability
 if (Get-Command nvcc -ErrorAction SilentlyContinue) {
-    $cudaVersion = nvcc --version 2>$null | Select-String "release"
-    Write-Host "✅ CUDA available: $cudaVersion" -ForegroundColor Green
+    `$cudaVersion = nvcc --version 2>`$null | Select-String "release"
+    Write-Host "✅ CUDA available: `$cudaVersion" -ForegroundColor Green
 }
 else {
     Write-Host "⚠️  CUDA not found in PATH" -ForegroundColor Yellow
 }
 
 # Show Python version
-Write-Host "✅ Python: $(python --version)" -ForegroundColor Green
+Write-Host "✅ Python: `$(python --version)" -ForegroundColor Green
 
 # Check PyTorch CUDA
 try {
-    $torchCuda = python -c "import torch; print('CUDA available:', torch.cuda.is_available())" 2>$null
-    Write-Host "✅ PyTorch: $torchCuda" -ForegroundColor Green
+    `$torchCuda = python -c "import torch; print('CUDA available:', torch.cuda.is_available())" 2>`$null
+    Write-Host "✅ PyTorch: `$torchCuda" -ForegroundColor Green
 }
 catch {
     Write-Host "⚠️  PyTorch not installed or error checking CUDA" -ForegroundColor Yellow
@@ -888,7 +1120,7 @@ Write-Host "  python NTKCAP_GUI.py          # Run main GUI" -ForegroundColor Whi
 Write-Host "  python final_NTK_Cap_GUI.py   # Run alternative GUI" -ForegroundColor White
 Write-Host "  poetry run <command>          # Run with Poetry" -ForegroundColor White
 Write-Host ""
-'@
+"@
     $activationScript | Out-File -FilePath "install\activate_ntkcap.ps1" -Encoding UTF8
     # Create symlink in main directory
     if (Test-Path "activate_ntkcap.ps1") {
@@ -904,23 +1136,35 @@ function Apply-CompatibilityFixes {
     Write-Log "Applying final compatibility fixes..."
     
     # Activate conda environment
-    conda activate ntkcap_env
+    conda activate $ENV_NAME
     
     # Fix PyQt version conflicts and ensure compatibility
     Write-Log "Applying PyQt compatibility fixes..."
     try {
         Write-Info "Installing specific versions to resolve PyQt5/PyQt6 conflicts..."
-        pip install "Pose2Sim==0.4"
-        if ($LASTEXITCODE -ne 0) { throw "pip install Pose2Sim failed" }
+        
+        # Only install these if not using direct pip (which already handles them)
+        if (-not $UseDirectPip) {
+            pip install "Pose2Sim==0.4"
+            if ($LASTEXITCODE -ne 0) { throw "pip install Pose2Sim failed" }
+        }
+        
+        # Always clean up and reinstall PyQt6 for compatibility
         pip uninstall PyQt6 PyQt6-WebEngine PyQt6-Qt6 PyQt6-WebEngine-Qt6 PyQt6-sip -y
         if ($LASTEXITCODE -ne 0) { throw "pip uninstall PyQt6 failed" }
-        # 使用穩定的 6.7.0 版本（避免 DLL 問題）
+        
+        # Use stable 6.7.0 version for all installation methods (避免 DLL 問題)
         pip install PyQt6==6.7.0
         if ($LASTEXITCODE -ne 0) { throw "pip install PyQt6 failed" }
         pip install PyQt6-WebEngine==6.7.0
         if ($LASTEXITCODE -ne 0) { throw "pip install PyQt6-WebEngine failed" }
-        pip install "numpy==1.22.4"
-        if ($LASTEXITCODE -ne 0) { throw "pip install numpy failed" }
+        
+        # Final numpy version - only if not using direct pip (which handles this)
+        if (-not $UseDirectPip) {
+            pip install "numpy==1.22.4"
+            if ($LASTEXITCODE -ne 0) { throw "pip install numpy failed" }
+        }
+        
         Write-Info "✅ PyQt compatibility fixes applied"
     }
     catch {
@@ -966,12 +1210,30 @@ function Start-Installation {
     Write-Host "======================================" -ForegroundColor Cyan
     Write-Host ""
     
+    # Display configuration
+    Write-Host "Configuration:" -ForegroundColor Cyan
+    Write-Host "  Environment name: $ENV_NAME" -ForegroundColor White
+    Write-Host "  Installation method: $(if ($UseDirectPip) { 'Direct pip' } else { 'Poetry' })" -ForegroundColor White
+    Write-Host ""
+    
     # Display active options
     if ($SkipCudaCheck) {
         Write-Warning-Custom "CUDA check SKIPPED (--SkipCudaCheck flag enabled)"
     }
     if ($SkipPoetry) {
         Write-Warning-Custom "Poetry installation SKIPPED (--SkipPoetry flag enabled)"
+    }
+    if ($UseDirectPip) {
+        Write-Info "Using DIRECT PIP installation method (--UseDirectPip flag enabled)"
+    }
+    if ($ForceRecreateEnv) {
+        Write-Info "Force recreate environment enabled (--ForceRecreateEnv flag enabled)"
+    }
+    if ($SkipTensorRTDeploy) {
+        Write-Info "TensorRT deployment SKIPPED (--SkipTensorRTDeploy flag enabled)"
+    }
+    if ($AutoYes) {
+        Write-Info "Auto-yes mode enabled (--AutoYes flag enabled) - will skip interactive prompts"
     }
     Write-Host ""
     
@@ -988,8 +1250,8 @@ function Start-Installation {
         New-CondaEnvironment
         
         # Verify environment was created and we can activate it
-        if (-not (Ensure-CondaEnvironment "ntkcap_env")) {
-            throw "Failed to create or activate ntkcap_env environment. Cannot continue."
+        if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
+            throw "Failed to create or activate $ENV_NAME environment. Cannot continue."
         }
 
         # Install PyTorch and related packages immediately after environment creation
@@ -1009,7 +1271,15 @@ function Start-Installation {
         Download-TensorRTWheels
         
         Install-MMComponents
-        Install-PoetryDependencies
+        
+        # Choose installation method based on flags
+        if ($UseDirectPip) {
+            Write-Log "Using direct pip installation method(faster installation for not developement environment) (--UseDirectPip flag enabled)..."
+            Install-DirectPipDependencies
+        } else {
+            Install-PoetryDependencies
+        }
+        
         Apply-CompatibilityFixes
         New-ActivationScript
         

@@ -67,3 +67,10 @@ build-backend = "poetry.core.masonry.api"
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cu118"
 priority = "explicit"
+
+
+[[tool.poetry.source]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+priority = "primary"
+
