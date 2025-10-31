@@ -1443,13 +1443,7 @@ Write-Host "  poetry run <command>          # Run with Poetry" -ForegroundColor 
 Write-Host ""
 "@
     $activationScript | Out-File -FilePath "install\activate_ntkcap.ps1" -Encoding UTF8
-    # Create symlink in main directory
-    if (Test-Path "activate_ntkcap.ps1") {
-        Remove-Item "activate_ntkcap.ps1" -Force
-    }
-    Copy-Item "install\activate_ntkcap.ps1" "activate_ntkcap.ps1"
     Write-Info "✅ Activation script created: install\activate_ntkcap.ps1"
-    Write-Info "✅ Copy created: activate_ntkcap.ps1"
 }
 
 # Apply final compatibility fixes

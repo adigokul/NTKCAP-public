@@ -95,6 +95,11 @@ class VideoPlayer(QThread):
         if progress is None:
             progress = 0.0
         
+        # Avoid unnecessary updates if progress hasn't changed significantly
+        if hasattr(self, 'progress') and self.progress is not None:
+            if abs(progress - self.progress) < 0.001:  # Less than 0.1% change
+                return
+        
         self.progress = progress
         
         # Ensure progress is within bounds
@@ -117,21 +122,31 @@ class VideoPlayer(QThread):
             except (IndexError, TypeError) as e:
                 print(f"Error updating video frames: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
         
-        # Update marker positions (stars) in plots - only update active plots
-        # Check which plot is currently active and update accordingly
-        if hasattr(self, 'scatter_ball_R') and self.scatter_ball_R is not None:
+        # Update marker positions (stars) in plots - only update the current active plot
+        # Use strict checking to ensure we only update the currently displayed plot
+        
+        # Priority 1: Check for stride plot (has unique scatter_ball_heel objects)
+        if (hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None and
+            hasattr(self, 'scatter_ball_heel_L') and self.scatter_ball_heel_L is not None and
+            hasattr(self, 'Stride') and self.Stride is not None):
+            self.update_stride()
+            
+        # Priority 2: Check for speed plot (has unique scatter_ball_B object)
+        elif (hasattr(self, 'scatter_ball_B') and self.scatter_ball_B is not None and
+              hasattr(self, 'scatter_ball_mean') and self.scatter_ball_mean is not None and
+              hasattr(self, 'Speed') and self.Speed is not None):
+            self.update_speed()
+            
+        # Priority 3: Check for flexion plots (share scatter_ball_R and scatter_ball_L)
+        elif (hasattr(self, 'scatter_ball_R') and self.scatter_ball_R is not None and
+              hasattr(self, 'scatter_ball_L') and self.scatter_ball_L is not None):
+            # Determine which flexion plot based on available data
             if hasattr(self, 'hip_data') and self.hip_data is not None:
                 self.update_hip_flexion()
             elif hasattr(self, 'knee_data') and self.knee_data is not None:
                 self.update_knee_flexion()
             elif hasattr(self, 'ankle_data') and self.ankle_data is not None:
-                self.update_ankle_flexion()
-        
-        if hasattr(self, 'scatter_ball_B') and self.scatter_ball_B is not None:
-            self.update_speed()
-            
-        if hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None:
-            self.update_stride()        # Update slider position
+                self.update_ankle_flexion()        # Update slider position
         self.frame_changed.emit(int(self.progress * 100))
         
         # Handle animation reset when reaching end
@@ -164,25 +179,36 @@ class VideoPlayer(QThread):
             except (IndexError, TypeError) as e:
                 print(f"Error updating video frames in slider_changed: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
         
-        # Update marker positions (stars) in plots - only update active plots
-        print(f"Updating markers - progress: {self.progress}, frame_count: {self.frame_count}")
+        # Update marker positions (stars) in plots - only update the current active plot
+        # Use strict checking to ensure we only update the currently displayed plot
         
-        # Check which plot is currently active and update accordingly
-        if hasattr(self, 'scatter_ball_R') and self.scatter_ball_R is not None:
+        # Priority 1: Check for stride plot (has unique scatter_ball_heel objects)
+        if (hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None and
+            hasattr(self, 'scatter_ball_heel_L') and self.scatter_ball_heel_L is not None and
+            hasattr(self, 'Stride') and self.Stride is not None):
+            self.update_stride()
+            
+        # Priority 2: Check for speed plot (has unique scatter_ball_B object)
+        elif (hasattr(self, 'scatter_ball_B') and self.scatter_ball_B is not None and
+              hasattr(self, 'scatter_ball_mean') and self.scatter_ball_mean is not None and
+              hasattr(self, 'Speed') and self.Speed is not None):
+            self.update_speed()
+            
+        # Priority 3: Check for flexion plots (share scatter_ball_R and scatter_ball_L)
+        elif (hasattr(self, 'scatter_ball_R') and self.scatter_ball_R is not None and
+              hasattr(self, 'scatter_ball_L') and self.scatter_ball_L is not None):
+            # Determine which flexion plot based on available data
             if hasattr(self, 'hip_data') and self.hip_data is not None:
                 self.update_hip_flexion()
             elif hasattr(self, 'knee_data') and self.knee_data is not None:
                 self.update_knee_flexion()
             elif hasattr(self, 'ankle_data') and self.ankle_data is not None:
                 self.update_ankle_flexion()
-        
-        if hasattr(self, 'scatter_ball_B') and self.scatter_ball_B is not None:
-            self.update_speed()
-            
-        if hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None:
-            self.update_stride()
     def hip_flexion_plot(self):
+        # Clear all scatter ball objects to avoid interference between plots
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
+        self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
+        self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
         R_Hip = self.hip_data['R_Hip']
         L_Hip = self.hip_data['L_Hip']
         loc_max_finalR = self.hip_data['loc_max_finalR']
@@ -241,7 +267,10 @@ class VideoPlayer(QThread):
             except (IndexError, KeyError) as e:
                 print(f"Error updating hip flexion: {e}, frame_index: {frame_index}")
     def knee_flexion_plot(self):
+        # Clear all scatter ball objects to avoid interference between plots
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
+        self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
+        self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
         R_knee = self.knee_data['R_knee']
         L_knee = self.knee_data['L_knee']
         loc_max_finalR = self.knee_data['loc_max_finalR']
@@ -303,7 +332,10 @@ class VideoPlayer(QThread):
             except (IndexError, KeyError) as e:
                 print(f"Error updating knee flexion: {e}, frame_index: {frame_index}")
     def ankle_flexion_plot(self):
+        # Clear all scatter ball objects to avoid interference between plots
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
+        self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
+        self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
         R_ankle = self.ankle_data['R_ankle']
         L_ankle = self.ankle_data['L_ankle']
         loc_max_finalR = self.ankle_data['loc_max_finalR']
@@ -360,7 +392,10 @@ class VideoPlayer(QThread):
             except (IndexError, KeyError) as e:
                 print(f"Error updating ankle flexion: {e}, frame_index: {frame_index}")
     def speed_plot(self):
+        # Clear all scatter ball objects to avoid interference between plots
         self.scatter_ball_B, self.scatter_ball_mean, self.xline, self.scatter_ball_flunc = None, None, None, None
+        self.scatter_ball_R, self.scatter_ball_L = None, None
+        self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
         self.plot.clear()
         self.plot.addLegend(offset=(-10, 10)) 
         self.plot.showGrid(x=True, y=True, alpha=0.3)
@@ -435,7 +470,10 @@ class VideoPlayer(QThread):
             except (IndexError, KeyError) as e:
                 print(f"Error updating speed: {e}, frame_index: {frame_index}")
     def stride_plot(self):
+        # Clear all scatter ball objects to avoid interference between plots
         self.scatter_ball_heel_L, self.scatter_ball_heel_R = None, None
+        self.scatter_ball_R, self.scatter_ball_L = None, None
+        self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
         self.plot.clear()
         self.plot.addLegend()  # Re-add legend
         self.plot.showGrid(x=True, y=True, alpha=0.3)
@@ -483,7 +521,6 @@ class VideoPlayer(QThread):
     def update_stride(self):
         # Validate progress and frame_count before calculation
         if self.progress is None or self.frame_count is None or self.frame_count <= 0:
-            print(f"update_stride: Invalid parameters - progress: {self.progress}, frame_count: {self.frame_count}")
             return
             
         # Ensure progress is within bounds
@@ -491,28 +528,21 @@ class VideoPlayer(QThread):
         frame_index = int(progress * self.frame_count)
         frame_index = min(frame_index, self.frame_count - 1)  # Ensure within bounds
         
-        print(f"update_stride: frame_index: {frame_index}, progress: {progress}")
-        
         # Check if required objects exist before updating
-        stride_exists = hasattr(self, 'Stride') and self.Stride is not None
-        ball_R_exists = hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None
-        ball_L_exists = hasattr(self, 'scatter_ball_heel_L') and self.scatter_ball_heel_L is not None
-        
-        print(f"update_stride: stride_exists: {stride_exists}, ball_R_exists: {ball_R_exists}, ball_L_exists: {ball_L_exists}")
-        
-        if stride_exists and ball_R_exists and ball_L_exists:
+        if (hasattr(self, 'Stride') and self.Stride is not None and
+            hasattr(self, 'scatter_ball_heel_R') and self.scatter_ball_heel_R is not None and
+            hasattr(self, 'scatter_ball_heel_L') and self.scatter_ball_heel_L is not None):
             try:
-                R_pos = [self.Stride['R_heel'][frame_index, 0]], [self.Stride['R_heel'][frame_index, 2]]
-                L_pos = [self.Stride['L_heel'][frame_index, 0]], [self.Stride['L_heel'][frame_index, 2]]
-                print(f"update_stride: Setting R_pos: {R_pos}, L_pos: {L_pos}")
+                # Update the star positions to current frame
+                R_x = self.Stride['R_heel'][frame_index, 0]
+                R_z = self.Stride['R_heel'][frame_index, 2]
+                L_x = self.Stride['L_heel'][frame_index, 0]
+                L_z = self.Stride['L_heel'][frame_index, 2]
                 
-                self.scatter_ball_heel_R.setData(R_pos[0], R_pos[1])
-                self.scatter_ball_heel_L.setData(L_pos[0], L_pos[1])
-                print("update_stride: Successfully updated positions")
-            except (IndexError, KeyError) as e:
-                print(f"Error updating stride: {e}, frame_index: {frame_index}")
-        else:
-            print("update_stride: Required objects not available")
+                self.scatter_ball_heel_R.setData([R_x], [R_z])
+                self.scatter_ball_heel_L.setData([L_x], [L_z])
+            except (IndexError, KeyError):
+                pass  # Silently ignore errors
     def start_server(self):
         port = 8000
         if self.is_port_in_use(port):
