@@ -9,7 +9,10 @@ Patient_data/*
 !Patient_data/Patient_ID/
 # If you want to include all files under Patient_ID, specify like below
 !Patient_data/Patient_ID/**
-#calibration/
+
+# Calibration files and directories
+calibration/
+*.log
 
 # mmdeploy - exclude all generated model files in rtmpose-trt
 NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/
