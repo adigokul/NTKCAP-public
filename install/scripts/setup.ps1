@@ -10,6 +10,7 @@
 #   .\setup.ps1 -SkipPoetry                  # Skip Poetry dependencies
 #   .\setup.ps1 -ForceRecreateEnv            # Force recreate existing environment
 #   .\setup.ps1 -SkipTensorRTDeploy          # Skip TensorRT model deployment
+#   .\setup.ps1 -SkipTensorRTFull            # Skip complete TensorRT installation download
 #   .\setup.ps1 -AutoYes                     # Auto-answer yes to all prompts (uses default env name)
 #   .\setup.ps1 -CondaEnvName "ntkcap_fast" -UseDirectPip -AutoYes  # Fully automated
 #
@@ -32,6 +33,7 @@ param(
     [switch]$UseDirectPip = $false,
     [switch]$ForceRecreateEnv = $false,
     [switch]$SkipTensorRTDeploy = $false,
+    [switch]$SkipTensorRTFull = $false,
     [switch]$AutoYes = $false,
     [string]$CondaEnvName = ""
 )
@@ -114,8 +116,8 @@ function Download-TensorRTWheels {
     Write-Log "Downloading TensorRT wheels from Google Drive..."
     
     $wheelsDir = "install\wheels"
-    $googleDriveUrl = "https://drive.google.com/file/d/1-KLPSxea260P0CWfWUjDeZnE44HqPMys/view?usp=sharing"
-    $fileId = "1-KLPSxea260P0CWfWUjDeZnE44HqPMys"
+    $googleDriveUrl = "https://drive.google.com/file/d/107HxsZvhUSPaxp1PyfdncNZ30OQuGejk/view?usp=drive_link"
+    $fileId = "107HxsZvhUSPaxp1PyfdncNZ30OQuGejk"
     $downloadUrl = "https://drive.google.com/uc?export=download&id=$fileId"
     $outputFile = "$wheelsDir\wheels.tar"
     
@@ -227,6 +229,148 @@ function Download-TensorRTWheels {
         Write-Error-Custom "Failed to download TensorRT wheels: $($_.Exception.Message)"
         Write-Info "Please download manually from: $googleDriveUrl"
         Write-Info "Extract to: $wheelsDir"
+    }
+    finally {
+        $ProgressPreference = 'Continue'  # Re-enable progress bar
+    }
+}
+
+# Download complete TensorRT installation from Google Drive
+function Download-TensorRTFull {
+    Write-Log "Downloading complete TensorRT 8.6.1.6 installation from Google Drive..."
+    
+    $tensorrtDir = "NTK_CAP\ThirdParty"
+    $googleDriveUrl = "https://drive.google.com/file/d/1av-AZbUtEJ-kV6Xyb-PdeV9I5v4oi0Z0/view?usp=drive_link"
+    $fileId = "1av-AZbUtEJ-kV6Xyb-PdeV9I5v4oi0Z0"
+    $downloadUrl = "https://drive.google.com/uc?export=download&id=$fileId"
+    $outputFile = "$tensorrtDir\TensorRT-8.6.1.6.tar.gz"
+    $extractedDir = "$tensorrtDir\TensorRT-8.6.1.6"
+    
+    # Create ThirdParty directory if it doesn't exist
+    if (-not (Test-Path $tensorrtDir)) {
+        New-Item -ItemType Directory -Path $tensorrtDir -Force
+        Write-Info "Created directory: $tensorrtDir"
+    }
+    
+    # Check if TensorRT installation already exists
+    if (Test-Path $extractedDir) {
+        Write-Info "✅ TensorRT 8.6.1.6 installation already exists at: $extractedDir"
+        return
+    }
+    
+    Write-Info "Downloading TensorRT complete installation archive..."
+    Write-Host "Source: $googleDriveUrl" -ForegroundColor Gray
+    Write-Host "Target: $outputFile" -ForegroundColor Gray
+    Write-Host "Note: This is a large file (~1.3GB), download may take several minutes" -ForegroundColor Yellow
+    
+    try {
+        # Install gdown if not available
+        if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+            Write-Error-Custom "Python not found. Please ensure conda environment is activated."
+        }
+        
+        Write-Info "Installing/updating gdown for Google Drive downloads..."
+        pip install gdown -U -q
+        if ($LASTEXITCODE -ne 0) { throw "gdown installation failed" }
+        
+        # Use gdown to download from Google Drive (handles large files and confirmation tokens)
+        Write-Info "Downloading with gdown (this may take several minutes)..."
+        python -m gdown $downloadUrl -O $outputFile --fuzzy
+        if ($LASTEXITCODE -ne 0) { throw "gdown download failed" }
+        Write-Info "✅ Download completed"
+        
+        # Verify downloaded file exists
+        if (-not (Test-Path $outputFile)) {
+            throw "Downloaded file not found at $outputFile"
+        }
+        
+        # Get file size for verification
+        $fileSize = (Get-Item $outputFile).Length
+        $fileSizeMB = [math]::Round($fileSize / 1MB, 2)
+        Write-Info "Downloaded file size: $fileSizeMB MB"
+        
+        # Extract the tar.gz file
+        Write-Log "Extracting TensorRT installation archive..."
+        
+        # Check if tar is available (Windows 10 1903+ has built-in tar)
+        if (Get-Command tar -ErrorAction SilentlyContinue) {
+            Write-Info "Extracting using built-in tar..."
+            tar -xzf $outputFile -C $tensorrtDir
+            if ($LASTEXITCODE -ne 0) { throw "tar extraction failed" }
+            Write-Info "✅ Extraction completed using built-in tar"
+        }
+        # Fallback: try to use 7-Zip if available
+        elseif (Test-Path "${env:ProgramFiles}\7-Zip\7z.exe") {
+            Write-Info "Extracting using 7-Zip..."
+            & "${env:ProgramFiles}\7-Zip\7z.exe" x $outputFile -o"$tensorrtDir" -y
+            if ($LASTEXITCODE -ne 0) { throw "7-Zip extraction failed" }
+            Write-Info "✅ Extraction completed using 7-Zip"
+        }
+        else {
+            throw "No extraction tool found (tar, 7-Zip). Cannot extract TensorRT archive."
+        }
+        
+        # Verify extraction
+        if (Test-Path $extractedDir) {
+            $extractedFiles = Get-ChildItem -Path $extractedDir -Recurse | Measure-Object
+            Write-Info "✅ TensorRT 8.6.1.6 extracted successfully ($($extractedFiles.Count) files)"
+            
+            # Check for important directories
+            $libDir = Join-Path $extractedDir "lib"
+            $includeDir = Join-Path $extractedDir "include"
+            $binDir = Join-Path $extractedDir "bin"
+            
+            if (Test-Path $libDir) {
+                $dllFiles = Get-ChildItem -Path $libDir -Filter "*.dll" | Measure-Object
+                Write-Info "✅ Found $($dllFiles.Count) DLL files in lib directory"
+            }
+            if (Test-Path $includeDir) {
+                Write-Info "✅ Include directory found"
+            }
+            if (Test-Path $binDir) {
+                Write-Info "✅ Bin directory found"
+            }
+            
+            # Add TensorRT to PATH for this session
+            Write-Info "Adding TensorRT to system PATH for this session..."
+            $tensorrtLibPath = Join-Path $extractedDir "lib"
+            $tensorrtBinPath = Join-Path $extractedDir "bin"
+            
+            if (Test-Path $tensorrtLibPath) {
+                $env:Path = "$tensorrtLibPath;$env:Path"
+                Write-Info "✅ Added TensorRT lib to PATH: $tensorrtLibPath"
+            }
+            if (Test-Path $tensorrtBinPath) {
+                $env:Path = "$tensorrtBinPath;$env:Path"
+                Write-Info "✅ Added TensorRT bin to PATH: $tensorrtBinPath"
+            }
+            
+            # Set TensorRT environment variables
+            $env:TRT_LIBPATH = $tensorrtLibPath
+            $env:TENSORRT_ROOT = $extractedDir
+            Write-Info "✅ Set environment variables:"
+            Write-Host "  TRT_LIBPATH = $tensorrtLibPath" -ForegroundColor Gray
+            Write-Host "  TENSORRT_ROOT = $extractedDir" -ForegroundColor Gray
+        }
+        else {
+            throw "Extraction verification failed: $extractedDir not found"
+        }
+        
+        # Clean up downloaded archive
+        Write-Info "Cleaning up downloaded archive..."
+        Remove-Item $outputFile -Force
+        Write-Info "✅ Archive file removed"
+        
+    }
+    catch {
+        Write-Error-Custom "Failed to download TensorRT complete installation: $($_.Exception.Message)"
+        Write-Info "Please download manually from: $googleDriveUrl"
+        Write-Info "Extract to: $tensorrtDir"
+        
+        # Clean up partial download if exists
+        if (Test-Path $outputFile) {
+            Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+        }
     }
     finally {
         $ProgressPreference = 'Continue'  # Re-enable progress bar
@@ -1052,7 +1196,7 @@ function Install-MMComponents {
                 
                 # Download and extract models
                 Write-Log "Downloading TensorRT models from Google Drive..."
-                $driveFileId = "1kay99Uur733IMP4Zuxs_gHoYMw7IgHR-"
+                $driveFileId = "1WSN7GTk2gt8FS349GZ76TXvRQ0FRcjxa"
                 $downloadUrl = "https://drive.google.com/uc?export=download&id=$driveFileId"
                 $tempZipFile = "rtmpose-trt-models.zip"
                 
@@ -1098,7 +1242,7 @@ function Install-MMComponents {
                 }
                 catch {
                     Write-Error-Custom "Failed to download TensorRT models: $($_.Exception.Message)"
-                    Write-Info "Please download manually from: https://drive.google.com/file/d/1kay99Uur733IMP4Zuxs_gHoYMw7IgHR-/view?usp=sharing"
+                    Write-Info "Please download manually from: https://drive.google.com/file/d/1WSN7GTk2gt8FS349GZ76TXvRQ0FRcjxa/view?usp=drive_link"
                     Write-Info "Extract to: $rtmposeTrtPath"
                 }
                 
@@ -1409,6 +1553,9 @@ function Start-Installation {
     if ($SkipTensorRTDeploy) {
         Write-Info "TensorRT deployment SKIPPED (--SkipTensorRTDeploy flag enabled)"
     }
+    if ($SkipTensorRTFull) {
+        Write-Info "Complete TensorRT installation download SKIPPED (--SkipTensorRTFull flag enabled)"
+    }
     if ($AutoYes) {
         Write-Info "Auto-yes mode enabled (--AutoYes flag enabled) - will skip interactive prompts"
     }
@@ -1446,6 +1593,13 @@ function Start-Installation {
         
         # Download TensorRT wheels before MM components are installed
         Download-TensorRTWheels
+        
+        # Download complete TensorRT installation for DLL support
+        if (-not $SkipTensorRTFull) {
+            Download-TensorRTFull
+        } else {
+            Write-Info "⏭️  Skipping complete TensorRT installation download (--SkipTensorRTFull flag enabled)"
+        }
         
         Install-MMComponents
         
