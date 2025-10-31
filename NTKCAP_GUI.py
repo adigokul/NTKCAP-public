@@ -5,6 +5,8 @@ import json
 import copy
 import sys
 import threading
+import queue
+import multiprocessing
 from datetime import datetime
 import pyqtgraph as pg
 from PyQt6 import uic
@@ -329,8 +331,33 @@ class MainWindow(QMainWindow):
         self.btn_cal_start_cal.setEnabled(True)
         self.cal_load_folders()
         self.marker_calculate_process = None
+        self.marker_progress_queue = None  # Queue for receiving progress updates
         self.timer_marker_calculate = QTimer()
         self.timer_marker_calculate.timeout.connect(self.check_cal_finish)
+        
+        # Add calculation progress bar (next to RT Pose Detection button in status bar)
+        self.calculation_progress_bar = QProgressBar()
+        self.calculation_progress_bar.setMinimum(0)
+        self.calculation_progress_bar.setMaximum(100)
+        self.calculation_progress_bar.setValue(0)
+        self.calculation_progress_bar.setTextVisible(True)
+        self.calculation_progress_bar.setFormat("Calculation: %p%")
+        self.calculation_progress_bar.setVisible(False)  # Hidden by default
+        self.calculation_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid grey;
+                border-radius: 5px;
+                text-align: center;
+                background-color: #f0f0f0;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                width: 10px;
+                margin: 0.5px;
+            }
+        """)
+        self.statusBar().addPermanentWidget(self.calculation_progress_bar)
+        print("✅ Calculation progress bar added to status bar")
         
         # EMG Event Recording System
         self.emg_recorder = None
@@ -411,6 +438,29 @@ class MainWindow(QMainWindow):
         # Add RT Pose Detection button to the status bar (always visible)
         self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
         print("✅ RT Pose Detection button added to status bar")
+        
+        # Add Calculation Progress Bar next to RT Pose Detection button
+        self.progress_bar_calculation = QProgressBar()
+        self.progress_bar_calculation.setMaximum(100)
+        self.progress_bar_calculation.setMinimum(0)
+        self.progress_bar_calculation.setValue(0)
+        self.progress_bar_calculation.setTextVisible(True)
+        self.progress_bar_calculation.setFormat("Calculation: %p%")
+        self.progress_bar_calculation.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid grey;
+                border-radius: 5px;
+                text-align: center;
+                min-width: 200px;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                width: 10px;
+            }
+        """)
+        self.progress_bar_calculation.setVisible(False)  # Hidden by default
+        self.statusBar().addPermanentWidget(self.progress_bar_calculation)
+        print("✅ Calculation progress bar added to status bar")
     # Bio-signal Recording Control
     def on_emg_recording_toggled(self, checked):
         """Handle EMG recording checkbox toggle"""
@@ -1327,6 +1377,20 @@ class MainWindow(QMainWindow):
             self.err_calib_extri.text = 'no calibration file found'
 
     def check_cal_finish(self):
+        # Update progress from queue (real progress from calculation process)
+        if self.marker_progress_queue:
+            try:
+                while not self.marker_progress_queue.empty():
+                    progress_data = self.marker_progress_queue.get_nowait()
+                    if isinstance(progress_data, dict):
+                        progress = progress_data.get('progress', 0)
+                        status = progress_data.get('status', '')
+                        self.progress_bar_calculation.setValue(int(progress))
+                        if status:
+                            self.label_calculation_status.setText(status)
+            except:
+                pass
+        
         if self.marker_calculate_process:
             if not self.marker_calculate_process.is_alive():
                 self.cal_show_selected_folder()
@@ -1334,6 +1398,16 @@ class MainWindow(QMainWindow):
                 self.label_calculation_status.setText("Calculation is finished")
                 self.btn_cal_start_cal.setEnabled(True)
                 self.result_load_folders()
+                
+                # Hide progress bar and set to 100%
+                self.progress_bar_calculation.setValue(100)
+                QTimer.singleShot(1000, lambda: self.progress_bar_calculation.setVisible(False))
+                QTimer.singleShot(1000, lambda: self.progress_bar_calculation.setValue(0))
+                
+                # Clean up queue
+                if self.marker_progress_queue:
+                    self.marker_progress_queue.close()
+                    self.marker_progress_queue = None
 
     def btn_pre_marker_calculate(self):
         if self.cal_select_list == []:
@@ -1342,13 +1416,21 @@ class MainWindow(QMainWindow):
             cur_dir = copy.deepcopy(self.current_directory)
             cal_list = copy.deepcopy(self.cal_select_list)
             self.closeCamera()
-            mp_marker_calculate(cur_dir, cal_list, self.fast_cal, self.gait)
-            # self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait))
-            # self.marker_calculate_process.start()
+            
+            # Show progress bar and start from 0
+            self.progress_bar_calculation.setValue(0)
+            self.progress_bar_calculation.setVisible(True)
+            
+            # Create Queue for real-time progress tracking
+            self.marker_progress_queue = multiprocessing.Queue()
+            
+            # Use multiprocessing to avoid UI freeze
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait, self.marker_progress_queue))
+            self.marker_calculate_process.start()
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
             self.btn_cal_start_cal.setEnabled(False)
-            # self.timer_marker_calculate.start(1000)
+            self.timer_marker_calculate.start(1000)
 
     # Calculation tab
     def on_fast_calculation(self, checked):

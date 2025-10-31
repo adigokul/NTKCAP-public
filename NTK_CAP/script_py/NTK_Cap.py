@@ -935,15 +935,32 @@ def read_err_calib_extri(PWD):
     return err_list
 ######################################################
 # openpose & pose2sim
-def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True):
+def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_queue=None):
+    total_folders = len(calculate_path_list)
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
+        
+        # Report progress at start of each folder
+        if progress_queue is not None:
+            current_progress = int((dir_sel_loop / total_folders) * 100)
+            progress_queue.put({
+                'progress': current_progress,
+                'status': f'Calculating folder {dir_sel_loop + 1}/{total_folders}'
+            })
+        
         if (not fast_cal) or ('multi_person' in cal_folder_path):
-            _ = marker_caculate(PWD , cal_folder_path, gait)
+            _ = marker_caculate(PWD , cal_folder_path, gait, progress_queue, dir_sel_loop, total_folders)
         else:
-            _ = marker_caculate_fast(PWD, cal_folder_path)
+            _ = marker_caculate_fast(PWD, cal_folder_path, progress_queue, dir_sel_loop, total_folders)
+    
+    # Report 100% completion
+    if progress_queue is not None:
+        progress_queue.put({
+            'progress': 100,
+            'status': 'Calculation complete'
+        })
 
-def marker_caculate(PWD, cal_data_path, gait_token=False):
+def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, current_folder_idx=0, total_folders=1):
 
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
@@ -1428,7 +1445,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False):
         else:
             return caculate_finshed_path
 
-def marker_caculate_fast(PWD,cal_data_path):
+def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_idx=0, total_folders=1):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
@@ -1539,6 +1556,13 @@ def marker_caculate_fast(PWD,cal_data_path):
         shutil.copy(calib_ori_path, now_project_calib)
         os.rename(now_project_calib,os.path.join(now_project, "calib-2d", "Calib_easymocap.toml"))
 
+        # Report progress: Starting Apose pose estimation
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            progress_queue.put({
+                'progress': base_progress + 2,
+                'status': f'Apose: Pose estimation ({current_folder_idx + 1}/{total_folders})'
+            })
         
         print("切換至" + os.getcwd())
         for l in range(1,5):
@@ -1555,9 +1579,31 @@ def marker_caculate_fast(PWD,cal_data_path):
         os.chdir(now_project)
         print("切換至" + os.getcwd())
         
+        # Report progress: Starting Apose tracking
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            progress_queue.put({
+                'progress': base_progress + 5,
+                'status': f'Apose: Tracking ({current_folder_idx + 1}/{total_folders})'
+            })
+        
         Pose2Sim.personAssociation_multi()
         
+        # Report progress: Starting Apose triangulation
+        if progress_queue is not None:
+            progress_queue.put({
+                'progress': base_progress + 10,
+                'status': f'Apose: Triangulation ({current_folder_idx + 1}/{total_folders})'
+            })
+        
         Pose2Sim.triangulation()
+        
+        # Report progress: Starting Apose filtering
+        if progress_queue is not None:
+            progress_queue.put({
+                'progress': base_progress + 15,
+                'status': f'Apose: Filtering ({current_folder_idx + 1}/{total_folders})'
+            })
         
         Pose2Sim.filtering()
         import inspect
@@ -1598,6 +1644,14 @@ def marker_caculate_fast(PWD,cal_data_path):
         os.chdir(now_project_opensim)
         print("切換至" + os.getcwd())
 
+        # Report progress: Apose scaling
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            progress_queue.put({
+                'progress': base_progress + 18,
+                'status': f'Apose: OpenSim scaling ({current_folder_idx + 1}/{total_folders})'
+            })
+
         halpe26_xml_update(now_project)
       
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
@@ -1607,10 +1661,24 @@ def marker_caculate_fast(PWD,cal_data_path):
         print("切換至" + os.getcwd())
 
     tasks = os.listdir(os.path.join(cal_data_path,'raw_data'))
+    # Count total tasks (excluding Apose, calibration, .json files)
+    valid_tasks = [k for k in tasks if not k.endswith(("Apose","calibration",".json"))]
+    total_tasks = len(valid_tasks)
+    task_idx = 0
+    
     for k in tasks:
 
         if k.endswith(("Apose","calibration",".json")):
             continue
+        
+        # Report progress: Starting task
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            task_progress = int((task_idx / max(total_tasks, 1)) * 70)  # 70% for all tasks
+            progress_queue.put({
+                'progress': base_progress + 20 + task_progress,
+                'status': f'Processing task {k} ({task_idx + 1}/{total_tasks})'
+            })
         
         now_task = os.path.join(caculate_finshed_path, k)
         now_project = now_task
@@ -1634,12 +1702,38 @@ def marker_caculate_fast(PWD,cal_data_path):
         print("切換至" + os.getcwd())
         os.chdir(now_project)
         print("切換至" + os.getcwd())
+        
+        # Report progress: Task tracking
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            task_progress = int((task_idx / max(total_tasks, 1)) * 70)
+            progress_queue.put({
+                'progress': base_progress + 20 + task_progress + 5,
+                'status': f'Task {k}: Tracking'
+            })
+        
         s = time.time()
         coord = Pose2Sim.personAssociation_multi_fast(rtm_coord) 
         e = time.time()
+        
+        # Report progress: Task triangulation
+        if progress_queue is not None:
+            progress_queue.put({
+                'progress': base_progress + 20 + task_progress + 10,
+                'status': f'Task {k}: Triangulation'
+            })
+        
         #Pose2Sim.triangulation()
         Pose2Sim.triangulation_fast(coord)
         f = time.time()
+        
+        # Report progress: Task filtering
+        if progress_queue is not None:
+            progress_queue.put({
+                'progress': base_progress + 20 + task_progress + 15,
+                'status': f'Task {k}: Filtering'
+            })
+        
         Pose2Sim.filtering()
         g = time.time()
         print('Reconstruction 3D joint completed')
@@ -1683,9 +1777,30 @@ def marker_caculate_fast(PWD,cal_data_path):
         now_project_opensim_scaling = now_project_opensim_scaling.replace('\\', '/')
         print("切換至" + os.getcwd())
         #######################################
+        
+        # Report progress: Task OpenSim IK
+        if progress_queue is not None:
+            base_progress = int((current_folder_idx / total_folders) * 100)
+            task_progress = int((task_idx / max(total_tasks, 1)) * 70)
+            progress_queue.put({
+                'progress': base_progress + 20 + task_progress + 18,
+                'status': f'Task {k}: OpenSim IK'
+            })
+        
         #halpe26_xml_update(now_project)
         subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
         os.chdir(ori_path)
+        
+        # Increment task counter
+        task_idx += 1
+    
+    # Report progress: Post-processing (gait analysis and GLTF conversion)
+    if progress_queue is not None:
+        base_progress = int((current_folder_idx / total_folders) * 100)
+        progress_queue.put({
+            'progress': base_progress + 90,
+            'status': f'Post-processing ({current_folder_idx + 1}/{total_folders})'
+        })
     
     gait1(caculate_finshed_path)
     for task_gltf in os.listdir(caculate_finshed_path):
