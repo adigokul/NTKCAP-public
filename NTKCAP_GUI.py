@@ -431,6 +431,7 @@ class MainWindow(QMainWindow):
     def on_rt_pose_detection_toggled(self):
         """Handle real-time pose detection button toggle"""
         self.rt_pose_detection_enabled = self.btn_rt_pose_detection.isChecked()
+        
         if self.rt_pose_detection_enabled:
             print("✅ Real-time pose detection enabled")
             self.btn_rt_pose_detection.setText("RT Pose Detection: ON")
@@ -441,6 +442,53 @@ class MainWindow(QMainWindow):
             self.btn_rt_pose_detection.setText("RT Pose Detection: OFF")
             if hasattr(self, 'label_log'):
                 self.label_log.setText("RT pose detection disabled - Using TensorRT only")
+        
+        # If cameras are already open, restart tracker processes with new settings
+        if self.camera_opened and hasattr(self, 'tracker_proc_lst'):
+            try:
+                print("🔄 Updating tracker processes with new pose detection settings...")
+                
+                # Stop existing tracker processes
+                for process in self.tracker_proc_lst:
+                    if process.is_alive():
+                        process.terminate()
+                        process.join(timeout=2)
+                        if process.is_alive():
+                            process.kill()
+                
+                # Clear the list
+                self.tracker_proc_lst.clear()
+                
+                # Recreate tracker processes with new settings
+                for i in range(4):
+                    p1 = TrackerProcess(
+                        self.start_evt,
+                        i,
+                        self.stop_evt,
+                        self.queue[i],
+                        self.queue_kp[i],
+                        self.shm_lst[i].name,
+                        self.shm_kp_lst[i].name,
+                        enable_pose_detection=self.rt_pose_detection_enabled
+                    )
+                    self.tracker_proc_lst.append(p1)
+                
+                # Start the new tracker processes
+                for process in self.tracker_proc_lst:
+                    process.start()
+                
+                status_msg = "enabled" if self.rt_pose_detection_enabled else "disabled"
+                print(f"✅ Tracker processes restarted with pose detection {status_msg}")
+                if hasattr(self, 'label_log'):
+                    self.label_log.setText(f"Tracker processes updated - RT pose detection {status_msg}")
+                    
+            except Exception as e:
+                print(f"❌ Error updating tracker processes: {e}")
+                if hasattr(self, 'label_log'):
+                    self.label_log.setText(f"Error updating tracker processes: {e}")
+        else:
+            # If cameras are not open, just update the setting for next time
+            print("📝 RT pose detection setting updated for next camera session")
     
     # Main page shortcut
     def button_shortcut_calculation(self):

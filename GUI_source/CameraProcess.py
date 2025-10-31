@@ -44,6 +44,10 @@ class CameraProcess(Process):
         (width, height) = (1920, 1080)
         self.frame_id_task = 0
         self.frame_id_apose = 0
+        self.frame_counter = 0
+        self.fps_start_time = time.time()
+        self.fps_counter = 0
+        self.current_fps = 0
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         self.start_evt.wait()
@@ -55,6 +59,36 @@ class CameraProcess(Process):
             
             if not ret or self.stop_evt.is_set():
                 break
+            
+            # Update frame counter and calculate FPS
+            self.frame_counter += 1
+            self.fps_counter += 1
+            
+            # Calculate FPS every 30 frames
+            if self.fps_counter >= 30:
+                current_time = time.time()
+                elapsed_time = current_time - self.fps_start_time
+                if elapsed_time > 0:
+                    self.current_fps = self.fps_counter / elapsed_time
+                self.fps_counter = 0
+                self.fps_start_time = current_time
+            
+            # Add camera index and FPS overlay to frame
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 1.2
+            color = (0, 255, 0)  # Green color
+            thickness = 2
+            
+            # Camera index (top-left)
+            cv2.putText(frame, f"Cam {self.cam_id + 1}", (20, 40), font, font_scale, color, thickness)
+            
+            # Frame counter (top-left, below camera index)
+            cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 80), font, font_scale, color, thickness)
+            
+            # FPS (top-right)
+            fps_text = f"FPS: {self.current_fps:.1f}"
+            text_size = cv2.getTextSize(fps_text, font, font_scale, thickness)[0]
+            cv2.putText(frame, fps_text, (width - text_size[0] - 20, 40), font, font_scale, color, thickness)
             
             if self.task_stop_rec_evt.is_set() and self.recording:
                 self.recording = False
