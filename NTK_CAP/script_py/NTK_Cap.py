@@ -935,7 +935,7 @@ def read_err_calib_extri(PWD):
     return err_list
 ######################################################
 # openpose & pose2sim
-def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_queue=None):
+def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_queue=None, task_filter_dict=None):
     total_folders = len(calculate_path_list)
     for dir_sel_loop in range(len(calculate_path_list)):
         cal_folder_path = calculate_path_list[dir_sel_loop]
@@ -948,10 +948,15 @@ def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_
                 'status': f'Calculating folder {dir_sel_loop + 1}/{total_folders}'
             })
         
+        # Get task filter for this path
+        allowed_tasks = None
+        if task_filter_dict and cal_folder_path in task_filter_dict:
+            allowed_tasks = task_filter_dict[cal_folder_path]
+            
         if (not fast_cal) or ('multi_person' in cal_folder_path):
-            _ = marker_caculate(PWD , cal_folder_path, gait, progress_queue, dir_sel_loop, total_folders)
+            _ = marker_caculate(PWD , cal_folder_path, gait, progress_queue, dir_sel_loop, total_folders, allowed_tasks)
         else:
-            _ = marker_caculate_fast(PWD, cal_folder_path, progress_queue, dir_sel_loop, total_folders)
+            _ = marker_caculate_fast(PWD, cal_folder_path, progress_queue, dir_sel_loop, total_folders, allowed_tasks)
     
     # Report 100% completion
     if progress_queue is not None:
@@ -960,7 +965,7 @@ def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_
             'status': 'Calculation complete'
         })
 
-def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, current_folder_idx=0, total_folders=1):
+def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, current_folder_idx=0, total_folders=1, allowed_tasks=None):
 
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
@@ -997,6 +1002,11 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
         task_caculate_finshed_path = os.path.join(data_path, folder_name)
         for task in os.listdir(raw_data_path):
             if task == 'calibration' or task == 'Apose': continue # There shouldn't be Apose folder in multi_person task raw_data folder
+            
+            # Task filtering: skip tasks that are not in allowed list
+            if allowed_tasks is not None and task not in allowed_tasks:
+                print(f"Skipping task '{task}' (not in allowed tasks: {allowed_tasks})")
+                continue
             task_folder_path = os.path.join(raw_data_path, task)
             
             if os.path.exists(os.path.join(task_folder_path, 'name', 'name_cal.txt')): name_list_file_path = os.path.join(task_folder_path, 'name', 'name_cal.txt')
@@ -1351,6 +1361,11 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
         for k in tasks:
             if k == "Apose" or k == "calibration" or k == 'Meet_note.json':
                 continue
+                
+            # Task filtering: skip tasks that are not in allowed list
+            if allowed_tasks is not None and k not in allowed_tasks:
+                print(f"Skipping task '{k}' (not in allowed tasks: {allowed_tasks})")
+                continue
             
             
             now_task = os.path.join(caculate_finshed_path, k)
@@ -1445,7 +1460,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
         else:
             return caculate_finshed_path
 
-def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_idx=0, total_folders=1):
+def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_idx=0, total_folders=1, allowed_tasks=None):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array
     ori_path = PWD
     openpose_path = os.path.join(PWD, "NTK_CAP")
@@ -1669,6 +1684,11 @@ def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_
     for k in tasks:
 
         if k.endswith(("Apose","calibration",".json")):
+            continue
+            
+        # Task filtering: skip tasks that are not in allowed list
+        if allowed_tasks is not None and k not in allowed_tasks:
+            print(f"Skipping task '{k}' (not in allowed tasks: {allowed_tasks})")
             continue
         
         # Report progress: Starting task

@@ -329,6 +329,14 @@ class MainWindow(QMainWindow):
         self.btn_cal_start_cal = self.findChild(QPushButton, "btn_cal_start_cal")
         self.btn_cal_start_cal.clicked.connect(self.btn_pre_marker_calculate)
         self.btn_cal_start_cal.setEnabled(True)
+        
+        # Initialize task selection mode variables
+        self.task_checkboxes = {}  # Store checkboxes for patient view
+        self.current_patient_tasks = []  # Store current patient's tasks
+        
+        # Add new UI elements for task-based selection
+        self.setup_task_selection_ui()
+        
         self.cal_load_folders()
         self.marker_calculate_process = None
         self.marker_progress_queue = None  # Queue for receiving progress updates
@@ -1437,7 +1445,26 @@ class MainWindow(QMainWindow):
             return
         else:
             cur_dir = copy.deepcopy(self.current_directory)
-            cal_list = copy.deepcopy(self.cal_select_list)
+            
+            # Process selection list to handle both date-level and task-level selections
+            cal_list_raw = copy.deepcopy(self.cal_select_list)
+            cal_list = []
+            task_filter_dict = {}  # Dictionary to store task filters for each date path
+            
+            for item in cal_list_raw:
+                if "##" in item:
+                    # Extract date path and task name
+                    date_path, task_name = item.split("##", 1)
+                    if date_path not in cal_list:
+                        cal_list.append(date_path)
+                        task_filter_dict[date_path] = []
+                    task_filter_dict[date_path].append(task_name)
+                else:
+                    # Regular date path (all tasks)
+                    if item not in cal_list:
+                        cal_list.append(item)
+                        task_filter_dict[item] = None  # None means all tasks
+            
             self.closeCamera()
             
             # Show progress bar and start from 0
@@ -1447,8 +1474,15 @@ class MainWindow(QMainWindow):
             # Create Queue for real-time progress tracking
             self.marker_progress_queue = multiprocessing.Queue()
             
-            # Use multiprocessing to avoid UI freeze
-            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait, self.marker_progress_queue))
+            # Debug: Print the paths being sent to calculation
+            print(f"Debug: Sending {len(cal_list)} paths to calculation:")
+            for path in cal_list:
+                print(f"  - {path}")
+                if path in task_filter_dict:
+                    print(f"    Tasks: {task_filter_dict[path]}")
+            
+            # Use multiprocessing to avoid UI freeze with task filtering
+            self.marker_calculate_process = Process(target=mp_marker_calculate, args=(cur_dir, cal_list, self.fast_cal, self.gait, self.marker_progress_queue, task_filter_dict))
             self.marker_calculate_process.start()
             self.cal_select_list = []
             self.label_calculation_status.setText("Calculating")
@@ -1469,47 +1503,583 @@ class MainWindow(QMainWindow):
         else:
             self.gait = False
 
+    def setup_task_selection_ui(self):
+        """Setup UI elements for task-based selection"""
+        # Find the calculation tab widget
+        cal_widget = None
+        try:
+            # Try to find the calculation tab or a suitable parent widget
+            cal_widget = self.findChild(QWidget, "tab_calculation") or self.findChild(QWidget, "calculation")
+            if cal_widget is None:
+                # Fallback to finding by layout or other means
+                cal_widget = self.centralWidget()
+        except:
+            cal_widget = self.centralWidget()
+        
+        if cal_widget:
+            # Add "Select All Tasks" button
+            self.btn_select_all_tasks = QPushButton("Select All Tasks")
+            self.btn_select_all_tasks.setStyleSheet("""
+                QPushButton {
+                    background-color: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #218838;
+                }
+            """)
+            self.btn_select_all_tasks.clicked.connect(self.select_all_tasks)
+            
+            # Add "Select All" checkbox for patient view
+            self.checkbox_select_all_patient = QCheckBox("Select All in Patient")
+            self.checkbox_select_all_patient.setVisible(False)  # Hidden by default
+            self.checkbox_select_all_patient.toggled.connect(self.toggle_all_patient_tasks)
+            
+            # Add select all patient checkbox to status bar (only for patient view)
+            try:
+                self.statusBar().addPermanentWidget(self.checkbox_select_all_patient)
+            except:
+                # Fallback: add to main widget if possible
+                pass
+
+    def select_all_tasks(self):
+        """Select all available tasks from current patient"""
+        if not hasattr(self, 'patient_path') or not os.path.exists(self.patient_path):
+            return
+            
+        if not hasattr(self, 'cal_select_patient_id') or not self.cal_select_patient_id:
+            return
+            
+        original_count = len(self.cal_select_list)
+        
+        # Get current patient's path
+        current_patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        if not os.path.exists(current_patient_path):
+            return
+        
+        # Get all date folders for current patient (exclude raw_data if it exists at patient level)
+        date_folders = [item for item in os.listdir(current_patient_path) 
+                       if os.path.isdir(os.path.join(current_patient_path, item)) and item != 'raw_data']
+        
+        # For each task in current patient, find its corresponding date folder and add to selection
+        for task_checkbox_path in self.task_checkboxes.keys():
+            if task_checkbox_path.startswith(current_patient_path):
+                if task_checkbox_path not in self.cal_select_list:
+                    self.cal_select_list.append(task_checkbox_path)
+                # Update checkbox state
+                if task_checkbox_path in self.task_checkboxes:
+                    self.task_checkboxes[task_checkbox_path].setChecked(True)
+        
+        # Update UI
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+        
+        # Update patient-level select all checkbox
+        self.update_patient_select_all_state()
+        
+        # Show brief feedback in status
+        added_count = len(self.cal_select_list) - original_count
+        if hasattr(self, 'statusBar'):
+            if added_count > 0:
+                self.statusBar().showMessage(f"✅ Added {added_count} tasks (Total: {len(self.cal_select_list)})", 3000)
+            else:
+                self.statusBar().showMessage("ℹ️ All tasks were already selected", 2000)
+
+    def on_select_all_patients_toggled(self, checked):
+        """Handle Select All Patients checkbox toggle"""
+        if checked:
+            self.select_all_patients()
+        else:
+            self.deselect_all_patients()
+
+    def on_select_all_dates_toggled(self, checked):
+        """Handle Select All Dates checkbox toggle"""
+        if checked:
+            self.select_all_dates()
+        else:
+            self.deselect_all_dates()
+
+    def on_select_all_tasks_toggled(self, checked):
+        """Handle Select All Tasks checkbox toggle"""
+        if checked:
+            self.select_all_current_date_tasks()
+        else:
+            self.deselect_all_current_date_tasks()
+
+    def select_all_patients(self):
+        """Select all patients (all their dates and tasks)"""
+        if not hasattr(self, 'patient_path') or not os.path.exists(self.patient_path):
+            return
+        
+        for patient_name in os.listdir(self.patient_path):
+            patient_path = os.path.join(self.patient_path, patient_name)
+            if os.path.isdir(patient_path):
+                for date_name in os.listdir(patient_path):
+                    date_path = os.path.join(patient_path, date_name)
+                    if os.path.isdir(date_path) and date_name != 'raw_data':
+                        if date_path not in self.cal_select_list:
+                            self.cal_select_list.append(date_path)
+        
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def deselect_all_patients(self):
+        """Deselect all patients"""
+        self.cal_select_list.clear()
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def select_all_dates(self):
+        """Select all dates for current patient"""
+        if not hasattr(self, 'cal_select_patient_id') or not self.cal_select_patient_id:
+            return
+            
+        patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        if os.path.exists(patient_path):
+            for date_name in os.listdir(patient_path):
+                date_path = os.path.join(patient_path, date_name)
+                if os.path.isdir(date_path) and date_name != 'raw_data':
+                    if date_path not in self.cal_select_list:
+                        self.cal_select_list.append(date_path)
+        
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def deselect_all_dates(self):
+        """Deselect all dates for current patient"""
+        if not hasattr(self, 'cal_select_patient_id') or not self.cal_select_patient_id:
+            return
+            
+        patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        dates_to_remove = [path for path in self.cal_select_list if path.startswith(patient_path)]
+        
+        for date_path in dates_to_remove:
+            self.cal_select_list.remove(date_path)
+        
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def select_all_current_date_tasks(self):
+        """Select current date (all tasks in this date)"""
+        if not hasattr(self, 'cal_select_date_id') or not self.cal_select_date_id:
+            return
+            
+        patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        date_path = os.path.join(patient_path, self.cal_select_date_id)
+        
+        # Select all individual tasks for this date
+        for task_checkbox_path, checkbox in self.task_checkboxes.items():
+            if task_checkbox_path.startswith(date_path + "##"):
+                if task_checkbox_path not in self.cal_select_list:
+                    self.cal_select_list.append(task_checkbox_path)
+                checkbox.setChecked(True)
+        
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def deselect_all_current_date_tasks(self):
+        """Deselect current date (all tasks in this date)"""
+        if not hasattr(self, 'cal_select_date_id') or not self.cal_select_date_id:
+            return
+            
+        patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        date_path = os.path.join(patient_path, self.cal_select_date_id)
+        
+        # Deselect all individual tasks for this date
+        tasks_to_remove = []
+        for task_checkbox_path, checkbox in self.task_checkboxes.items():
+            if task_checkbox_path.startswith(date_path + "##"):
+                tasks_to_remove.append(task_checkbox_path)
+                checkbox.setChecked(False)
+        
+        # Remove from selection list
+        for task_path in tasks_to_remove:
+            if task_path in self.cal_select_list:
+                self.cal_select_list.remove(task_path)
+        
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
+    def select_all_current_patient_tasks(self):
+        """Select all tasks for current patient"""
+        if not hasattr(self, 'cal_select_patient_id') or not self.cal_select_patient_id:
+            return
+            
+        current_patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        
+        # Select all tasks for current patient
+        for task_checkbox_path in self.task_checkboxes.keys():
+            if task_checkbox_path.startswith(current_patient_path):
+                if task_checkbox_path not in self.cal_select_list:
+                    self.cal_select_list.append(task_checkbox_path)
+                # Update checkbox state
+                if task_checkbox_path in self.task_checkboxes:
+                    self.task_checkboxes[task_checkbox_path].setChecked(True)
+        
+        # Update UI
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+        self.update_patient_select_all_state()
+
+    def deselect_all_current_patient_tasks(self):
+        """Deselect all tasks for current patient"""
+        if not hasattr(self, 'cal_select_patient_id') or not self.cal_select_patient_id:
+            return
+            
+        current_patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        
+        # Deselect all tasks for current patient
+        tasks_to_remove = []
+        for task_path in self.cal_select_list:
+            if task_path.startswith(current_patient_path):
+                tasks_to_remove.append(task_path)
+                # Update checkbox state
+                if task_path in self.task_checkboxes:
+                    self.task_checkboxes[task_path].setChecked(False)
+        
+        # Remove from selection list
+        for task_path in tasks_to_remove:
+            self.cal_select_list.remove(task_path)
+        
+        # Update UI
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+        self.update_patient_select_all_state()
+
+    def toggle_all_patient_tasks(self, checked):
+        """Toggle all tasks for current patient"""
+        if self.cal_select_depth != 1 or not self.cal_select_patient_id:
+            return
+            
+        patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+        if not os.path.exists(patient_path):
+            return
+            
+        if checked:
+            # Add all tasks for current patient
+            for date_name in os.listdir(patient_path):
+                date_path = os.path.join(patient_path, date_name)
+                if os.path.isdir(date_path) and date_name != 'raw_data':
+                    task_path = os.path.join(patient_path, date_name)
+                    if task_path not in self.cal_select_list:
+                        self.cal_select_list.append(task_path)
+        else:
+            # Remove all tasks for current patient
+            patient_tasks = [path for path in self.cal_select_list 
+                           if path.startswith(patient_path)]
+            for task_path in patient_tasks:
+                self.cal_select_list.remove(task_path)
+        
+        # Update checkboxes if they exist
+        for checkbox in self.task_checkboxes.values():
+            checkbox.setChecked(checked)
+        
+        # Update UI
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+
     def cal_select_back_path(self):
         if self.cal_select_depth == 1:
+            # Going back from date view to patient view
             self.cal_select_depth -= 1
             self.cal_select_patient_id = None
             self.btn_cal_back_path.setEnabled(False)
+        elif self.cal_select_depth == 2:
+            # Going back from task view to date view
+            self.cal_select_depth -= 1
+            self.cal_select_date_id = None
+            # Keep back button enabled since we're still in navigation
         self.cal_load_folders()
 
     def cal_load_folders(self):
+        # Update path display based on current depth
         if self.cal_select_depth == 0:
+            self.text_label_path_depth.setText("D:\\NTKCAP\\Patient_data")
+        elif self.cal_select_depth == 1:
+            self.text_label_path_depth.setText(f"D:\\NTKCAP\\Patient_data\\{self.cal_select_patient_id}")
+        elif self.cal_select_depth == 2:
+            if hasattr(self, 'cal_select_date_id') and self.cal_select_date_id:
+                # Get available tasks from raw_data to show task selection context
+                patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+                date_path = os.path.join(patient_path, self.cal_select_date_id)
+                raw_data_path = os.path.join(date_path, 'raw_data')
+                
+                if os.path.exists(raw_data_path):
+                    tasks = [item for item in os.listdir(raw_data_path) 
+                            if os.path.isdir(os.path.join(raw_data_path, item)) 
+                            and item not in ['Apose', 'calibration']]
+                    if tasks:
+                        task_list = ", ".join(sorted(tasks))
+                        self.text_label_path_depth.setText(f"D:\\NTKCAP\\Patient_data\\{self.cal_select_patient_id}\\{self.cal_select_date_id} (Tasks: {task_list})")
+                    else:
+                        self.text_label_path_depth.setText(f"D:\\NTKCAP\\Patient_data\\{self.cal_select_patient_id}\\{self.cal_select_date_id} (No tasks found)")
+                else:
+                    self.text_label_path_depth.setText(f"D:\\NTKCAP\\Patient_data\\{self.cal_select_patient_id}\\{self.cal_select_date_id}")
+            else:
+                self.text_label_path_depth.setText(f"D:\\NTKCAP\\Patient_data\\{self.cal_select_patient_id}")
+            
+        if self.cal_select_depth == 0:
+            # Load patient list with Select All Patients
             self.listwidget_select_cal_date.clear()
+            
+            # Add "Select All Patients" checkbox as first item
+            select_all_list_item = QListWidgetItem()
+            self.listwidget_select_cal_date.addItem(select_all_list_item)
+            
+            select_all_widget = QWidget()
+            select_all_layout = QHBoxLayout(select_all_widget)
+            
+            self.checkbox_select_all_patients = QCheckBox("Select All Patients")
+            self.checkbox_select_all_patients.setStyleSheet("""
+                QCheckBox {
+                    font-weight: bold;
+                    color: #1a472a;
+                    background-color: #e1f5e1;
+                    padding: 5px;
+                    border-radius: 3px;
+                }
+            """)
+            self.checkbox_select_all_patients.toggled.connect(self.on_select_all_patients_toggled)
+            
+            select_all_layout.addWidget(self.checkbox_select_all_patients)
+            select_all_layout.setContentsMargins(5, 8, 5, 8)
+            
+            # Set proper size for the widget to avoid being cut off
+            select_all_widget.setMinimumHeight(40)
+            select_all_list_item.setSizeHint(QSize(0, 40))
+            
+            self.listwidget_select_cal_date.setItemWidget(select_all_list_item, select_all_widget)
+            
+            # Add separator
+            separator_item = QListWidgetItem("─────────────────────")
+            separator_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            separator_item.setBackground(QColor(240, 240, 240))
+            self.listwidget_select_cal_date.addItem(separator_item)
+            
+            # Add patient list
             items = [item for item in os.listdir(self.patient_path)]
             for item in items:
-                self.listwidget_select_cal_date.addItem(item)
-        elif self.cal_select_depth == 1:            
+                patient_item = QListWidgetItem(f"👤 {item}")
+                self.listwidget_select_cal_date.addItem(patient_item)
+                
+            # Hide patient-specific checkbox at patient level
+            if hasattr(self, 'checkbox_select_all_patient'):
+                self.checkbox_select_all_patient.setVisible(False)
+                
+        elif self.cal_select_depth == 1:
+            # Load date list for selected patient with Select All Dates
             self.listwidget_select_cal_date.clear()
-            items = [item for item in os.listdir(os.path.join(self.patient_path, self.cal_select_patient_id))]
-            for item in items:
-                self.listwidget_select_cal_date.addItem(item)
+            
+            # Add "Select All Dates" checkbox
+            select_all_list_item = QListWidgetItem()
+            self.listwidget_select_cal_date.addItem(select_all_list_item)
+            
+            select_all_widget = QWidget()
+            select_all_layout = QHBoxLayout(select_all_widget)
+            
+            self.checkbox_select_all_dates = QCheckBox("Select All Dates")
+            self.checkbox_select_all_dates.setStyleSheet("""
+                QCheckBox {
+                    font-weight: bold;
+                    color: #2d5016;
+                    background-color: #e8f5e8;
+                    padding: 5px;
+                    border-radius: 3px;
+                }
+            """)
+            self.checkbox_select_all_dates.toggled.connect(self.on_select_all_dates_toggled)
+            
+            select_all_layout.addWidget(self.checkbox_select_all_dates)
+            select_all_layout.setContentsMargins(5, 8, 5, 8)
+            
+            # Set proper size for the widget to avoid being cut off
+            select_all_widget.setMinimumHeight(40)
+            select_all_list_item.setSizeHint(QSize(0, 40))
+            
+            self.listwidget_select_cal_date.setItemWidget(select_all_list_item, select_all_widget)
+            
+            # Add separator
+            separator_item = QListWidgetItem("─────────────────────")
+            separator_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            separator_item.setBackground(QColor(240, 240, 240))
+            self.listwidget_select_cal_date.addItem(separator_item)
+            
+            # Add date folders
+            patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+            if os.path.exists(patient_path):
+                date_folders = [item for item in os.listdir(patient_path) 
+                               if os.path.isdir(os.path.join(patient_path, item)) and item != 'raw_data']
+                date_folders.sort()
+                
+                for date_folder in date_folders:
+                    date_item = QListWidgetItem(f"📅 {date_folder}")
+                    self.listwidget_select_cal_date.addItem(date_item)
+                
+        elif self.cal_select_depth == 2:
+            # Load task list for selected date with checkboxes
+            self.listwidget_select_cal_date.clear()
+            self.task_checkboxes.clear()
+            
+            # Add "Select All Tasks" checkbox as first item
+            select_all_list_item = QListWidgetItem()
+            self.listwidget_select_cal_date.addItem(select_all_list_item)
+            
+            # Create select all widget with checkbox
+            select_all_widget = QWidget()
+            select_all_layout = QHBoxLayout(select_all_widget)
+            
+            self.checkbox_select_all_tasks = QCheckBox("Select All Tasks")
+            self.checkbox_select_all_tasks.setStyleSheet("""
+                QCheckBox {
+                    font-weight: bold;
+                    color: #2d5016;
+                    background-color: #e8f5e8;
+                    padding: 5px;
+                    border-radius: 3px;
+                }
+                QCheckBox::indicator {
+                    width: 18px;
+                    height: 18px;
+                }
+            """)
+            self.checkbox_select_all_tasks.toggled.connect(self.on_select_all_tasks_toggled)
+            
+            select_all_layout.addWidget(self.checkbox_select_all_tasks)
+            select_all_layout.setContentsMargins(5, 8, 5, 8)
+            
+            # Set proper size for the widget to avoid being cut off
+            select_all_widget.setMinimumHeight(40)
+            select_all_list_item.setSizeHint(QSize(0, 40))
+            
+            self.listwidget_select_cal_date.setItemWidget(select_all_list_item, select_all_widget)
+            
+            # Add separator
+            separator_item = QListWidgetItem("─────────────────────")
+            separator_item.setFlags(Qt.ItemFlag.NoItemFlags)  # Make it non-selectable
+            separator_item.setBackground(QColor(240, 240, 240))
+            self.listwidget_select_cal_date.addItem(separator_item)
+            
+            # Get tasks from current selected date
+            if hasattr(self, 'cal_select_date_id') and self.cal_select_date_id:
+                patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+                date_path = os.path.join(patient_path, self.cal_select_date_id)
+                raw_data_path = os.path.join(date_path, 'raw_data')
+                
+                if os.path.exists(raw_data_path):
+                    # Get task folders (exclude 'Apose' and 'calibration')
+                    tasks = [item for item in os.listdir(raw_data_path) 
+                            if os.path.isdir(os.path.join(raw_data_path, item)) 
+                            and item not in ['Apose', 'calibration']]
+                    tasks.sort()
+                    
+                    # Add items with checkboxes
+                    for task in tasks:
+                        # Create a widget item
+                        list_item = QListWidgetItem()
+                        self.listwidget_select_cal_date.addItem(list_item)
+                        
+                        # Create a widget with checkbox and label
+                        item_widget = QWidget()
+                        item_layout = QHBoxLayout(item_widget)
+                        
+                        checkbox = QCheckBox(task)
+                        
+                        # Create unique task path that includes the task name
+                        task_path = f"{date_path}##{task}"  # Use ## as separator to make it unique
+                        
+                        checkbox.setChecked(task_path in self.cal_select_list)
+                        checkbox.toggled.connect(lambda checked, path=task_path: self.on_task_checkbox_toggled(checked, path))
+                        
+                        item_layout.addWidget(checkbox)
+                        item_layout.setContentsMargins(5, 5, 5, 5)
+                        
+                        # Store checkbox reference
+                        self.task_checkboxes[task_path] = checkbox
+                        
+                        # Set proper size for the widget
+                        item_widget.setMinimumHeight(30)
+                        list_item.setSizeHint(QSize(0, 30))
+                        self.listwidget_select_cal_date.setItemWidget(list_item, item_widget)
+
+    def on_task_checkbox_toggled(self, checked, task_path):
+        """Handle individual task checkbox toggle"""
+        if checked:
+            if task_path not in self.cal_select_list:
+                self.cal_select_list.append(task_path)
+        else:
+            if task_path in self.cal_select_list:
+                self.cal_select_list.remove(task_path)
+        
+        # Update UI
+        self.cal_show_selected_folder()
+        self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")
+        
+        # Update select all checkbox states
+        self.update_select_all_states()
+
+    def update_select_all_states(self):
+        """Update select all checkbox states for current depth"""
+        if self.cal_select_depth == 2 and hasattr(self, 'cal_select_date_id'):
+            # In task selection level
+            patient_path = os.path.join(self.patient_path, self.cal_select_patient_id)
+            date_path = os.path.join(patient_path, self.cal_select_date_id)
+            
+            # Count total tasks and selected tasks
+            total_tasks = 0
+            selected_tasks = 0
+            for task_checkbox_path in self.task_checkboxes.keys():
+                if task_checkbox_path.startswith(date_path + "##"):
+                    total_tasks += 1
+                    if task_checkbox_path in self.cal_select_list:
+                        selected_tasks += 1
+            
+            # All tasks are selected if selected count equals total count
+            all_selected = (selected_tasks == total_tasks) and (total_tasks > 0)
+            
+            # Update Select All Tasks checkbox
+            if hasattr(self, 'checkbox_select_all_tasks'):
+                # Temporarily disconnect to avoid recursive calls
+                self.checkbox_select_all_tasks.toggled.disconnect()
+                self.checkbox_select_all_tasks.setChecked(all_selected)
+                self.checkbox_select_all_tasks.toggled.connect(self.on_select_all_tasks_toggled)
 
     def cal_show_selected_folder(self):
         self.listwidget_selected_cal_date.clear()        
         for item in self.cal_select_list:
-            self.listwidget_selected_cal_date.addItem(item)
+            # Format display: if it contains ##, show the task name part
+            if "##" in item:
+                # Extract task name from path##task format
+                path_part, task_name = item.split("##", 1)
+                display_text = f"{path_part} (Task: {task_name})"
+            else:
+                display_text = item
+            self.listwidget_selected_cal_date.addItem(display_text)
 
     def cal_select_folder_clicked(self, item):
         if self.cal_select_depth == 0:
-            self.cal_select_patient_id = item.text()
+            # Remove emoji prefix from patient name
+            patient_name = item.text().replace("👤 ", "")
+            
+            # Entering date selection view
+            self.cal_select_patient_id = patient_name
             self.btn_cal_back_path.setEnabled(True)
             self.cal_select_depth += 1
             self.cal_load_folders()
         elif self.cal_select_depth == 1:
-            self.cal_select_date = item.text()
-            if os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date) not in self.cal_select_list:
-                self.cal_select_list.append(os.path.join(self.patient_path, self.cal_select_patient_id, self.cal_select_date))
-            self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
-            self.cal_show_selected_folder()
-            self.cal_select_date = None
-            self.cal_select_depth = 0
-            self.btn_cal_back_path.setEnabled(False)
+            # Remove emoji prefix from date name
+            date_name = item.text().replace("📅 ", "")
+            
+            # Entering task selection view
+            self.cal_select_date_id = date_name
+            self.cal_select_depth += 1
             self.cal_load_folders()
-            return
+        elif self.cal_select_depth == 2:
+            # In task view - tasks are handled by checkboxes, not double-click
+            pass
             
     def cal_selected_folder_selcted(self, item):
         self.listwidget_selected_cal_date_item_selected = item.text()
@@ -1521,12 +2091,31 @@ class MainWindow(QMainWindow):
     
     def arrange_files_to_inverse_analysis(self):
         """
-        Arrange calculation results to Inverse_analysis_data folder
-        Structure: Inverse_analysis_data/patient_name/task_name (only latest calculation)
+        Arrange calculation results to Inverse_analysis_data folder with intelligent task completion
+        Structure: Inverse_analysis_data/patient_name/task_name (selected tasks + auto-completion)
         """
         try:
             import shutil
             from pathlib import Path
+            from datetime import datetime
+            
+            # Check if there are selected tasks
+            if not self.cal_select_list:
+                QMessageBox.warning(self, "Warning", "No tasks selected for arrangement!")
+                return
+            
+            # Process selected tasks and build task selection map
+            selected_tasks_map = {}  # {date_path: [task_names]}
+            for selected_item in self.cal_select_list:
+                if "##" in selected_item:
+                    # Individual task selection (path##task)
+                    date_path, task_name = selected_item.split("##", 1)
+                    if date_path not in selected_tasks_map:
+                        selected_tasks_map[date_path] = []
+                    selected_tasks_map[date_path].append(task_name)
+                else:
+                    # Whole date selection (all tasks in date)
+                    selected_tasks_map[selected_item] = None  # None means all tasks
             
             # Get current directory (project root)
             project_root = Path(self.current_directory)
@@ -1541,80 +2130,112 @@ class MainWindow(QMainWindow):
             inverse_analysis_path.mkdir(exist_ok=True)
             
             copied_count = 0
+            completed_count = 0
             
-            # Traverse Patient_data structure
-            for patient_folder in patient_data_path.iterdir():
-                if not patient_folder.is_dir():
+            # Process each selected date path
+            for date_path_str, required_tasks in selected_tasks_map.items():
+                date_path = Path(date_path_str)
+                
+                # Extract patient name and date from path
+                try:
+                    patient_name = date_path.parts[-2]  # Patient_data/PATIENT/DATE
+                    date_name = date_path.parts[-1]
+                except IndexError:
                     continue
-                    
-                patient_name = patient_folder.name
                 
                 # Create patient folder in inverse analysis
                 target_patient_path = inverse_analysis_path / patient_name
                 target_patient_path.mkdir(exist_ok=True)
                 
-                # Find the latest calculated folder for this patient
-                latest_calc_folder = None
-                latest_time = None
+                # Get all calculated folders for this date (sorted by time, newest first)
+                calc_folders = []
+                if date_path.exists():
+                    for item in date_path.iterdir():
+                        if item.is_dir() and item.name.endswith('_calculated'):
+                            # Extract timestamp for sorting
+                            folder_time_str = item.name.replace('_calculated', '')
+                            try:
+                                folder_time = datetime.strptime(folder_time_str, '%Y_%m_%d_%H_%M')
+                                calc_folders.append((folder_time, item))
+                            except ValueError:
+                                # If parsing fails, add with current time
+                                calc_folders.append((datetime.now(), item))
                 
-                for date_folder in patient_folder.iterdir():
-                    if not date_folder.is_dir():
-                        continue
-                    
-                    # Look for calculated folders (ending with _calculated)
-                    calc_folders = [f for f in date_folder.iterdir() 
-                                   if f.is_dir() and f.name.endswith('_calculated')]
-                    
-                    for calc_folder in calc_folders:
-                        # Extract timestamp from folder name (format: YYYY_MM_DD_HH_MM_calculated)
-                        folder_time_str = calc_folder.name.replace('_calculated', '')
-                        try:
-                            from datetime import datetime
-                            folder_time = datetime.strptime(folder_time_str, '%Y_%m_%d_%H_%M')
-                            if latest_time is None or folder_time > latest_time:
-                                latest_time = folder_time
-                                latest_calc_folder = calc_folder
-                        except ValueError:
-                            # If timestamp parsing fails, use the last found folder
-                            latest_calc_folder = calc_folder
+                # Sort by time, newest first
+                calc_folders.sort(key=lambda x: x[0], reverse=True)
                 
-                # Process the latest calculated folder
-                if latest_calc_folder:
-                    # Process each task folder in the latest calculated results
-                    for task_folder in latest_calc_folder.iterdir():
-                        if not task_folder.is_dir():
-                            continue
+                if not calc_folders:
+                    print(f"No calculated folders found for {date_path}")
+                    continue
+                
+                # Determine which tasks to process
+                if required_tasks is None:
+                    # All tasks mode - get all available tasks from latest calculation
+                    latest_calc_folder = calc_folders[0][1]
+                    available_tasks = [f.name for f in latest_calc_folder.iterdir() 
+                                     if f.is_dir() and f.name not in ['Apose']]
+                    tasks_to_process = available_tasks
+                else:
+                    # Individual tasks mode
+                    tasks_to_process = required_tasks
+                
+                print(f"Processing tasks for {patient_name}/{date_name}: {tasks_to_process}")
+                
+                # For each required task, find it in calculation folders (newest first)
+                for task_name in tasks_to_process:
+                    task_found = False
+                    
+                    for calc_time, calc_folder in calc_folders:
+                        task_folder = calc_folder / task_name
+                        if task_folder.exists():
+                            # Found the task, copy it to inverse analysis
+                            target_task_path = target_patient_path / task_name
                             
-                        task_name = task_folder.name
-                        target_task_path = target_patient_path / task_name
-                        
-                        # Remove existing task folder if it exists
-                        if target_task_path.exists():
-                            shutil.rmtree(target_task_path)
-                        target_task_path.mkdir(exist_ok=True)
-                        
-                        files_copied = False
-                        
-                        # Copy required folders
-                        for folder_name in ["opensim", "videos", "EMG", "EEG"]:
-                            src_folder = task_folder / folder_name
-                            if src_folder.exists():
-                                dst_folder = target_task_path / folder_name
-                                shutil.copytree(src_folder, dst_folder)
-                                files_copied = True
-                        
-                        if files_copied:
-                            copied_count += 1
+                            # Remove existing task folder if it exists
+                            if target_task_path.exists():
+                                shutil.rmtree(target_task_path)
+                            target_task_path.mkdir(exist_ok=True)
+                            
+                            files_copied = False
+                            
+                            # Copy required folders
+                            for folder_name in ["opensim", "videos", "EMG", "EEG"]:
+                                src_folder = task_folder / folder_name
+                                if src_folder.exists():
+                                    dst_folder = target_task_path / folder_name
+                                    shutil.copytree(src_folder, dst_folder)
+                                    files_copied = True
+                            
+                            if files_copied:
+                                copied_count += 1
+                                calc_time_str = calc_time.strftime('%Y_%m_%d_%H_%M')
+                                print(f"✅ Copied {task_name} from {calc_time_str}_calculated")
+                                
+                                # If this task was auto-completed from older calculation
+                                if calc_folder != calc_folders[0][1]:
+                                    completed_count += 1
+                                    print(f"🔄 Auto-completed {task_name} from older calculation")
+                                
+                            task_found = True
+                            break
+                    
+                    if not task_found:
+                        print(f"❌ Task '{task_name}' not found in any calculation folders for {patient_name}/{date_name}")
             
             if copied_count > 0:
+                completion_msg = ""
+                if completed_count > 0:
+                    completion_msg = f"\n🔄 Auto-completed {completed_count} task(s) from older calculations"
+                
                 QMessageBox.information(self, "Success", 
                     f"Successfully arranged {copied_count} task(s) to Inverse_analysis_data folder.\n\n"
-                    f"Structure: patient_name/task_name (latest calculation only)\n"
-                    f"Location: {inverse_analysis_path}")
+                    f"✅ Tasks processed: {copied_count}\n"
+                    f"📁 Structure: patient_name/task_name (with intelligent completion){completion_msg}\n\n"
+                    f"📍 Location: {inverse_analysis_path}")
             else:
                 QMessageBox.information(self, "Info", 
                     "No calculated results found to arrange.\n"
-                    "Please run calculations first.")
+                    "Please run calculations first or check selected tasks.")
                     
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error arranging files: {str(e)}")
