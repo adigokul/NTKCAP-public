@@ -31,7 +31,18 @@ class UpdateThread(QThread):
         self.ThreadActive = True
         while self.ThreadActive:
             try:
-                idx = self.queue_kp.get(timeout=1)
+                # Clear queue backlog to get the most recent frame
+                idx = None
+                while True:
+                    try:
+                        idx = self.queue_kp.get_nowait()
+                    except:
+                        break
+                
+                # If no frames available, wait for new one
+                if idx is None:
+                    idx = self.queue_kp.get(timeout=1)
+                    
             except:
                 time.sleep(0.01)
                 continue

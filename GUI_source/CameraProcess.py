@@ -50,6 +50,10 @@ class CameraProcess(Process):
         self.current_fps = 0
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # Set camera buffer size to reduce latency
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
         self.start_evt.wait()
 
         while True:
@@ -94,6 +98,8 @@ class CameraProcess(Process):
                 self.recording = False
                 self.start_time = None
                 self.frame_id_task = 0
+                # Reset frame counter when stopping recording to prevent overflow
+                self.frame_counter = 0
                 self.out.release()
                 np.save(os.path.join(self.record_path, f"{self.cam_id+1}_dates.npy"), self.time_stamp)
                 
@@ -136,8 +142,20 @@ class CameraProcess(Process):
                 dt_str2 = cap_e - self.start_time
                 self.time_stamp[self.frame_id_task] =[np.array(float( f"{dt_str1 :.3f}")),np.array(float( f"{dt_str2 :.3f}"))]
                 self.frame_id_task += 1
-            np.copyto(shared_array[idx,:], frame)     
-            self.queue.put(idx)
+            np.copyto(shared_array[idx,:], frame)
+            
+            # Prevent queue overflow by dropping old frames
+            try:
+                self.queue.put_nowait(idx)
+            except:
+                # Queue is full, skip old frames to prevent buffer overflow
+                try:
+                    while self.queue.qsize() > 2:  # Keep only 2 frames in queue
+                        self.queue.get_nowait()
+                    self.queue.put_nowait(idx)
+                except:
+                    pass  # Queue operations failed, continue
+                    
             idx = (idx+1) % self.buffer_length
 
         cap.release()

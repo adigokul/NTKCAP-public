@@ -154,7 +154,19 @@ class TrackerProcess(Process):
                     # Continue without pose detection for this frame
             
             np.copyto(shared_array_kp[idx,:], frame)
-            self.queue_kp.put(idx) # !!!!idx?
+            
+            # Prevent queue overflow by dropping old frames
+            try:
+                self.queue_kp.put_nowait(idx)
+            except:
+                # Queue is full, skip old frames to prevent buffer overflow
+                try:
+                    while self.queue_kp.qsize() > 2:  # Keep only 2 frames in queue
+                        self.queue_kp.get_nowait()
+                    self.queue_kp.put_nowait(idx)
+                except:
+                    pass  # Queue operations failed, continue
+                    
             idx = (idx+1) % self.buffer_length
     def draw_frame(self, frame, keypoints, scores, palette, skeleton, link_color, point_color):
         keypoints = keypoints.astype(int)

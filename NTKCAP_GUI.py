@@ -439,6 +439,29 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.btn_rt_pose_detection)
         print("✅ RT Pose Detection button added to status bar")
         
+        # Add Arrange Files button (for inverse analysis data)
+        self.btn_arrange_files = QPushButton("Arrange Files to Inverse Analysis Data")
+        self.btn_arrange_files.setStyleSheet("""
+            QPushButton {
+                background-color: #4285f4;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 3px;
+                font-weight: bold;
+                min-width: 200px;
+            }
+            QPushButton:hover {
+                background-color: #3367d6;
+            }
+            QPushButton:pressed {
+                background-color: #2952b3;
+            }
+        """)
+        self.btn_arrange_files.clicked.connect(self.arrange_files_to_inverse_analysis)
+        self.statusBar().addPermanentWidget(self.btn_arrange_files)
+        print("✅ Arrange Files button added to status bar")
+        
         # Add Calculation Progress Bar next to RT Pose Detection button
         self.progress_bar_calculation = QProgressBar()
         self.progress_bar_calculation.setMaximum(100)
@@ -1495,6 +1518,106 @@ class MainWindow(QMainWindow):
         self.cal_select_list.remove(self.listwidget_selected_cal_date_item_selected)
         self.cal_show_selected_folder()
         self.label_cal_selected_tasks.setText(f"Selected Tasks: {len(self.cal_select_list)}")    
+    
+    def arrange_files_to_inverse_analysis(self):
+        """
+        Arrange calculation results to Inverse_analysis_data folder
+        Structure: Inverse_analysis_data/patient_name/task_name (only latest calculation)
+        """
+        try:
+            import shutil
+            from pathlib import Path
+            
+            # Get current directory (project root)
+            project_root = Path(self.current_directory)
+            patient_data_path = project_root / "Patient_data"
+            inverse_analysis_path = project_root / "Inverse_analysis_data"
+            
+            if not patient_data_path.exists():
+                QMessageBox.warning(self, "Warning", "Patient_data folder not found!")
+                return
+            
+            # Create Inverse_analysis_data folder if it doesn't exist
+            inverse_analysis_path.mkdir(exist_ok=True)
+            
+            copied_count = 0
+            
+            # Traverse Patient_data structure
+            for patient_folder in patient_data_path.iterdir():
+                if not patient_folder.is_dir():
+                    continue
+                    
+                patient_name = patient_folder.name
+                
+                # Create patient folder in inverse analysis
+                target_patient_path = inverse_analysis_path / patient_name
+                target_patient_path.mkdir(exist_ok=True)
+                
+                # Find the latest calculated folder for this patient
+                latest_calc_folder = None
+                latest_time = None
+                
+                for date_folder in patient_folder.iterdir():
+                    if not date_folder.is_dir():
+                        continue
+                    
+                    # Look for calculated folders (ending with _calculated)
+                    calc_folders = [f for f in date_folder.iterdir() 
+                                   if f.is_dir() and f.name.endswith('_calculated')]
+                    
+                    for calc_folder in calc_folders:
+                        # Extract timestamp from folder name (format: YYYY_MM_DD_HH_MM_calculated)
+                        folder_time_str = calc_folder.name.replace('_calculated', '')
+                        try:
+                            from datetime import datetime
+                            folder_time = datetime.strptime(folder_time_str, '%Y_%m_%d_%H_%M')
+                            if latest_time is None or folder_time > latest_time:
+                                latest_time = folder_time
+                                latest_calc_folder = calc_folder
+                        except ValueError:
+                            # If timestamp parsing fails, use the last found folder
+                            latest_calc_folder = calc_folder
+                
+                # Process the latest calculated folder
+                if latest_calc_folder:
+                    # Process each task folder in the latest calculated results
+                    for task_folder in latest_calc_folder.iterdir():
+                        if not task_folder.is_dir():
+                            continue
+                            
+                        task_name = task_folder.name
+                        target_task_path = target_patient_path / task_name
+                        
+                        # Remove existing task folder if it exists
+                        if target_task_path.exists():
+                            shutil.rmtree(target_task_path)
+                        target_task_path.mkdir(exist_ok=True)
+                        
+                        files_copied = False
+                        
+                        # Copy required folders
+                        for folder_name in ["opensim", "videos", "EMG", "EEG"]:
+                            src_folder = task_folder / folder_name
+                            if src_folder.exists():
+                                dst_folder = target_task_path / folder_name
+                                shutil.copytree(src_folder, dst_folder)
+                                files_copied = True
+                        
+                        if files_copied:
+                            copied_count += 1
+            
+            if copied_count > 0:
+                QMessageBox.information(self, "Success", 
+                    f"Successfully arranged {copied_count} task(s) to Inverse_analysis_data folder.\n\n"
+                    f"Structure: patient_name/task_name (latest calculation only)\n"
+                    f"Location: {inverse_analysis_path}")
+            else:
+                QMessageBox.information(self, "Info", 
+                    "No calculated results found to arrange.\n"
+                    "Please run calculations first.")
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error arranging files: {str(e)}")
     
     # Show result tab 
     def select_back_path(self):

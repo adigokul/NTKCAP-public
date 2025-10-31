@@ -52,5 +52,5 @@ python -W ignore::UserWarning:torch.distributed.optim.zero_redundancy_optimizer 
 :: Keep window open to display errors or output
 echo.
 echo ==============================================
-echo Program finished. Press any key to close...
+echo Program finished. Press CTRL+C to close...
 pause >nul

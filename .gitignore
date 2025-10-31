@@ -40,3 +40,4 @@ install/wheels.tar
 # Backup folders
 *backup*
 mmdeploy_backup_*/
+*Inverse_analysis_data
