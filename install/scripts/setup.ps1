@@ -64,8 +64,22 @@ function Write-Info {
 }
 
 # ==================== Global Configuration ====================
-# Root directory - Change this if NTKCAP is installed elsewhere
-$NTKCAP_ROOT = "D:\NTKCAP"
+# Root directory - Dynamically detect based on script location
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$installDir = Split-Path -Parent $scriptDir
+$NTKCAP_ROOT = Split-Path -Parent $installDir
+
+# Verify NTKCAP root directory
+if (Test-Path $NTKCAP_ROOT) {
+    Write-Info "✅ NTKCAP root directory detected at: $NTKCAP_ROOT"
+} else {
+    Write-Error-Custom "NTKCAP root directory could not be found at: $NTKCAP_ROOT"
+}
+
+# Change to NTKCAP_ROOT at the start so all relative paths work correctly
+Set-Location $NTKCAP_ROOT
+Write-Info "📂 Changed working directory to: $NTKCAP_ROOT"
+
 # Conda environment name - Handle interactive input or parameter
 if ([string]::IsNullOrWhiteSpace($CondaEnvName)) {
     if ($AutoYes) {
@@ -532,12 +546,10 @@ function Check-Poetry {
 function New-CondaEnvironment {
     Write-Log "Setting up conda/mamba environment ($ENV_NAME)..."
 
-    # Change to NTKCAP directory
-    if (-not (Test-Path $NTKCAP_ROOT)) {
-        Write-Error-Custom "NTKCAP directory not found at $NTKCAP_ROOT"
+    # Verify we're in NTKCAP root directory
+    if (-not (Test-Path "install/environment.yml")) {
+        Write-Error-Custom "install/environment.yml not found at: $(Get-Location)"
     }
-
-    Set-Location $NTKCAP_ROOT
 
     # Check if environment already exists
     try {
