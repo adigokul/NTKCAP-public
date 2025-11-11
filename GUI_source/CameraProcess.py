@@ -40,7 +40,13 @@ class CameraProcess(Process):
         existing_shm = shared_memory.SharedMemory(name=self.shared_name)
         shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
 
-        cap = cv2.VideoCapture(self.cam_id)
+        # 使用 DirectShow backend (Windows 專用)
+        cap = cv2.VideoCapture(self.cam_id, cv2.CAP_DSHOW)
+        
+        if not cap.isOpened():
+            print(f"❌ Camera {self.cam_id} failed to open")
+            return
+        
         (width, height) = (1920, 1080)
         self.frame_id_task = 0
         self.frame_id_apose = 0

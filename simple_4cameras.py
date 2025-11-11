@@ -1,12 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-簡單四攝影機顯示程式
+簡單四攝影機顯示程式（Windows 優化版）
 使用標準 OpenCV（不需要 OpenGL）
+DirectShow backend for Windows
 """
 
 import cv2
 import numpy as np
 import time
+import os
+
+# ============== 抑制日誌輸出 ==============
+os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["NVBX_VERBOSE"] = "0"
+
+try:
+    cv2.setLogLevel(0)  # 0 = SILENT
+except:
+    pass
 
 class SimpleCameraDisplay:
     def __init__(self):
@@ -24,10 +37,20 @@ class SimpleCameraDisplay:
         self.init_cameras()
     
     def init_cameras(self):
-        """初始化四個攝影機"""
+        """初始化四個攝影機（Windows DSHOW 優化）"""
         print("正在初始化攝影機...")
         for i in range(4):
-            cap = cv2.VideoCapture(i)
+            # 先快速檢查相機是否存在
+            test_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            if not test_cap.isOpened():
+                print(f"❌ 攝影機 {i} 不可用")
+                self.cameras.append(None)
+                test_cap.release()
+                continue
+            test_cap.release()
+            
+            # 相機存在，正式開啟並設定參數
+            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
             if cap.isOpened():
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
