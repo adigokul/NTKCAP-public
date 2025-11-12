@@ -1,249 +1,436 @@
-"""realtime_emg_plot.py
-
-簡單的即時 EMG 繪圖工具。
-
-- 會連到 WebSocket (預設 ws://localhost:31278/ws)
-- 使用專案中的 emg_localhost.process_data_from_websocket 取得每通道 50 樣本的 envelope
-- 用 matplotlib 的 FuncAnimation 做即時更新
-
-依賴：websocket-client, numpy, matplotlib, scipy
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
+EMG Qt Viewer (PyQt5 + pyqtgraph)
+---------------------------------
+- Realtime 8-channel EMG stacked plots
+- Style approximates the provided reference image:
+  * white background
+  * dotted light-gray grid
+  * per-channel small title on the left (channel name)
+  * shared x-axis in seconds
+  * y-axis labeled "Voltage (uV)"
+  * vertical orange reference line you can move or hide
+- WebSocket input compatible with your previous script (same JSON schema),
+  and optionally with "emg_localhost.process_data_from_websocket" if available.
+
+Run:
+  pip install PyQt5 pyqtgraph websocket-client numpy
+  python emg_qt_viewer.py --uri ws://localhost:31278/ws
+
+Keys:
+  M : toggle marker line
+  R : reset autoscale for all panels
+  G : toggle grid
+"""
+import sys
+import os
+import json
 import argparse
 import threading
 import time
-import json
-import sys
-import os
 from collections import deque
 
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')  # 使用 TkAgg 後端避免相容性問題
-import matplotlib.pyplot as plt
-import websocket
 
-# 嘗試使用專案中的 emg 處理程式
-try:
-    from data_streaming.EMG import emg_localhost
-except Exception:
+# -------------------- Optional emg_localhost (lazy import) --------------------
+# We avoid importing emg_localhost at module import time because it may import
+# compiled dependencies (scipy, etc.) that are incompatible with the runtime
+# NumPy version. Instead, lazily try to import it when we actually need it.
+emg_localhost = None
+_emg_localhost_attempted = False
+
+def get_emg_localhost():
+    """Try to import emg_localhost once and cache the result.
+
+    Returns the module if available and import succeeded, otherwise None.
+    Import errors are caught and printed but won't crash the program.
+    """
+    global emg_localhost, _emg_localhost_attempted
+    if _emg_localhost_attempted:
+        return emg_localhost
+    _emg_localhost_attempted = True
     try:
-        # 添加路徑以找到 emg_localhost
         current_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(os.path.dirname(current_dir))
         emg_path = os.path.join(parent_dir, 'NTK_CAP', 'script_py')
-        if emg_path not in sys.path:
+        if os.path.isdir(emg_path) and emg_path not in sys.path:
             sys.path.append(emg_path)
-        import emg_localhost
+        import importlib
+        emg_localhost = importlib.import_module('emg_localhost')  # type: ignore
+        print("✅ emg_localhost module loaded successfully")
     except Exception as e:
-        print(f"警告：無法載入 emg_localhost 模組: {e}")
-        print("將使用簡化版本的 EMG 處理")
         emg_localhost = None
+        print(f"⚠️  emg_localhost unavailable: {e}")
+    return emg_localhost
+
+# -------------------- WebSocket client --------------------
+try:
+    import websocket  # websocket-client
+    HAS_WS = True
+except Exception:
+    HAS_WS = False
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
 
 
 CHANNEL_NAMES = [
-    'Tibialis_anterior_right', 'Rectus_Femoris_right', 'Biceps_femoris_right', 'Gastrocnemius_right',
-    'Tibialis_anterior_left', 'Rectus_Femoris_left', 'Biceps_femoris_left', 'Gastrocnemius_left'
+    # Order to match the reference image (top to bottom)
+    "LGA", "RGA", "LTA", "RTA", "LBF", "RBF", "LRF", "RRF"
 ]
 
 
-class EMGWebSocketPlot:
-    def __init__(self, uri="ws://localhost:31278/ws", max_samples=50):
-        self.uri = uri
+class EMGBuffer:
+    """Thread-safe ring buffer for 8xN EMG samples."""
+    def __init__(self, n_channels=8, max_samples=2000):
+        self.n_channels = n_channels
         self.max_samples = max_samples
-
-        # shared buffer for the latest filtered envelope (channels x samples)
-        self.filtered = np.zeros((8, self.max_samples))
+        self.buf = np.zeros((n_channels, max_samples), dtype=np.float32)
+        self.count = 0  # how many total samples have been written
         self.lock = threading.Lock()
 
-        # filter states passed to emg_localhost functions
-        self.bp_parameter = np.zeros((8, 8))
-        self.nt_parameter = np.zeros((8, 2))
-        self.lp_parameter = np.zeros((8, 4))
+    def append_frame(self, frame: np.ndarray):
+        """
+        frame: shape (n_channels, L) or (n_channels,) or (L,) broadcastable to channels
+        """
+        with self.lock:
+            if frame.ndim == 1:
+                frame = frame.reshape(self.n_channels, 1)
+            ch = min(self.n_channels, frame.shape[0])
+            L = frame.shape[1]
+            if L >= self.max_samples:
+                # keep the most recent max_samples
+                self.buf[:, :] = frame[-ch:, -self.max_samples:]
+                self.count += L
+                return
+            # roll left and insert at the end
+            self.buf = np.roll(self.buf, -L, axis=1)
+            self.buf[:, -L:] = frame[:ch, :L]
+            self.count += L
 
-        self.ws = None
-        self.ws_thread = None
+    def get(self):
+        """Copy current buffer (8 x max_samples)."""
+        with self.lock:
+            return self.buf.copy(), self.count
 
-    def on_message(self, ws, message):
-        try:
-            if emg_localhost is not None:
-                # 使用原始的 emg_localhost 處理
-                emg_array, self.bp_parameter, self.nt_parameter, self.lp_parameter = emg_localhost.process_data_from_websocket(
-                    message, self.bp_parameter, self.nt_parameter, self.lp_parameter
-                )
-            else:
-                # 簡化版本的 EMG 處理
-                emg_array = self._simple_process_message(message)
-            
-            if isinstance(emg_array, np.ndarray) and emg_array.size:
-                # emg_array expected shape (channels, samples)
-                with self.lock:
-                    # if shape matches, copy; otherwise try to adapt
-                    if emg_array.shape == self.filtered.shape:
-                        self.filtered = emg_array.copy()
-                    else:
-                        # pad or crop channels/samples as needed
-                        ch = min(self.filtered.shape[0], emg_array.shape[0])
-                        sm = min(self.filtered.shape[1], emg_array.shape[1])
-                        self.filtered[:ch, :sm] = emg_array[:ch, :sm]
-        except Exception as e:
-            # 若 message 不是 JSON 或處理錯誤，忽略
-            # print("EMG on_message error:", e)
-            return
 
-    def _simple_process_message(self, message):
-        """簡化版本的 EMG 資料處理（當無法載入 emg_localhost 時使用）"""
+class WSReader(QtCore.QObject):
+    """WebSocket client running in a background thread; emits new arrays."""
+    new_frame = QtCore.pyqtSignal(np.ndarray)  # (n_channels, L)
+    notify = QtCore.pyqtSignal(str)  # 新增: 用於通知訊息
+
+    def __init__(self, uri, parent=None):
+        super().__init__(parent)
+        self.uri = uri
+        self._stop = threading.Event()
+        self._thread = None
+        self.status = "未連接"
+
+    def start(self):
+        if not HAS_WS:
+            self.status = "websocket-client 未安裝"
+            return False
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        return True
+
+    def stop(self):
+        self._stop.set()
+
+    # Simplified parser if emg_localhost is absent
+    def _simple_parse(self, message: str, max_block=64):
         try:
             data_dict = json.loads(message)
-            if "contents" in data_dict:
-                contents = data_dict["contents"]
-                if isinstance(contents, list) and len(contents) > 0:
-                    # 提取 EMG 資料
-                    emg_values = np.zeros((8, self.max_samples))
-                    j = 0
-                    for item in contents:
-                        if "eeg" in item and isinstance(item["eeg"], list):
-                            eeg = item["eeg"]
-                            actual_channels = min(len(eeg), 8)
-                            for i in range(actual_channels):
-                                if j < self.max_samples:
-                                    # 簡單的絕對值處理（模擬 envelope）
-                                    emg_values[i, j] = abs(eeg[i])
-                            j += 1
-                            if j >= self.max_samples:
-                                break
-                    
-                    if j > 0:
-                        return emg_values[:, :j]
-            
-            return np.array([])
+            if "contents" not in data_dict:
+                return None
+            contents = data_dict["contents"]
+            # we accumulate sequential items (up to max_block columns)
+            cols = []
+            for item in contents:
+                if "eeg" in item and isinstance(item["eeg"], list):
+                    v = np.array(item["eeg"][:8], dtype=np.float32)
+                    cols.append(v.reshape(8, 1))
+                    if len(cols) >= max_block:
+                        break
+            if not cols:
+                return None
+            return np.concatenate(cols, axis=1)  # (8, L)
         except Exception:
-            return np.array([])
+            return None
 
-    def on_error(self, ws, error):
-        print("WebSocket error:", error)
-
-    def on_close(self, ws, close_status_code, close_msg):
-        print("WebSocket closed", close_status_code, close_msg)
-
-    def on_open(self, ws):
-        print("WebSocket connected to", self.uri)
-
-    def start_ws(self):
-        self.ws = websocket.WebSocketApp(self.uri,
-                                         on_open=self.on_open,
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close)
-        self.ws_thread = threading.Thread(target=self._run_ws, daemon=True)
-        self.ws_thread.start()
-
-    def _run_ws(self):
-        # run_forever will reconnect by default on abnormal close
+    def _run(self):
         try:
-            self.ws.run_forever()
+            def on_open(ws):
+                self.status = f"已連接: {self.uri}"
+                print(f"✅ WebSocket connected: {self.uri}")
+                self.notify.emit(f"WebSocket 已連接: {self.uri}")
+
+            def on_close(ws, code, msg):
+                self.status = "連接已關閉"
+                print(f"⚠️  WebSocket closed: code={code}, msg={msg}")
+                self.notify.emit(f"WebSocket 連接已關閉: code={code}, msg={msg}")
+
+            def on_error(ws, err):
+                self.status = f"錯誤: {err}"
+                print(f"❌ WebSocket error: {err}")
+                self.notify.emit(f"WebSocket 錯誤: {err}")
+
+            def on_message(ws, message):
+                try:
+                    print(f"🔵 Raw WebSocket message: {message}")  # Log raw message
+                    arr = None
+
+                    # Try lazy-loading emg_localhost. If it's unavailable or fails,
+                    # fall back to the built-in simple parser.
+                    module = get_emg_localhost()
+                    if module is not None:
+                        try:
+                            result = module.process_data_from_websocket(
+                                message, None, None, None
+                            )
+                            # Check if result is valid before unpacking
+                            if result and isinstance(result, list) and len(result) > 0:
+                                emg_array = result[0]
+                                if emg_array is not None:
+                                    arr = np.asarray(emg_array, dtype=np.float32)
+                        except Exception as e:
+                            print(f"⚠️  emg_localhost parsing failed: {e}")
+                            self.notify.emit(f"emg_localhost 解析失敗: {e}")
+                            arr = None
+                    
+                    # If emg_localhost parsing failed or unavailable, try simple parser
+                    if arr is None:
+                        arr = self._simple_parse(message)
+                    
+                    # Only emit if we got valid data
+                    if arr is not None and arr.size > 0:
+                        self.new_frame.emit(arr)
+                    else:
+                        print("⚠️  Parsed data is invalid or empty.")
+                        self.notify.emit("收到的資料無效或為空。")
+                except Exception as e:
+                    print(f"❌ Error parsing WebSocket message: {e}")
+                    self.notify.emit(f"WebSocket 訊息解析錯誤: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+            ws = websocket.WebSocketApp(
+                self.uri, on_open=on_open, on_message=on_message,
+                on_error=on_error, on_close=on_close
+            )
+            self.status = "連線中…"
+            ws.run_forever()
         except Exception as e:
-            print("WebSocket run_forever exception:", e)
+            self.status = f"錯誤: {e}"
+            self.notify.emit(f"WebSocket 執行錯誤: {e}")
 
-    def plot(self):
-        # 使用預設樣式避免 seaborn-dark 相容性問題
-        plt.style.use('default')
-        
-        # 設定深色主題
-        plt.rcParams.update({
-            'figure.facecolor': 'black',
-            'axes.facecolor': 'black',
-            'axes.edgecolor': 'white',
-            'axes.labelcolor': 'white',
-            'xtick.color': 'white',
-            'ytick.color': 'white',
-            'text.color': 'white'
-        })
-        
-        fig, axes = plt.subplots(8, 1, figsize=(10, 8), sharex=True)
-        fig.patch.set_facecolor('black')
-        
-        lines = []
-        x = np.arange(self.max_samples)
-        
-        # 確保 axes 是陣列
-        if not isinstance(axes, np.ndarray):
-            axes = [axes]
-        
-        colors = ['cyan', 'yellow', 'magenta', 'green', 'red', 'blue', 'orange', 'pink']
-        
-        for i, ax in enumerate(axes):
-            color = colors[i % len(colors)]
-            line, = ax.plot(x, np.zeros_like(x), color=color, lw=1)
-            ax.set_ylim(-0.01, 1.0)
-            ax.set_ylabel(CHANNEL_NAMES[i] if i < len(CHANNEL_NAMES) else f'Ch{i}', 
-                         color='white', fontsize=8)
-            ax.tick_params(colors='white')
-            ax.set_facecolor('black')
-            lines.append(line)
 
-        axes[-1].set_xlabel('sample (window)', color='white')
+class EMGQtViewer(QtWidgets.QMainWindow):
+    def __init__(self, uri: str, sampling_rate: int = 1000, max_samples: int = 3000,
+                 show_marker=True, marker_sec=5.0, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("EMG Realtime Viewer (PyQt5 + pyqtgraph)")
+        self.resize(1280, 720)
 
-        def update(frame):
+        # Data/WS
+        self.sampling_rate = float(sampling_rate)
+        self.buf = EMGBuffer(8, max_samples)
+        self.ws = WSReader(uri=uri)
+        self.ws.new_frame.connect(self._on_new_frame)
+        self.ws.notify.connect(self.show_notification)  # 連接通知 signal
+
+        # UI
+        self._build_ui(show_marker=show_marker, marker_sec=marker_sec)
+        self._build_notification_label()
+
+        # Timer to refresh plots
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self._refresh)
+        self.timer.start(33)  # ~30 FPS
+
+        # start WS
+        self.ws.start()
+
+    def show_notification(self, msg: str, duration_ms: int = 3000):
+        # 以右上角浮動文字顯示通知
+        self.notification_label.setText(msg)
+        self.notification_label.adjustSize()
+        self._move_notification_label()
+        self.notification_label.show()
+        # 設定自動隱藏
+        QtCore.QTimer.singleShot(duration_ms, self.notification_label.hide)
+
+    def _move_notification_label(self):
+        margin = 12
+        w = self.notification_label.width()
+        h = self.notification_label.height()
+        self.notification_label.move(self.width() - w - margin, margin)
+
+    def _build_notification_label(self):
+        self.notification_label = QtWidgets.QLabel(self)
+        self.notification_label.setStyleSheet(
+            "background: rgba(255,255,200,0.9); color: #333; border: 1px solid #ccc; "
+            "padding: 6px 12px; border-radius: 8px; font-size: 12pt;"
+        )
+        self.notification_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.notification_label.hide()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._move_notification_label()
+
+    # -------------------- UI --------------------
+    def _build_ui(self, show_marker=True, marker_sec=5.0):
+        cw = QtWidgets.QWidget(self)
+        self.setCentralWidget(cw)
+        layout = QtWidgets.QVBoxLayout(cw)
+
+        # status line
+        self.status_label = QtWidgets.QLabel("狀態：初始化中", self)
+        self.status_label.setStyleSheet("color: #333;")
+        layout.addWidget(self.status_label)
+
+        # graphics area
+        self.glw = pg.GraphicsLayoutWidget()
+        self.glw.setBackground('w')  # 或 '#ffffff'
+        layout.addWidget(self.glw, 1)
+
+        # global style
+        pg.setConfigOptions(antialias=True)
+        self.setStyleSheet("""QMainWindow { background: #ffffff; }""")
+
+        # Eight stacked plots, linked by x-axis
+        self.plots = []
+        self.curves = []
+        self.marker_lines = []
+        self.show_grid = True
+
+        x = np.arange(self.buf.max_samples, dtype=np.float32) / self.sampling_rate
+        self.x_seconds = x - x[-1]  # right-aligned time axis like [-T..0]
+
+        for i, name in enumerate(CHANNEL_NAMES):
+            p = self.glw.addPlot(row=i, col=0)
+            p.setMenuEnabled(False)
+            p.setClipToView(True)
+            p.setDownsampling(auto=True)
+            p.setMouseEnabled(x=True, y=False)
+            p.setLabel('left', name, **{'color': '#fc1414', 'size': '14pt', 'bold': True})
+            if i == len(CHANNEL_NAMES) - 1:
+                p.setLabel('bottom', "Time (sec)", **{'color': '#666', 'size': '9pt'})
+            else:
+                p.getAxis('bottom').setStyle(showValues=False)
+
+            # y-axis label on the right for the top plot only (shared meaning)
+            if i == 0:
+                right_axis = pg.AxisItem('right')
+                right_axis.setLabel('Voltage (uV)', color='#666', **{'size': '9pt'})
+                p.layout.addItem(right_axis, 2, 2)
+                # The right axis won't auto-scale; it's a label-only visual cue.
+
+            # grid (light dotted)
+            p.showGrid(x=self.show_grid, y=self.show_grid, alpha=0.25)
+            # ensure left axis and text are visible on a light background
+            p.getAxis('left').setPen(pg.mkPen("#333333"))
             try:
-                with self.lock:
-                    data = self.filtered.copy()
-                
-                for i, line in enumerate(lines):
-                    if i < len(axes) and i < data.shape[0]:
-                        line.set_ydata(data[i])
-                        # auto scale (optional): keep lower bound 0
-                        ymin = max(0, np.min(data[i]) - 0.01)
-                        ymax = max(np.max(data[i]) + 0.01, 0.1)  # 確保最小範圍
-                        if ymin < ymax:
-                            axes[i].set_ylim(ymin, ymax)
-                return lines
-            except Exception as e:
-                print(f"Update error: {e}")
-                return lines
+                p.getAxis('left').setTextPen(pg.mkPen("#333333"))
+            except Exception:
+                # older pyqtgraph versions may not have setTextPen; ignore
+                pass
+            # increase left axis width so labels don't get clipped
+            try:
+                p.getAxis('left').setWidth(80)
+            except Exception:
+                pass
+            p.getAxis('bottom').setPen(pg.mkPen("#000000"))
 
-        try:
-            from matplotlib.animation import FuncAnimation
-            self.ani = FuncAnimation(fig, update, interval=100, blit=False)
-            plt.tight_layout()
-            plt.show()
-        except Exception as e:
-            print(f"Animation error: {e}")
-            # 如果動畫失敗，至少顯示靜態圖
-            plt.show()
+            # curve
+            pen = pg.mkPen(color=(220,220, 220), width=3)
+            c = p.plot(self.x_seconds, np.zeros_like(self.x_seconds), pen=pen)
+            self.curves.append(c)
+            self.plots.append(p)
+
+            # vertical marker
+            ml = pg.InfiniteLine(pos=-marker_sec, angle=90, pen=pg.mkPen("#ffae00", width=2))
+            ml.setVisible(show_marker)
+            p.addItem(ml)
+            self.marker_lines.append(ml)
+
+            # tighten margins to mimic compact stack
+            p.setContentsMargins(5, 2, 5, 2)
+            p.setYRange(-40000, 40000, padding=0.0)  # 固定震幅範圍
+            # 不自動縮放
+
+        # Link x ranges
+        for p in self.plots[1:]:
+            p.setXLink(self.plots[0])
+        self.plots[0].setXRange(self.x_seconds[0], self.x_seconds[-1], padding=0.0)
+
+        # shortcuts
+        QtWidgets.QShortcut(QtGui.QKeySequence("M"), self, activated=self._toggle_marker)
+        QtWidgets.QShortcut(QtGui.QKeySequence("R"), self, activated=self._reset_view)
+        QtWidgets.QShortcut(QtGui.QKeySequence("G"), self, activated=self._toggle_grid)
+
+    # -------------------- Slots --------------------
+    def _on_new_frame(self, arr: np.ndarray):
+        # Assume arr in volts or microvolts? If volts, convert to microvolts for display
+        # You can change the scale here as needed.
+        self.buf.append_frame(arr)
+
+    def _refresh(self):
+        data, count = self.buf.get()
+        # Build right-aligned time axis
+        T = data.shape[1] / self.sampling_rate
+        x = np.linspace(-T, 0.0, data.shape[1], dtype=np.float32)
+
+        for i, c in enumerate(self.curves):
+            y = data[i]
+            c.setData(x, y)
+            # 不自動縮放 y 軸
+
+        self.status_label.setText(f"狀態：{self.ws.status} | 收到樣本: {count}")
+
+    # -------------------- Helpers --------------------
+    def _toggle_marker(self):
+        vis = not self.marker_lines[0].isVisible()
+        for ml in self.marker_lines:
+            ml.setVisible(vis)
+
+    def _reset_view(self):
+        # reset X to full window, Y autoscale next refresh
+        data, _ = self.buf.get()
+        T = data.shape[1] / self.sampling_rate
+        for p in self.plots:
+            p.setXRange(-T, 0.0, padding=0.0)
+
+    def _toggle_grid(self):
+        self.show_grid = not self.show_grid
+        for p in self.plots:
+            p.showGrid(x=self.show_grid, y=self.show_grid, alpha=0.25)
 
 
 def main():
-    print("即時 EMG 繪圖工具")
-    print("=" * 30)
-    
-    parser = argparse.ArgumentParser(description='Realtime EMG plot from WebSocket')
-    parser.add_argument('--uri', default='ws://localhost:31278/ws', help='WebSocket URI')
+    parser = argparse.ArgumentParser(description="PyQt5 EMG viewer")
+    parser.add_argument("--uri", default="ws://localhost:31278/ws", help="WebSocket URI")
+    parser.add_argument("--fs", type=int, default=60, help="Sampling rate (Hz)")
+    parser.add_argument("--max", dest="max_samples", type=int, default=3000,
+                        help="Max samples kept per channel")
+    parser.add_argument("--marker", action="store_true", help="Show vertical marker line")
+    parser.add_argument("--marker_sec", type=float, default=5.0, help="Marker position in seconds (from right, negative)")
     args = parser.parse_args()
 
-    print(f"連接到 WebSocket: {args.uri}")
-    
-    try:
-        plotter = EMGWebSocketPlot(uri=args.uri)
-        plotter.start_ws()
+    app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationName("EMG Viewer")
 
-        # wait a bit for connection
-        print("等待連接...")
-        time.sleep(1.0)
-        
-        print("開始繪圖... (按 Ctrl+C 或關閉視窗停止)")
-        plotter.plot()
-        
-    except KeyboardInterrupt:
-        print('\n使用者中斷程式')
-    except Exception as e:
-        print(f'錯誤: {e}')
-        print("\n請確認:")
-        print("1. EMG 裝置已連接並運行")
-        print("2. WebSocket 伺服器已啟動")
-        print("3. URI 位址正確")
-    finally:
-        print("程式結束")
+    win = EMGQtViewer(uri=args.uri,
+                      sampling_rate=args.fs,
+                      max_samples=args.max_samples,
+                      show_marker=args.marker,
+                      marker_sec=args.marker_sec)
+    win.show()
+    sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
