@@ -1,0 +1,9 @@
+{
+  "paths": [
+    "D:/NTKCAP/Patient_data/Mahaveer_on_sophies_latop/2025_11_12"
+  ],
+  "fast_cal": true,
+  "gait": true,
+  "task_filter_dict": null,
+  "description": "Example calculation configuration for remote execution"
+}

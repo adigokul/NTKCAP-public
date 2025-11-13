@@ -3,14 +3,14 @@ REM --------------------------------------------------
 REM Activate Conda Environment and Run NTKCAP GUI
 REM --------------------------------------------------
 
-:: 設置編碼為 UTF-8 來處理中文路徑
+:: Set encoding to UTF-8
 chcp 65001 >nul 2>&1
 
-:: 動態檢測 Conda 安裝路徑
+:: Detect Conda installation path
 echo Detecting Conda installation...
 set "CONDA_BAT="
 
-:: 檢查常見的 Conda 安裝位置
+:: Check common Conda installation locations
 if exist "%UserProfile%\anaconda3\Scripts\activate.bat" (
     set "CONDA_BAT=%UserProfile%\anaconda3\Scripts\activate.bat"
 ) else if exist "%UserProfile%\miniconda3\Scripts\activate.bat" (
@@ -25,7 +25,7 @@ if exist "%UserProfile%\anaconda3\Scripts\activate.bat" (
     set "CONDA_BAT=C:\Miniconda3\Scripts\activate.bat"
 )
 
-:: 初始化 Conda
+:: Initialize Conda
 if defined CONDA_BAT (
     echo Found Conda at: %CONDA_BAT%
     CALL "%CONDA_BAT%"
@@ -34,11 +34,11 @@ if defined CONDA_BAT (
     echo Attempting to use conda from PATH...
 )
 
-:: 取得批次檔所在目錄（專案根目錄）
+:: Get batch file directory (project root)
 set "PROJECT_ROOT=%~dp0"
 set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 
-:: 切換到專案目錄
+:: Change to project directory
 cd /d "%PROJECT_ROOT%"
 echo Project directory: %PROJECT_ROOT%
 
@@ -61,11 +61,11 @@ echo Warning: Cannot read environment name from install\activate_ntkcap.ps1, usi
 :: Activate environment
 echo Activating Conda environment: %ENV_NAME%
 
-:: 使用 --no-plugins 選項來避免編碼問題
+:: Use --no-plugins to avoid encoding issues
 set CONDA_NO_PLUGINS=true
 CALL conda activate %ENV_NAME%
 
-:: 如果上面失敗，嘗試使用完整路徑
+:: If failed, try with full path
 if errorlevel 1 (
     echo Retrying activation with full path...
     if defined CONDA_BAT (
@@ -74,7 +74,17 @@ if errorlevel 1 (
     )
 )
 
-:: Add TensorRT to PATH (使用相對路徑)
+:: Set CUDA_PATH environment variable
+echo Detecting CUDA installation...
+set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8"
+if exist "%CUDA_PATH%\bin\nvcc.exe" (
+    echo Found CUDA at: %CUDA_PATH%
+    set "PATH=%CUDA_PATH%\bin;%PATH%"
+) else (
+    echo WARNING: CUDA not found at %CUDA_PATH%
+)
+
+:: Add TensorRT to PATH (relative path)
 echo Adding TensorRT to PATH...
 set "TENSORRT_DIR=%PROJECT_ROOT%\NTK_CAP\ThirdParty\TensorRT-8.6.1.6"
 set "PATH=%TENSORRT_DIR%\lib;%TENSORRT_DIR%\bin;%PATH%"
@@ -82,10 +92,10 @@ set "TRT_LIBPATH=%TENSORRT_DIR%\lib"
 set "TENSORRT_ROOT=%TENSORRT_DIR%"
 echo TensorRT directory: %TENSORRT_DIR%
 
-:: 設置環境變數來抑制 NumPy 版本兼容性警告
+:: Set environment variables to suppress NumPy version compatibility warnings
 set PYTHONWARNINGS=ignore::UserWarning:torch.distributed.optim.zero_redundancy_optimizer
 
-:: 設置 Python 使用 UTF-8 編碼
+:: Set Python to use UTF-8 encoding
 set PYTHONIOENCODING=utf-8
 set PYTHONUTF8=1
 

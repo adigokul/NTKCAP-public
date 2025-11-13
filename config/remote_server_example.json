@@ -1,0 +1,10 @@
+{
+  "server_ip": "120.126.83.71",
+  "server_port": 22,
+  "username": "ntk_cap",
+  "password": "0000",
+  "ssh_key_path": "",
+  "remote_path": "D:/NTKCAP",
+  "conda_env": "ntkcap_fast",
+  "description": "Remote server configuration for NTKCAP calculation"
+}
