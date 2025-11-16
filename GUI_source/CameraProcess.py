@@ -6,7 +6,7 @@ from datetime import datetime
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
 
 class CameraProcess(Process):
-    def __init__(self, shared_name, cam_id, start_evt, task_rec_evt, apose_rec_evt, calib_rec_evt, stop_evt, task_stop_rec_evt, calib_video_save_path, queue, address_base, record_task_name, *args, **kwargs):
+    def __init__(self, shared_name, cam_id, start_evt, task_rec_evt, apose_rec_evt, calib_rec_evt, stop_evt, task_stop_rec_evt, calib_video_save_path, queue, address_base, record_task_name, cam_type='usb', cam_config=None, *args, **kwargs):
         super().__init__()
         ### define
         self.shared_name = shared_name
@@ -23,6 +23,9 @@ class CameraProcess(Process):
         self.shared_dict_record = record_task_name
         self.record_date = datetime.now().strftime("%Y_%m_%d")
         self.calib_video_save_path = calib_video_save_path
+        ### camera type
+        self.cam_type = cam_type  # 'usb' or 'ae400'
+        self.cam_config = cam_config or {}
         ### initialization
         self.recording = False
         self.start_time = None
@@ -33,6 +36,100 @@ class CameraProcess(Process):
         self.patientID_path = address_base
         self.time_stamp = None
         self.record_path = None
+
+    def _init_usb_camera(self):
+        """Initialize USB camera"""
+        cap = cv2.VideoCapture(self.cam_id)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.frame_width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.frame_height)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        print(f"[Cam {self.cam_id + 1}] USB camera initialized")
+        return cap
+
+    def _init_ae400_camera(self):
+        """Initialize AE400 depth camera (RGB stream only)"""
+        try:
+            from openni import openni2
+            import os
+
+            openni2_path = self.cam_config.get('openni2_path')
+            if not openni2_path:
+                raise ValueError(f"[Cam {self.cam_id + 1}] Missing openni2_path in config")
+
+            # Initialize OpenNI2
+            openni2.initialize(openni2_path)
+            dev = openni2.Device.open_any()
+
+            # Create color stream
+            color_stream = dev.create_color_stream()
+            color_stream.start()
+
+            print(f"[Cam {self.cam_id + 1}] AE400 camera initialized at {self.cam_config.get('ip', 'unknown IP')}")
+
+            return {
+                'type': 'ae400',
+                'device': dev,
+                'stream': color_stream,
+                'openni2': openni2
+            }
+        except Exception as e:
+            print(f"[Cam {self.cam_id + 1}] AE400 init error: {e}")
+            raise
+
+    def _read_frame(self, cap):
+        """Unified frame reading interface"""
+        if self.cam_type == 'usb':
+            ret, frame = cap.read()
+            return ret, frame
+
+        elif self.cam_type == 'ae400':
+            try:
+                from openni import openni2
+                stream = cap['stream']
+
+                # Wait for frame with timeout
+                idx = openni2.wait_for_any_stream([stream], timeout=2000)
+                if idx is None:
+                    return False, None
+
+                # Read frame
+                frame_data = stream.read_frame()
+                buf = frame_data.get_buffer_as_uint8()
+                vm = stream.get_video_mode()
+                w, h = vm.resolutionX, vm.resolutionY
+
+                # Convert RGB888 to BGR for OpenCV
+                rgb = np.asarray(buf).reshape((h, w, 3))
+                bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+
+                # Resize to target resolution if needed
+                if (w != self.frame_width) or (h != self.frame_height):
+                    bgr = cv2.resize(bgr, (self.frame_width, self.frame_height), interpolation=cv2.INTER_LINEAR)
+
+                return True, bgr
+            except Exception as e:
+                print(f"[Cam {self.cam_id + 1}] AE400 read error: {e}")
+                return False, None
+
+        return False, None
+
+    def _release_camera(self, cap):
+        """Unified camera release interface"""
+        if self.cam_type == 'usb':
+            try:
+                cap.release()
+                print(f"[Cam {self.cam_id + 1}] USB camera released")
+            except Exception as e:
+                print(f"[Cam {self.cam_id + 1}] USB release error: {e}")
+
+        elif self.cam_type == 'ae400':
+            try:
+                cap['stream'].stop()
+                cap['openni2'].unload()
+                print(f"[Cam {self.cam_id + 1}] AE400 camera released")
+            except Exception as e:
+                print(f"[Cam {self.cam_id + 1}] AE400 release error: {e}")
+
     def run(self):
         shape = (1080, 1920, 3)
         # shared memory setup
@@ -40,7 +137,15 @@ class CameraProcess(Process):
         existing_shm = shared_memory.SharedMemory(name=self.shared_name)
         shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
 
-        cap = cv2.VideoCapture(self.cam_id)
+        # Initialize camera based on type
+        if self.cam_type == 'usb':
+            cap = self._init_usb_camera()
+        elif self.cam_type == 'ae400':
+            cap = self._init_ae400_camera()
+        else:
+            print(f"[Cam {self.cam_id + 1}] Unknown camera type: {self.cam_type}")
+            return
+
         (width, height) = (1920, 1080)
         self.frame_id_task = 0
         self.frame_id_apose = 0
@@ -48,19 +153,14 @@ class CameraProcess(Process):
         self.fps_start_time = time.time()
         self.fps_counter = 0
         self.current_fps = 0
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        
-        # Set camera buffer size to reduce latency
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        
+
         self.start_evt.wait()
 
         while True:
             cap_s = time.time()
-            ret, frame = cap.read()
+            ret, frame = self._read_frame(cap)  # Use unified read interface
             cap_e = time.time()
-            
+
             if not ret or self.stop_evt.is_set():
                 break
             
@@ -158,4 +258,4 @@ class CameraProcess(Process):
                     
             idx = (idx+1) % self.buffer_length
 
-        cap.release()
+        self._release_camera(cap)

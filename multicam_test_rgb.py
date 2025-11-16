@@ -188,14 +188,16 @@ def main():
             print(f"✓ 找到相機 {ip} 的 OpenNI2 路徑")
 
     procs = []
-    for ip, init_path in zip(CAM_IPS, init_paths):
+    print("\n開始啟動相機...")
+    for i, (ip, init_path) in enumerate(zip(CAM_IPS, init_paths)):
         title = f"RGB View - {ip}"
+        print(f"[{i+1}/4] 正在啟動 {ip}...", flush=True)
         p = Process(target=camera_worker, args=(init_path, title), daemon=True)
         p.start()
         procs.append(p)
-        time.sleep(0.3) 
+        time.sleep(1.5)  # 增加延遲避免併發初始化衝突
 
-    print("四個 RGB 視窗已啟動。任何視窗按 q 或 ESC 可關閉。")
+    print("\n四個 RGB 視窗已啟動。任何視窗按 q 或 ESC 可關閉。")
     print("若要整體退出，請關閉所有視窗或在此終端按 Ctrl+C。")
 
     try:

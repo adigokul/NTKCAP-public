@@ -1,6 +1,7 @@
 {
     "cam": {
         "number": 4,
+        "type": "ae400",
         "list": [
             0,
             1,
@@ -11,6 +12,15 @@
             1920,
             1080
         ],
-        "name": "HD camera"
+        "name": "HD camera",
+        "ae400": {
+            "ips": [
+                "192.168.0.100",
+                "192.168.3.100",
+                "192.168.5.100",
+                "192.168.7.100"
+            ],
+            "openni2_base": "NTK_CAP/ThirdParty/OpenNI2"
+        }
     }
 }
