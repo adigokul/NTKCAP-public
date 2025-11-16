@@ -32,6 +32,17 @@ import time
 from collections import deque
 
 import numpy as np
+import subprocess
+import atexit
+from pathlib import Path
+
+# Prefer using the helper module if available in the same folder
+try:
+    import check_cygnus_kernel as cck
+    HAS_CCK = True
+except Exception:
+    cck = None
+    HAS_CCK = False
 
 # -------------------- Optional emg_localhost (lazy import) --------------------
 # We avoid importing emg_localhost at module import time because it may import
@@ -253,6 +264,15 @@ class EMGQtViewer(QtWidgets.QMainWindow):
         # start WS
         self.ws.start()
 
+    def closeEvent(self, event):
+        # Ensure websocket thread is stopped when window closes
+        try:
+            self.ws.stop()
+        except Exception:
+            pass
+        # allow normal close
+        super().closeEvent(event)
+
     def show_notification(self, msg: str, duration_ms: int = 3000):
         # 以右上角浮動文字顯示通知
         self.notification_label.setText(msg)
@@ -418,10 +438,66 @@ def main():
                         help="Max samples kept per channel")
     parser.add_argument("--marker", action="store_true", help="Show vertical marker line")
     parser.add_argument("--marker_sec", type=float, default=5.0, help="Marker position in seconds (from right, negative)")
+    parser.add_argument('--auto-cygnus', action='store_true', help='Automatically start/stop CygnusKernel.exe alongside this viewer')
+    parser.add_argument('--cygnus-exe', default=r"C:\Users\MyUser\Desktop\NTKCAP\cnimes_RT\Cygnus_Kernel_0.13.0.2\Cygnus_Kernel_0.13.0.2\core\CygnusKernel.exe",
+                        help='Path to CygnusKernel.exe to start when --auto-cygnus is used')
     args = parser.parse_args()
 
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("EMG Viewer")
+
+    # Prepare cygnus process control if requested. Prefer using the
+    # existing helper module `check_cygnus_kernel.py` (imported as `cck`) when available.
+    CYGNUS_PROC = None
+    def start_cygnus_local(exe_path: Path):
+        """Start Cygnus via Popen and return subprocess.Popen or None."""
+        nonlocal CYGNUS_PROC
+        try:
+            p = subprocess.Popen([str(exe_path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
+            CYGNUS_PROC = p
+            print(f"Started CygnusKernel (pid={p.pid})")
+            return p
+        except Exception as e:
+            print(f"Failed to start CygnusKernel: {e}")
+            return None
+
+    def stop_cygnus_local(exe_path: Path):
+        """Stop Cygnus. Prefer helper's stop_by_path if available, otherwise try to terminate the Popen we started."""
+        nonlocal CYGNUS_PROC
+        # If helper module is available, use its stop_by_path to catch any matching processes
+        if HAS_CCK and hasattr(cck, 'stop_by_path'):
+            try:
+                stopped = cck.stop_by_path(exe_path)
+                if stopped:
+                    print(f"Stopped Cygnus processes: {stopped}")
+                    CYGNUS_PROC = None
+                    return
+            except Exception:
+                pass
+
+        # Fallback: if we have a Popen object, try to terminate/kill it
+        if CYGNUS_PROC is not None:
+            try:
+                CYGNUS_PROC.terminate()
+                CYGNUS_PROC.wait(5)
+                print("CygnusKernel terminated (local Popen)")
+            except Exception:
+                try:
+                    CYGNUS_PROC.kill()
+                    print("CygnusKernel killed (local Popen)")
+                except Exception:
+                    pass
+            CYGNUS_PROC = None
+
+    if args.auto_cygnus:
+        exe_path = Path(args.cygnus_exe)
+        if not exe_path.exists():
+            print(f"Warning: Cygnus exe not found: {exe_path}")
+        else:
+            # If helper module provides a start helper, we still start via local Popen
+            # to keep a process object; helper's stop_by_path will be used on exit.
+            start_cygnus_local(exe_path)
+            atexit.register(lambda: stop_cygnus_local(exe_path))
 
     win = EMGQtViewer(uri=args.uri,
                       sampling_rate=args.fs,
@@ -429,6 +505,11 @@ def main():
                       show_marker=args.marker,
                       marker_sec=args.marker_sec)
     win.show()
+
+    if args.auto_cygnus:
+        # ensure Qt quitting will stop cygnus
+        app.aboutToQuit.connect(lambda: stop_cygnus_local(Path(args.cygnus_exe)))
+
     sys.exit(app.exec_())
 
 
