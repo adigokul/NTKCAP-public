@@ -21,6 +21,7 @@ class UpdateThread(QThread):
         self.out = None
         self.buffer_length = 4
         self.scale_size = None
+        self.show_calibration_marker = False  # 校正紅點標記（只影響顯示）
 
     def run(self):
         shape = (1080, 1920, 3)
@@ -54,7 +55,20 @@ class UpdateThread(QThread):
             self.ThreadActive = False
 
     def convert_to_qimage(self, frame, scale_size):
-        Image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # 重要：複製幀以避免影響原始數據
+        display_frame = frame.copy()
+
+        # 如果需要顯示校正標記，在複製的幀上畫紅點
+        if self.show_calibration_marker:
+            height, width = display_frame.shape[:2]
+            center_x, center_y = width // 2, height // 2
+            # 畫紅色圓點（半徑10像素）
+            cv2.circle(display_frame, (center_x, center_y), 10, (0, 0, 255), -1)
+            # 畫紅色十字線
+            cv2.line(display_frame, (center_x - 30, center_y), (center_x + 30, center_y), (0, 0, 255), 2)
+            cv2.line(display_frame, (center_x, center_y - 30), (center_x, center_y + 30), (0, 0, 255), 2)
+
+        Image = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
         height, width, channel = Image.shape
         bytesPerline = channel * width
         ConvertToQtFormat = QImage(Image, width, height, bytesPerline, QImage.Format.Format_RGB888)

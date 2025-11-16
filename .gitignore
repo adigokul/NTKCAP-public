@@ -41,3 +41,24 @@ install/wheels.tar
 *backup*
 mmdeploy_backup_*/
 *Inverse_analysis_data
+
+# OpenNI / Depth Camera (AE400) - Native libraries and redistributables
+NTK_CAP/ThirdParty/OpenNI2/
+*.so
+*.dylib
+*.tar.gz
+*.zip
+AE400-4cam/*/
+AE400-4cam/*.zip
+AE400-4cam/*.tar.gz
+
+# Depth camera configuration and data
+**/depth_camera_config.json
+**/depth_calibration/
+
+# Cygnus Kernel - Large binary files
+cnimes_RT/Cygnus_Kernel_*/**
+cnimes_RT/Cygnus_Kernel_*/
+
+# Claude AI assistant
+.claude/

@@ -1,10 +1,10 @@
 ﻿# NTKCAP Environment Activation Script for Windows
 # Run this script to activate the NTKCAP environment
 
-Write-Host "ðŸš€ Activating NTKCAP environment (ntkcap_fast)..." -ForegroundColor Green
+Write-Host "ðŸš€ Activating NTKCAP environment (ntkcap_env)..." -ForegroundColor Green
 
 # Activate conda environment
-conda activate ntkcap_fast
+conda activate ntkcap_env
 
 # Check CUDA availability
 if (Get-Command nvcc -ErrorAction SilentlyContinue) {

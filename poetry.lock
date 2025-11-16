@@ -2314,6 +2314,23 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "openni"
+version = "2.3.0"
+description = "OpenNI2 and NiTE2 python bindings"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "openni-2.3.0-py2-none-any.whl", hash = "sha256:f7ab98cb9b51fe1998eb5f208af99ba3d78fd917b9d9f339841b791a765ef09a"},
+    {file = "openni-2.3.0.tar.gz", hash = "sha256:ea938b415562f3892c4608f0082f875586acd60f0123c14003ebf4c27df34193"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "openpyxl"
 version = "3.1.5"
 description = "A Python library to read/write Excel 2010 xlsx/xlsm files"
@@ -8638,4 +8655,4 @@ reference = "aliyun"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "7058bde5fa9d38e2012e0bfbb0d04081b71da3d27d0bdbe522910208005d3716"
+content-hash = "36fe5b1d9d52f86200eae3b6d1bf30a79c430fd41838ef4002503e6870d1f0f5"

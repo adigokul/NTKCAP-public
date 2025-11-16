@@ -179,6 +179,21 @@ class MainWindow(QMainWindow):
         self.btn_extrinsic_manual_calculate.clicked.connect(self.button_extrinsic_manual_calculate)
         self.btn_config.clicked.connect(self.button_config)
         self.btn_pg1_reset.clicked.connect(self.reset_setup_tab)
+
+        # 添加紅點標記切換按鈕（用於校正）
+        self.btn_toggle_marker = QPushButton("Show Center Marker")
+        self.btn_toggle_marker.setCheckable(True)
+        self.btn_toggle_marker.setChecked(True)  # 默認顯示
+        self.btn_toggle_marker.clicked.connect(self.toggle_calibration_marker)
+        self.btn_toggle_marker.setEnabled(False)  # 相機未開啟時禁用
+
+        # 將按鈕添加到外參校正區域的佈局中
+        extrinsic_layout = self.findChild(QVBoxLayout, "verticalLayout_4")
+        if extrinsic_layout:
+            extrinsic_layout.insertWidget(0, self.btn_toggle_marker)
+            print("✅ Calibration marker toggle button added to extrinsic calibration section")
+        else:
+            print("⚠️ Warning: Could not find verticalLayout_4 for calibration marker button")
         self.btn_new_patient.clicked.connect(self.button_create_new_patient)
         # calibration
         self.calib_save_path = os.path.join(self.extrinsic_path, "videos")
@@ -492,6 +507,114 @@ class MainWindow(QMainWindow):
         self.progress_bar_calculation.setVisible(False)  # Hidden by default
         self.statusBar().addPermanentWidget(self.progress_bar_calculation)
         print("✅ Calculation progress bar added to status bar")
+
+        # Add Camera Mode toggle button to status bar
+        self.btn_camera_mode = QPushButton("Camera: Webcam")
+        self.btn_camera_mode.setCheckable(True)
+        self.btn_camera_mode.setChecked(False)  # Default is webcam (unchecked)
+        self.btn_camera_mode.setStyleSheet("""
+            QPushButton {
+                background-color: #4a90e2;
+                color: white;
+                border: none;
+                padding: 5px 10px;
+                border-radius: 3px;
+                font-weight: bold;
+                min-width: 150px;
+            }
+            QPushButton:checked {
+                background-color: #51cf66;
+            }
+            QPushButton:hover {
+                background-color: #357abd;
+            }
+            QPushButton:checked:hover {
+                background-color: #40c057;
+            }
+        """)
+        self.btn_camera_mode.clicked.connect(self.on_camera_mode_toggled)
+        self.statusBar().addPermanentWidget(self.btn_camera_mode)
+
+        # Initialize button state from config
+        try:
+            camera_config_path = os.path.join(self.config_path, 'config.json')
+            with open(camera_config_path, 'r') as f:
+                config = json.load(f)
+            current_type = config['cam'].get('type', 'usb')
+            if current_type == 'ae400':
+                self.btn_camera_mode.setChecked(True)
+                self.btn_camera_mode.setText("Camera: AE400")
+                print("✅ Camera Mode toggle button added to status bar (AE400)")
+            else:
+                print("✅ Camera Mode toggle button added to status bar (Webcam)")
+        except Exception as e:
+            print(f"⚠️ Could not read camera type from config: {e}")
+            print("✅ Camera Mode toggle button added to status bar (default: Webcam)")
+
+    # Calibration Marker Toggle
+    def toggle_calibration_marker(self):
+        """切換校正紅點標記的顯示"""
+        show_marker = self.btn_toggle_marker.isChecked()
+
+        # 更新所有 UpdateThread 的標記狀態
+        if hasattr(self, 'threads'):
+            for thread in self.threads:
+                thread.show_calibration_marker = show_marker
+
+        # 更新按鈕文字
+        if show_marker:
+            self.btn_toggle_marker.setText("Hide Center Marker")
+            print("✓ 校正標記已顯示")
+        else:
+            self.btn_toggle_marker.setText("Show Center Marker")
+            print("✗ 校正標記已隱藏")
+
+    # Camera Mode Toggle
+    def on_camera_mode_toggled(self):
+        """Handle camera mode toggle between Webcam and AE400"""
+        is_ae400 = self.btn_camera_mode.isChecked()
+
+        # Update button text
+        if is_ae400:
+            self.btn_camera_mode.setText("Camera: AE400")
+            camera_type = "ae400"
+            print("✅ Switched to AE400 depth camera mode (RGB only)")
+        else:
+            self.btn_camera_mode.setText("Camera: Webcam")
+            camera_type = "usb"
+            print("✅ Switched to Webcam mode")
+
+        # Update config file
+        try:
+            camera_config_path = os.path.join(self.config_path, 'config.json')
+            with open(camera_config_path, 'r') as f:
+                config = json.load(f)
+
+            config['cam']['type'] = camera_type
+
+            with open(camera_config_path, 'w') as f:
+                json.dump(config, f, indent=4)
+
+            print(f"📝 Camera type updated in config: {camera_type}")
+
+            # Warn user if cameras are currently open
+            if self.camera_opened:
+                QMessageBox.information(
+                    self,
+                    "Camera Mode Changed",
+                    f"Camera mode changed to {'AE400 Depth Camera' if is_ae400 else 'Webcam'}.\n\n"
+                    "Please close and reopen cameras for changes to take effect."
+                )
+            else:
+                if hasattr(self, 'label_log'):
+                    self.label_log.setText(
+                        f"Camera mode: {'AE400 (RGB)' if is_ae400 else 'Webcam'} - Open cameras to apply"
+                    )
+
+        except Exception as e:
+            print(f"❌ Error updating camera config: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to update camera configuration:\n{e}")
+
     # Bio-signal Recording Control
     def on_emg_recording_toggled(self, checked):
         """Handle EMG recording checkbox toggle"""
@@ -500,7 +623,7 @@ class MainWindow(QMainWindow):
             print("✅ EMG recording enabled")
         else:
             print("❌ EMG recording disabled")
-    
+
     def on_eeg_recording_toggled(self, checked):
         """Handle EEG recording checkbox toggle"""
         self.eeg_recording_enabled = checked
@@ -1156,6 +1279,48 @@ class MainWindow(QMainWindow):
     # open cameras
     def opencamera(self):
         self.camera_opened = True
+
+        # Read camera configuration
+        camera_config_path = os.path.join(self.config_path, 'config.json')
+        with open(camera_config_path, 'r') as f:
+            config = json.load(f)
+
+        cam_config = config['cam']
+        camera_type = cam_config.get('type', 'usb')  # Default to usb
+        print(f"📷 Opening cameras in {camera_type.upper()} mode")
+
+        # Prepare camera-specific configs
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        cam_configs = []
+
+        if camera_type == 'ae400':
+            # AE400 mode
+            ae400_config = cam_config.get('ae400', {})
+            ips = ae400_config.get('ips', [])
+            openni2_base = ae400_config.get('openni2_base', 'NTK_CAP/ThirdParty/OpenNI2')
+
+            for i in range(4):
+                if i < len(ips):
+                    openni2_path = os.path.join(project_root, openni2_base, ips[i])
+                    cam_configs.append({
+                        'type': 'ae400',
+                        'ip': ips[i],
+                        'openni2_path': openni2_path
+                    })
+                    print(f"  Cam {i+1}: AE400 @ {ips[i]}")
+                else:
+                    print(f"  Warning: No AE400 config for camera {i+1}, using default")
+                    cam_configs.append({'type': 'usb'})
+        else:
+            # USB mode
+            usb_indices = cam_config.get('list', [0, 1, 2, 3])
+            for i in range(4):
+                cam_configs.append({
+                    'type': 'usb',
+                    'device_index': usb_indices[i] if i < len(usb_indices) else i
+                })
+                print(f"  Cam {i+1}: USB device {usb_indices[i] if i < len(usb_indices) else i}")
+
         self.manager = Manager()
         self.task_rec_evt = Event()
         self.apose_rec_evt1 = Event()
@@ -1204,66 +1369,27 @@ class MainWindow(QMainWindow):
                 self.shm_kp_lst[i].name
             )
             self.threads.append(thread)
-        p1 = CameraProcess(
-            self.shm_lst[0].name, 
-            0,
-            self.start_evt,
-            self.task_rec_evt,
-            self.apose_rec_evt1,
-            self.calib_rec_evt1,
-            self.stop_evt,
-            self.task_stop_rec_evt,
-            self.calib_save_path,
-            self.queue[0],
-            self.patient_path,
-            self.shared_dict_record_name
-        )
-        self.camera_proc_lst.append(p1)
-        p2 = CameraProcess(
-            self.shm_lst[1].name, 
-            1,
-            self.start_evt,
-            self.task_rec_evt,
-            self.apose_rec_evt2,
-            self.calib_rec_evt2,
-            self.stop_evt,
-            self.task_stop_rec_evt,
-            self.calib_save_path,
-            self.queue[1],
-            self.patient_path,
-            self.shared_dict_record_name
-        )
-        self.camera_proc_lst.append(p2)
-        p3 = CameraProcess(
-            self.shm_lst[2].name, 
-            2,
-            self.start_evt,
-            self.task_rec_evt,
-            self.apose_rec_evt3,
-            self.calib_rec_evt3,
-            self.stop_evt,
-            self.task_stop_rec_evt,
-            self.calib_save_path,
-            self.queue[2],
-            self.patient_path,
-            self.shared_dict_record_name
-        )
-        self.camera_proc_lst.append(p3)
-        p4 = CameraProcess(
-            self.shm_lst[3].name, 
-            3,
-            self.start_evt,
-            self.task_rec_evt,
-            self.apose_rec_evt4,
-            self.calib_rec_evt4,
-            self.stop_evt,
-            self.task_stop_rec_evt,
-            self.calib_save_path,
-            self.queue[3],
-            self.patient_path,
-            self.shared_dict_record_name
-        )
-        self.camera_proc_lst.append(p4)
+        apose_events = [self.apose_rec_evt1, self.apose_rec_evt2, self.apose_rec_evt3, self.apose_rec_evt4]
+        calib_events = [self.calib_rec_evt1, self.calib_rec_evt2, self.calib_rec_evt3, self.calib_rec_evt4]
+
+        for i in range(4):
+            p = CameraProcess(
+                self.shm_lst[i].name,
+                i,
+                self.start_evt,
+                self.task_rec_evt,
+                apose_events[i],
+                calib_events[i],
+                self.stop_evt,
+                self.task_stop_rec_evt,
+                self.calib_save_path,
+                self.queue[i],
+                self.patient_path,
+                self.shared_dict_record_name,
+                cam_type=camera_type,
+                cam_config=cam_configs[i]
+            )
+            self.camera_proc_lst.append(p)
         self.update()
         
         for i in range(4):
@@ -1278,10 +1404,23 @@ class MainWindow(QMainWindow):
         for thread in self.threads:
             thread.start()
         self.btn_extrinsic_record.setEnabled(True)
+
+        # 啟用校正紅點標記
+        self.btn_toggle_marker.setEnabled(True)
+        for thread in self.threads:
+            thread.show_calibration_marker = True  # 默認顯示紅點
+        self.btn_toggle_marker.setChecked(True)
+        self.btn_toggle_marker.setText("Hide Center Marker")
+        print("✓ 校正中心標記已啟用（方便對準）")
+
         self.start_evt.set()
     def closeCamera(self):
         if not self.camera_opened: return
         if self.record_opened: return
+
+        # 禁用校正標記按鈕
+        self.btn_toggle_marker.setEnabled(False)
+
         self.btnOpenCamera.setEnabled(True)
         self.btn_extrinsic_record.setEnabled(False)
         self.stop_evt.set()
