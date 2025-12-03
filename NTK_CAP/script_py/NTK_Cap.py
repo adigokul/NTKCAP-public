@@ -11,6 +11,18 @@ import keyboard
 import shutil
 from datetime import datetime
 import subprocess
+
+# ============== 抑制日誌輸出 ==============
+os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["NVBX_VERBOSE"] = "0"
+
+try:
+    cv2.setLogLevel(0)  # 0 = SILENT
+except:
+    pass
+
 try:
     from .xml_update import *
 except:
@@ -75,9 +87,13 @@ def camera_config_update(save_path, search_num=20, new_gui=False):
         if len(camera_list) == data['cam']['number']:
             break
         try:
-            cap = cv2.VideoCapture(i)
+            # 使用 DirectShow backend (Windows 專用)
+            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                continue
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             ret, frame = cap.read()
@@ -131,20 +147,30 @@ def camera_config_create(save_path):
         json.dump(data, f, indent=4)
 
 ######################################################
-# 檢查相機(imshow)
+# 檢查相機(imshow) - Windows 優化版
 def camera_show(camera_id, pos, event_start, event_stop):
-    cap = cv2.VideoCapture(camera_id)
+    # 使用 DirectShow backend (Windows 專用)
+    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    
+    if not cap.isOpened():
+        print(f"❌ Camera {camera_id} failed to open")
+        return
+    
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 減少緩衝延遲
+    
     # 讀取攝像機影像，並將影像寫入mp4檔案中
     count = 0
     old_time = time.time()
     time.sleep(0.00001)
+    
     while True:
         if event_start.is_set():
             break
+    
     while True:
         now_time = time.time()
         ret, frame = cap.read()
@@ -213,11 +239,12 @@ def camera_intrinsic_calibration(config_path, save_path, button_capture=False, b
 
     for i in select_camera:
         number = 0
-        cap = cv2.VideoCapture(i)
+        cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
         width = 1920
         height = 1080
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         fps = 30
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         # 創建寫入影像的video writer物件
@@ -252,11 +279,12 @@ def camera_intrinsic_calibration(config_path, save_path, button_capture=False, b
 ######################################################
 # 拍攝外參
 def camera_extrinsicCalibration_calibration(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
-    cap = cv2.VideoCapture(camera_id)
+    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     fps = 30
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     # 創建寫入影像的video writer物件
@@ -342,11 +370,12 @@ def camera_extrinsicCalibration_record(config_path, save_path, button_capture=Fa
 ######################################################
 # A pose
 def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
-    cap = cv2.VideoCapture(camera_id)
+    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     fps = 30
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     # 創建寫入影像的video writer物件
@@ -463,12 +492,13 @@ def camera_Apose_record(config_path, save_path, patientID, date, button_capture=
 def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop,start_time,button_start=False, button_stop=False):
     # Define the shape of the array
     time_stamp= np.empty((1000000, 2))
-    cap = cv2.VideoCapture(camera_id)
+    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
     
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     fps = 30
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     # 創建寫入影像的video writer物件

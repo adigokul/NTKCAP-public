@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
         self.btn_rt_pose_detection.setStyleSheet("""
             QPushButton {
                 background-color: #ff6b6b;
-                color: white;
+                color: black;
                 border: none;
                 padding: 5px;
                 border-radius: 3px;
@@ -467,7 +467,7 @@ class MainWindow(QMainWindow):
         self.btn_arrange_files.setStyleSheet("""
             QPushButton {
                 background-color: #4285f4;
-                color: white;
+                color: black;
                 border: none;
                 padding: 5px;
                 border-radius: 3px;
@@ -1661,7 +1661,7 @@ class MainWindow(QMainWindow):
             self.btn_select_all_tasks.setStyleSheet("""
                 QPushButton {
                     background-color: #28a745;
-                    color: white;
+                    color: black;
                     border: none;
                     padding: 8px;
                     border-radius: 4px;
@@ -1976,7 +1976,7 @@ class MainWindow(QMainWindow):
             self.checkbox_select_all_patients.setStyleSheet("""
                 QCheckBox {
                     font-weight: bold;
-                    color: #1a472a;
+                    color: black;
                     background-color: #e1f5e1;
                     padding: 5px;
                     border-radius: 3px;

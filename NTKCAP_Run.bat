@@ -74,17 +74,40 @@ if errorlevel 1 (
     )
 )
 
-:: Set CUDA_PATH environment variable
+:: Detect and set CUDA_PATH
 echo Detecting CUDA installation...
-set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8"
-if exist "%CUDA_PATH%\bin\nvcc.exe" (
-    echo Found CUDA at: %CUDA_PATH%
-    set "PATH=%CUDA_PATH%\bin;%PATH%"
+set "CUDA_PATH="
+
+:: Check common CUDA installation paths
+if exist "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.7" (
+    set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.7"
+    echo Found CUDA v12.7
+) else if exist "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1" (
+    set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1"
+    echo Found CUDA v12.1
+) else if exist "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0" (
+    set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0"
+    echo Found CUDA v12.0
+) else if exist "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8" (
+    set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8"
+    echo Found CUDA v11.8
+) else if exist "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7" (
+    set "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7"
+    echo Found CUDA v11.7
 ) else (
-    echo WARNING: CUDA not found at %CUDA_PATH%
+    echo WARNING: CUDA installation not found in standard locations
+    echo Some features may not work properly
 )
 
-:: Add TensorRT to PATH (relative path)
+:: Set CUDA environment variables if found
+if defined CUDA_PATH (
+    echo Setting CUDA_PATH: %CUDA_PATH%
+    set "PATH=%CUDA_PATH%\bin;%CUDA_PATH%\lib;%CUDA_PATH%\libnvvp;%PATH%"
+) else (
+    echo WARNING: CUDA_PATH not set - mmdeploy may fail to load
+)
+
+:: Add TensorRT to PATH
 echo Adding TensorRT to PATH...
 set "TENSORRT_DIR=%PROJECT_ROOT%\NTK_CAP\ThirdParty\TensorRT-8.6.1.6"
 set "PATH=%TENSORRT_DIR%\lib;%TENSORRT_DIR%\bin;%PATH%"
