@@ -1344,7 +1344,11 @@ function Install-MMComponents {
             $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
             $mmposePath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmpose"
             $tensorrtLibPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\TensorRT-8.6.1.6\lib"
-            $condaEnvPath = "C:\ProgramData\Miniconda3\envs\$ENV_NAME"
+
+            # Get conda environment path dynamically (works with Anaconda, Miniconda, Mamba, etc.)
+            $condaInfoJson = conda info --json 2>$null | ConvertFrom-Json
+            $condaEnvsDir = $condaInfoJson.envs_dirs[0]
+            $condaEnvPath = Join-Path $condaEnvsDir $ENV_NAME
             $cudnnLibPath = Join-Path $condaEnvPath "Lib\site-packages\torch\lib"
 
             if (Test-Path $mmdeployPath) {
