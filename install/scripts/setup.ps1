@@ -1,4 +1,4 @@
-# NTKCAP Complete Environment Setup Script for Windows
+﻿# NTKCAP Complete Environment Setup Script for Windows
 # This script sets up the complete NTKCAP environment with Poetry or direct pip, CUDA, and all dependencies
 # Requirements: Windows 10/11 with Anaconda/Miniconda
 #
@@ -11,6 +11,7 @@
 #   .\setup.ps1 -ForceRecreateEnv            # Force recreate existing environment
 #   .\setup.ps1 -SkipTensorRTDeploy          # Skip TensorRT model deployment
 #   .\setup.ps1 -SkipTensorRTFull            # Skip complete TensorRT installation download
+#   .\setup.ps1 -SkipToPostMMDeploy          # Skip to post-mmdeploy steps (EasyMocap, fixes)
 #   .\setup.ps1 -AutoYes                     # Auto-answer yes to all prompts (uses default env name)
 #   .\setup.ps1 -CondaEnvName "ntkcap_fast" -UseDirectPip -AutoYes  # Fully automated
 #
@@ -34,6 +35,7 @@ param(
     [switch]$ForceRecreateEnv = $false,
     [switch]$SkipTensorRTDeploy = $false,
     [switch]$SkipTensorRTFull = $false,
+    [switch]$SkipToPostMMDeploy = $false,
     [switch]$AutoYes = $false,
     [string]$CondaEnvName = ""
 )
@@ -122,6 +124,68 @@ if ([string]::IsNullOrWhiteSpace($CondaEnvName)) {
 } else {
     $ENV_NAME = $CondaEnvName.Trim()
     Write-Info "Using environment name from parameter: $ENV_NAME"
+}
+# ================================================================
+
+# ==================== Early Configuration ====================
+if (-not $AutoYes) {
+    Write-Host ""
+    Write-Host "Installation Configuration" -ForegroundColor Cyan
+    Write-Host "==========================" -ForegroundColor Cyan
+    Write-Host ""
+
+    # Question 1: Installation method (only ask if -UseDirectPip not already set)
+    if (-not $UseDirectPip) {
+        Write-Host "1. Choose installation method:" -ForegroundColor White
+        Write-Host "   [P] Poetry - For development (manages dependencies via pyproject.toml)" -ForegroundColor Gray
+        Write-Host "   [D] Direct Pip - Faster, for production/deployment (default)" -ForegroundColor Gray
+        Write-Host ""
+
+        do {
+            $methodChoice = Read-Host "Enter choice (P/D, default=D for Direct Pip)"
+            if ([string]::IsNullOrWhiteSpace($methodChoice) -or $methodChoice -eq 'D' -or $methodChoice -eq 'd') {
+                $UseDirectPip = $true
+                Write-Info "Selected: Direct Pip installation"
+                break
+            } elseif ($methodChoice -eq 'P' -or $methodChoice -eq 'p') {
+                $UseDirectPip = $false
+                Write-Info "Selected: Poetry installation"
+                break
+            } else {
+                Write-Warning-Custom "Invalid choice. Please enter P or D"
+            }
+        } while ($true)
+        Write-Host ""
+    }
+
+    # Question 2: CUDA handling (only ask if -SkipCudaCheck not already set)
+    if (-not $SkipCudaCheck) {
+        Write-Host "2. CUDA Configuration:" -ForegroundColor White
+        Write-Host "   Note: PyTorch 2.0.1+cu118 bundles CUDA 11.8 runtime for deep learning inference." -ForegroundColor Gray
+        Write-Host "   System CUDA installation is only needed for:" -ForegroundColor Gray
+        Write-Host "   - Compiling custom CUDA extensions (pycuda, etc.)" -ForegroundColor Gray
+        Write-Host "   - Full TensorRT optimization" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "   [Y] Check for system CUDA (recommended for full compatibility)" -ForegroundColor Gray
+        Write-Host "   [N] Skip CUDA check (use PyTorch-bundled CUDA only)" -ForegroundColor Gray
+        Write-Host ""
+
+        do {
+            $cudaChoice = Read-Host "Check for system CUDA installation? (Y/N, default=Y)"
+            if ([string]::IsNullOrWhiteSpace($cudaChoice) -or $cudaChoice -eq 'Y' -or $cudaChoice -eq 'y') {
+                $SkipCudaCheck = $false
+                Write-Info "Will check for system CUDA installation"
+                break
+            } elseif ($cudaChoice -eq 'N' -or $cudaChoice -eq 'n') {
+                $SkipCudaCheck = $true
+                Write-Info "Skipping system CUDA check (using PyTorch-bundled CUDA)"
+                break
+            } else {
+                Write-Warning-Custom "Invalid choice. Please enter Y or N"
+            }
+        } while ($true)
+        Write-Host ""
+    }
 }
 # ================================================================
 
@@ -471,18 +535,22 @@ function Test-CudaInstallation {
             }
         }
         
-        Write-Warning-Custom "CUDA installation not found. PyTorch will use CPU only."
+        Write-Warning-Custom "System CUDA installation not found."
         Write-Host ""
-        Write-Host "⚠️  CUDA 11.8 Installation Required" -ForegroundColor Yellow
-        Write-Host "PyTorch will use PyTorch-bundled CUDA for inference," -ForegroundColor White
-        Write-Host "but system CUDA is recommended for optimal performance." -ForegroundColor White
+        Write-Host "CUDA Status Information" -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "To install CUDA 11.8:" -ForegroundColor Cyan
-        Write-Host "  1. Download: https://developer.nvidia.com/cuda-11-8-0-download-archive" -ForegroundColor White
-        Write-Host "     Direct link (Windows):" -ForegroundColor White
-        Write-Host "     https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_522.06_windows.exe" -ForegroundColor White
-        Write-Host "  2. Run installer and select: Cuda Toolkit 11.8" -ForegroundColor White
-        Write-Host "  3. Restart this script after installation" -ForegroundColor White
+        Write-Host "PyTorch CUDA (Already Included):" -ForegroundColor Cyan
+        Write-Host "  - PyTorch 2.0.1+cu118 bundles CUDA 11.8 runtime for deep learning" -ForegroundColor White
+        Write-Host "  - This is sufficient for most inference tasks (pose estimation, etc.)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "System CUDA (Optional):" -ForegroundColor Cyan
+        Write-Host "  Only needed for:" -ForegroundColor White
+        Write-Host "  - Compiling custom CUDA extensions (pycuda, etc.)" -ForegroundColor White
+        Write-Host "  - Full TensorRT optimization with nvcc" -ForegroundColor White
+        Write-Host ""
+        Write-Host "To install System CUDA 11.8:" -ForegroundColor Cyan
+        Write-Host "  Download: https://developer.nvidia.com/cuda-11-8-0-download-archive" -ForegroundColor White
+        Write-Host "  Direct link: https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_522.06_windows.exe" -ForegroundColor Gray
         Write-Host ""
         
         if ($AutoYes) {
@@ -1022,8 +1090,15 @@ function Install-MMComponents {
         Set-Location $mmposePath
         Write-Log "Installing MMPose requirements..."
         try {
-            pip install -r requirements.txt
-            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+            # Install build requirements first
+            pip install -r requirements/build.txt
+            if ($LASTEXITCODE -ne 0) { throw "pip install build requirements failed" }
+
+            # Install runtime requirements selectively (skip chumpy - not used by NTKCAP and has broken build)
+            Write-Info "Installing runtime requirements (skipping chumpy)..."
+            pip install json_tricks matplotlib munkres numpy opencv-python pillow scipy torchvision "xtcocotools>=1.12"
+            if ($LASTEXITCODE -ne 0) { throw "pip install runtime requirements failed" }
+
             Write-Info "✅ MMPose requirements installed"
         }
         catch {
@@ -1032,7 +1107,8 @@ function Install-MMComponents {
         
         Write-Log "Installing MMPose in editable mode..."
         try {
-            pip install -v -e .
+            # Use --no-deps since we already installed requirements manually (without chumpy)
+            pip install -v -e . --no-deps
             if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
             Write-Info "✅ MMPose installed successfully"
         }
@@ -1075,14 +1151,12 @@ function Install-MMComponents {
         Write-Error-Custom "onnxruntime-gpu installation failed"
     }
     
-    try {
-        pip install pycuda
-        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
-        Write-Info "✅ pycuda installed"
-    }
-    catch {
-        Write-Error-Custom "pycuda installation failed"
-    }
+    # pycuda requires MSVC Build Tools to compile from source
+    # It's only needed for: INT8 quantization mode OR multi-GPU (device_id != 0)
+    # Skip if MSVC is not available - most users won't need it
+    Write-Info "⚠️  Skipping pycuda installation (requires MSVC Build Tools)"
+    Write-Info "   pycuda is only needed for INT8 mode or multi-GPU TensorRT inference"
+    Write-Info "   Install manually if needed: pip install pycuda"
     
     # try {
     #     pip install numpy==1.21.6
@@ -1265,106 +1339,146 @@ function Install-MMComponents {
         } elseif ($setupChoice -eq "1") {
             # Deploy models from source
             Write-Log "Deploying models to TensorRT format from source..."
+
+            # Define paths using variables (not hardcoded)
             $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
-        
-        if (Test-Path $mmdeployPath) {
-            Set-Location $mmdeployPath
-            
-            Write-Host ""
-            Write-Host "Available models for TensorRT deployment:" -ForegroundColor Cyan
-            Write-Host "  1. RTMDet-nano (320x320) - Fast, lightweight detection" -ForegroundColor White
-            Write-Host "  2. RTMDet-m (640x640) - Medium accuracy detection" -ForegroundColor White
-            Write-Host "  3. RTMPose-m (384x288) - Medium accuracy pose estimation" -ForegroundColor White
-            Write-Host "  4. RTMPose-l (384x288) - High accuracy pose estimation" -ForegroundColor White
-            Write-Host "  5. RTMPose-t (256x192) - Tiny, fast pose estimation" -ForegroundColor White
-            Write-Host ""
-            
-            # Deploy RTMDet-nano model
-            $response = Read-Host "Deploy RTMDet-nano model to TensorRT? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Log "Deploying RTMDet-nano model to TensorRT..."
-                try {
-                    python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-320x320.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-nano --device cuda:0 --show --dump-info
-                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                    Write-Info "✅ RTMDet-nano model deployed to TensorRT"
+            $mmposePath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmpose"
+            $tensorrtLibPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\TensorRT-8.6.1.6\lib"
+            $condaEnvPath = "C:\ProgramData\Miniconda3\envs\$ENV_NAME"
+            $cudnnLibPath = Join-Path $condaEnvPath "Lib\site-packages\torch\lib"
+
+            if (Test-Path $mmdeployPath) {
+                Set-Location $mmdeployPath
+
+                # Add TensorRT and cuDNN (from PyTorch) to PATH for subprocess compatibility
+                # This is critical - without this, the TensorRT conversion subprocess will fail
+                if (Test-Path $tensorrtLibPath) {
+                    $env:PATH = "$tensorrtLibPath;$cudnnLibPath;$env:PATH"
+                    Write-Info "✅ Added TensorRT and cuDNN to PATH for model deployment"
+                    Write-Info "   TensorRT: $tensorrtLibPath"
+                    Write-Info "   cuDNN: $cudnnLibPath"
+                } else {
+                    Write-Warning-Custom "TensorRT lib not found at: $tensorrtLibPath"
+                    Write-Warning-Custom "Model deployment may fail. Consider using option 2 (download) instead."
                 }
-                catch {
-                    Write-Error-Custom "RTMDet-nano TensorRT deployment failed"
+
+                # Define model configurations (easily maintainable)
+                $modelConfigs = @(
+                    @{
+                        Name = "RTMDet-nano"
+                        Description = "Fast, lightweight detection (320x320)"
+                        DeployConfig = "configs/mmdet/detection/detection_tensorrt_static-320x320.py"
+                        ModelConfig = "../mmpose/projects/rtmpose/rtmdet/person/rtmdet_nano_320-8xb32_coco-person.py"
+                        Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_nano_8xb32-100e_coco-obj365-person-05d8511e.pth"
+                        WorkDir = "rtmpose-trt/rtmdet-nano"
+                    },
+                    @{
+                        Name = "RTMDet-m"
+                        Description = "Medium accuracy detection (640x640)"
+                        DeployConfig = "configs/mmdet/detection/detection_tensorrt_static-640x640.py"
+                        ModelConfig = "../mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py"
+                        Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth"
+                        WorkDir = "rtmpose-trt/rtmdet-m"
+                    },
+                    @{
+                        Name = "RTMPose-m"
+                        Description = "Medium accuracy pose estimation (384x288)"
+                        DeployConfig = "configs/mmpose/pose-detection_tensorrt_static-384x288.py"
+                        ModelConfig = "../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py"
+                        Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth"
+                        WorkDir = "rtmpose-trt/rtmpose-m"
+                    },
+                    @{
+                        Name = "RTMPose-l"
+                        Description = "High accuracy pose estimation (384x288)"
+                        DeployConfig = "configs/mmpose/pose-detection_tensorrt_static-384x288.py"
+                        ModelConfig = "../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-l_8xb512-700e_body8-halpe26-384x288.py"
+                        Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth"
+                        WorkDir = "rtmpose-trt/rtmpose-l"
+                    },
+                    @{
+                        Name = "RTMPose-t"
+                        Description = "Tiny, fast pose estimation (256x192)"
+                        DeployConfig = "configs/mmpose/pose-detection_tensorrt_static-256x192_halpe.py"
+                        ModelConfig = "../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-t_8xb1024-700e_body8-halpe26-256x192.py"
+                        Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-t_simcc-body7_pt-body7-halpe26_700e-256x192-6020f8a6_20230605.pth"
+                        WorkDir = "rtmpose-trt/rtmpose-t"
+                    }
+                )
+
+                # Display available models
+                Write-Host ""
+                Write-Host "Available models for TensorRT deployment:" -ForegroundColor Cyan
+                for ($i = 0; $i -lt $modelConfigs.Count; $i++) {
+                    $model = $modelConfigs[$i]
+                    Write-Host "  $($i + 1). $($model.Name) - $($model.Description)" -ForegroundColor White
                 }
-            } else {
-                Write-Info "⏭️  Skipping RTMDet-nano deployment"
+                Write-Host ""
+                Write-Host "Note: Each model takes 2-5 minutes to convert depending on GPU" -ForegroundColor Gray
+                Write-Host ""
+
+                # Deploy each model based on user choice
+                $successCount = 0
+                $failCount = 0
+
+                foreach ($model in $modelConfigs) {
+                    $response = Read-Host "Deploy $($model.Name) model to TensorRT? (y/N)"
+                    if ($response -eq 'y' -or $response -eq 'Y') {
+                        Write-Log "Deploying $($model.Name) model to TensorRT..."
+                        Write-Host "========================================" -ForegroundColor Cyan
+                        Write-Host "Building $($model.Name) TensorRT model..." -ForegroundColor Cyan
+                        Write-Host "========================================" -ForegroundColor Cyan
+
+                        try {
+                            # Build the deploy command with proper arguments
+                            $deployArgs = @(
+                                "tools/deploy.py",
+                                $model.DeployConfig,
+                                $model.ModelConfig,
+                                $model.Checkpoint,
+                                "demo/resources/human-pose.jpg",
+                                "--work-dir", $model.WorkDir,
+                                "--device", "cuda:0"
+                            )
+
+                            # Execute the deployment
+                            python @deployArgs
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "python deploy failed with exit code $LASTEXITCODE"
+                            }
+
+                            # Verify the engine file was created
+                            $enginePath = Join-Path $model.WorkDir "end2end.engine"
+                            if (Test-Path $enginePath) {
+                                $engineSize = [math]::Round((Get-Item $enginePath).Length / 1MB, 1)
+                                Write-Info "✅ $($model.Name) model deployed successfully ($engineSize MB)"
+                                $successCount++
+                            } else {
+                                Write-Warning-Custom "$($model.Name) engine file not found at: $enginePath"
+                                $failCount++
+                            }
+                        }
+                        catch {
+                            Write-Error-Custom "$($model.Name) TensorRT deployment failed: $($_.Exception.Message)"
+                            $failCount++
+                        }
+                    } else {
+                        Write-Info "⏭️  Skipping $($model.Name) deployment"
+                    }
+                }
+
+                Set-Location $NTKCAP_ROOT
+                Write-Host ""
+                Write-Info "✅ TensorRT model deployment process completed"
+                Write-Info "   Successfully deployed: $successCount models"
+                if ($failCount -gt 0) {
+                    Write-Warning-Custom "   Failed: $failCount models"
+                }
             }
-            
-            # Deploy RTMDet-m model
-            $response = Read-Host "Deploy RTMDet-m model to TensorRT? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Log "Deploying RTMDet-m model to TensorRT..."
-                try {
-                    python tools/deploy.py configs/mmdet/detection/detection_tensorrt_static-640x640.py ../mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmdet-m --device cuda:0 --show --dump-info
-                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                    Write-Info "✅ RTMDet-m model deployed to TensorRT"
-                }
-                catch {
-                    Write-Error-Custom "RTMDet-m TensorRT deployment failed"
-                }
-            } else {
-                Write-Info "⏭️  Skipping RTMDet-m deployment"
+            else {
+                Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
             }
-            
-            # Deploy RTMPose-m model
-            $response = Read-Host "Deploy RTMPose-m model to TensorRT? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Log "Deploying RTMPose-m model to TensorRT..."
-                try {
-                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-m --device cuda:0 --show --dump-info
-                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                    Write-Info "✅ RTMPose-m model deployed to TensorRT"
-                }
-                catch {
-                    Write-Error-Custom "RTMPose-m TensorRT deployment failed"
-                }
-            } else {
-                Write-Info "⏭️  Skipping RTMPose-m deployment"
-            }
-            
-            # Deploy RTMPose-l model
-            $response = Read-Host "Deploy RTMPose-l model to TensorRT? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Log "Deploying RTMPose-l model to TensorRT..."
-                try {
-                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-384x288.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-l_8xb512-700e_body8-halpe26-384x288.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-384x288-734182ce_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-l --device cuda:0 --show --dump-info
-                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                    Write-Info "✅ RTMPose-l model deployed to TensorRT"
-                }
-                catch {
-                    Write-Error-Custom "RTMPose-l TensorRT deployment failed"
-                }
-            } else {
-                Write-Info "⏭️  Skipping RTMPose-l deployment"
-            }
-            
-            # Deploy RTMPose-t model
-            $response = Read-Host "Deploy RTMPose-t model to TensorRT? (y/N)"
-            if ($response -eq 'y' -or $response -eq 'Y') {
-                Write-Log "Deploying RTMPose-t model to TensorRT..."
-                try {
-                    python tools/deploy.py configs/mmpose/pose-detection_tensorrt_static-256x192_halpe.py ../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-t_8xb1024-700e_body8-halpe26-256x192.py https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-t_simcc-body7_pt-body7-halpe26_700e-256x192-6020f8a6_20230605.pth demo/resources/human-pose.jpg --work-dir rtmpose-trt/rtmpose-t --device cuda:0 --show --dump-info
-                    if ($LASTEXITCODE -ne 0) { throw "python deploy failed" }
-                    Write-Info "✅ RTMPose-t model deployed to TensorRT"
-                }
-                catch {
-                    Write-Error-Custom "RTMPose-t TensorRT deployment failed"
-                }
-            } else {
-                Write-Info "⏭️  Skipping RTMPose-t deployment"
-            }
-            
-            Set-Location $NTKCAP_ROOT
-            Write-Info "✅ TensorRT model deployment process completed"
-        }
-        else {
-            Write-Error-Custom "MMDeploy directory not found at: $mmdeployPath"
-        }
         }
     }
     
@@ -1406,6 +1520,47 @@ function Install-MMComponents {
             Write-Info "✅ Returned to: $NTKCAP_ROOT"
         }
         Write-Info "✅ EasyMocap installation completed"
+    }
+    else {
+        Write-Error-Custom "EasyMocap directory not found at: $easymocapPath"
+    }
+}
+
+# Install only post-mmdeploy components (EasyMocap only)
+# Used when skipping to post-mmdeploy steps with -SkipToPostMMDeploy
+function Install-PostMMDeployComponents {
+    Write-Log "Installing post-mmdeploy components (EasyMocap)..."
+
+    # Install EasyMocap
+    Write-Log "Installing EasyMocap..."
+    $easymocapPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\EasyMocap"
+
+    if (Test-Path $easymocapPath) {
+        Set-Location $easymocapPath
+        Write-Log "Installing setuptools 69.5.0..."
+        try {
+            pip install setuptools==69.5.0
+            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+            Write-Info "✅ setuptools 69.5.0 installed"
+        }
+        catch {
+            Write-Error-Custom "setuptools installation failed"
+        }
+
+        Write-Log "Installing EasyMocap in development mode..."
+        try {
+            python setup.py develop --user
+            if ($LASTEXITCODE -ne 0) { throw "python setup failed" }
+            Write-Info "✅ EasyMocap installed successfully"
+        }
+        catch {
+            Write-Error-Custom "EasyMocap installation failed"
+        }
+
+        # Return to root directory
+        Set-Location $NTKCAP_ROOT
+        Write-Info "✅ Returned to: $NTKCAP_ROOT"
+        Write-Info "✅ Post-mmdeploy components installation completed"
     }
     else {
         Write-Error-Custom "EasyMocap directory not found at: $easymocapPath"
@@ -1568,46 +1723,73 @@ function Start-Installation {
     Write-Host ""
     
     try {
-        Test-SystemRequirements
-        
-        if (-not $SkipCudaCheck) {
-            $cudaAvailable = Test-CudaInstallation
-            if (-not $cudaAvailable) {
-                Write-Warning-Custom "Continuing without CUDA support"
+        # Handle SkipToPostMMDeploy - skip all steps before EasyMocap/compatibility fixes
+        if ($SkipToPostMMDeploy) {
+            Write-Host ""
+            Write-Host "======================================" -ForegroundColor Cyan
+            Write-Host "  Skip to Post-MMDeploy Installation  " -ForegroundColor Cyan
+            Write-Host "======================================" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Info "⏭️  Skipping to post-mmdeploy steps (--SkipToPostMMDeploy flag enabled)"
+            Write-Info "   This will run: EasyMocap install, pip dependencies, compatibility fixes"
+            Write-Host ""
+
+            # Ensure we're in the right environment
+            if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
+                throw "Failed to activate $ENV_NAME environment. Please ensure it exists."
             }
-        }
-        
-        New-CondaEnvironment
-        
-        # Verify environment was created and we can activate it
-        if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
-            throw "Failed to create or activate $ENV_NAME environment. Cannot continue."
-        }
 
-        # Install PyTorch and related packages immediately after environment creation
-        Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
-        try {
-            pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
-            Write-Info "✅ PyTorch and related packages installed"
+            # Run only post-mmdeploy steps
+            Install-PostMMDeployComponents
         }
-        catch {
-            throw "PyTorch installation failed: $($_.Exception.Message)"
-        }
+        else {
+            # Normal full installation flow
+            Test-SystemRequirements
 
-        Check-Poetry
-        
-        # Download TensorRT wheels before MM components are installed
-        Download-TensorRTWheels
-        
-        # Download complete TensorRT installation for DLL support
-        if (-not $SkipTensorRTFull) {
-            Download-TensorRTFull
-        } else {
-            Write-Info "⏭️  Skipping complete TensorRT installation download (--SkipTensorRTFull flag enabled)"
+            if (-not $SkipCudaCheck) {
+                $cudaAvailable = Test-CudaInstallation
+                if (-not $cudaAvailable) {
+                    Write-Warning-Custom "Continuing without CUDA support"
+                }
+            }
+
+            New-CondaEnvironment
+
+            # Verify environment was created and we can activate it
+            if (-not (Ensure-CondaEnvironment $ENV_NAME)) {
+                throw "Failed to create or activate $ENV_NAME environment. Cannot continue."
+            }
+
+            # Install PyTorch and related packages immediately after environment creation
+            Write-Log "Installing PyTorch 2.0.1, torchvision 0.15.2, torchaudio 2.0.2 with CUDA 11.8..."
+            try {
+                pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+                if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+                Write-Info "✅ PyTorch and related packages installed"
+            }
+            catch {
+                throw "PyTorch installation failed: $($_.Exception.Message)"
+            }
+
+            # Only install Poetry if user chose Poetry installation method
+            if (-not $UseDirectPip) {
+                Check-Poetry
+            } else {
+                Write-Info "⏭️  Skipping Poetry installation (Direct Pip mode selected)"
+            }
+
+            # Download TensorRT wheels before MM components are installed
+            Download-TensorRTWheels
+
+            # Download complete TensorRT installation for DLL support
+            if (-not $SkipTensorRTFull) {
+                Download-TensorRTFull
+            } else {
+                Write-Info "⏭️  Skipping complete TensorRT installation download (--SkipTensorRTFull flag enabled)"
+            }
+
+            Install-MMComponents
         }
-        
-        Install-MMComponents
         
         # Choose installation method based on flags
         if ($UseDirectPip) {
