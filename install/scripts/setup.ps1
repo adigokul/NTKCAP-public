@@ -14,6 +14,8 @@
 #   .\setup.ps1 -SkipToPostMMDeploy          # Skip to post-mmdeploy steps (EasyMocap, fixes)
 #   .\setup.ps1 -AutoYes                     # Auto-answer yes to all prompts (uses default env name)
 #   .\setup.ps1 -CondaEnvName "ntkcap_fast" -UseDirectPip -AutoYes  # Fully automated
+#   .\setup.ps1 -DefaultDeploy                    # Use default TensorRT deployment (RTMDet-m + RTMPose-m)
+#   .\setup.ps1 -AutoYes -DefaultDeploy           # Fully automated with default deployment
 #
 # Functions:
 # Test-SystemRequirements - 系統需求檢查
@@ -37,6 +39,7 @@ param(
     [switch]$SkipTensorRTFull = $false,
     [switch]$SkipToPostMMDeploy = $false,
     [switch]$AutoYes = $false,
+    [switch]$DefaultDeploy = $false,  # Use default TensorRT deployment (RTMDet-m + RTMPose-m)
     [string]$CondaEnvName = ""
 )
 
@@ -1105,17 +1108,74 @@ function Install-MMComponents {
             Write-Error-Custom "MMPose requirements installation failed"
         }
         
-        Write-Log "Installing MMPose in editable mode..."
+        # Install MMPose by copying to site-packages (more reliable than editable install)
+        # This avoids issues with mmpose.__file__ being None
+        Write-Log "Installing MMPose to site-packages..."
         try {
-            # Use --no-deps since we already installed requirements manually (without chumpy)
-            pip install -v -e . --no-deps
-            if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
-            Write-Info "✅ MMPose installed successfully"
+            $condaInfoJson = conda info --json 2>$null | ConvertFrom-Json
+            $condaEnvsDir = $condaInfoJson.envs_dirs[0]
+            $condaEnvPath = Join-Path $condaEnvsDir $ENV_NAME
+            $sitePackagesPath = Join-Path $condaEnvPath "Lib\site-packages"
+            $mmposePkgSrc = Join-Path $mmposePath "mmpose"
+            $mmposePkgDst = Join-Path $sitePackagesPath "mmpose"
+
+            # Remove existing mmpose if any
+            if (Test-Path $mmposePkgDst) {
+                $item = Get-Item $mmposePkgDst -Force
+                if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                    Write-Info "Removing existing mmpose junction..."
+                    cmd /c rmdir "$mmposePkgDst" 2>$null
+                } else {
+                    Write-Info "Removing existing mmpose directory..."
+                    Remove-Item $mmposePkgDst -Recurse -Force
+                }
+            }
+
+            # Copy mmpose package to site-packages
+            Write-Info "Copying mmpose package to site-packages..."
+            Copy-Item -Path $mmposePkgSrc -Destination $mmposePkgDst -Recurse -Force
+            Write-Info "✅ MMPose copied to site-packages"
+
+            # Create .mim directory inside the copied mmpose package
+            $mimDir = Join-Path $mmposePkgDst ".mim"
+            if (-not (Test-Path $mimDir)) {
+                New-Item -ItemType Directory -Path $mimDir -Force | Out-Null
+            }
+
+            # Copy model-index.yml to .mim directory
+            $modelIndexSrc = Join-Path $mmposePath "model-index.yml"
+            $modelIndexDst = Join-Path $mimDir "model-index.yml"
+            if (Test-Path $modelIndexSrc) {
+                Copy-Item -Path $modelIndexSrc -Destination $modelIndexDst -Force
+                Write-Info "✅ Created .mim/model-index.yml for mmengine"
+            }
+
+            # Create configs junction inside .mim
+            $configsSrc = Join-Path $mmposePath "configs"
+            $configsDst = Join-Path $mimDir "configs"
+            if ((Test-Path $configsSrc) -and (-not (Test-Path $configsDst))) {
+                cmd /c mklink /J "$configsDst" "$configsSrc" 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Info "✅ Created .mim/configs junction for mmengine"
+                } else {
+                    Write-Info "Creating configs copy (junction failed)..."
+                    Copy-Item -Path $configsSrc -Destination $configsDst -Recurse -Force
+                    Write-Info "✅ Copied configs directory to .mim/"
+                }
+            }
+
+            # Verify installation
+            $verifyResult = python -c "import mmpose; print(mmpose.__file__)" 2>$null
+            if ($verifyResult -and $verifyResult -ne "None") {
+                Write-Info "✅ MMPose installed successfully: $verifyResult"
+            } else {
+                Write-Warning-Custom "MMPose installation may have issues (mmpose.__file__ is None)"
+            }
         }
         catch {
-            Write-Error-Custom "MMPose installation failed"
+            Write-Error-Custom "MMPose installation failed: $($_.Exception.Message)"
         }
-        
+
         Set-Location $NTKCAP_ROOT
     }
     else {
@@ -1222,8 +1282,96 @@ function Install-MMComponents {
     Write-Log "Setting up TensorRT models..."
     if ($SkipTensorRTDeploy) {
         Write-Info "⏭️  Skipping TensorRT model setup (--SkipTensorRTDeploy flag enabled)"
-    } elseif ($AutoYes) {
-        Write-Info "⏭️  Skipping TensorRT model setup (--AutoYes flag enabled, use --SkipTensorRTDeploy=false to force setup)"
+    } elseif ($AutoYes -and -not $DefaultDeploy) {
+        Write-Info "⏭️  Skipping TensorRT model setup (--AutoYes flag enabled, use -DefaultDeploy to auto-deploy RTMDet-m + RTMPose-m)"
+    } elseif ($DefaultDeploy) {
+        # Use default deployment: RTMDet-m + RTMPose-m
+        Write-Info "🚀 Using default TensorRT deployment (RTMDet-m + RTMPose-m)..."
+        $setupChoice = "1"  # Deploy from source
+
+        # Set up model configs - only RTMDet-m and RTMPose-m
+        $mmdeployPath = Join-Path $NTKCAP_ROOT "NTK_CAP\ThirdParty\mmdeploy"
+        if (Test-Path $mmdeployPath) {
+            Set-Location $mmdeployPath
+
+            $defaultModels = @(
+                @{
+                    Name = "RTMDet-m"
+                    Description = "Medium detector for human bounding box"
+                    DeployConfig = "configs/mmdet/detection/detection_tensorrt_static-640x640.py"
+                    ModelConfig = "../mmpose/projects/rtmpose/rtmdet/person/rtmdet_m_640-8xb32_coco-person.py"
+                    Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmpose/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth"
+                    WorkDir = "rtmpose-trt/rtmdet-m"
+                },
+                @{
+                    Name = "RTMPose-m"
+                    Description = "Medium pose estimation (384x288)"
+                    DeployConfig = "configs/mmpose/pose-detection_tensorrt_static-384x288.py"
+                    ModelConfig = "../mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb512-700e_body8-halpe26-384x288.py"
+                    Checkpoint = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth"
+                    WorkDir = "rtmpose-trt/rtmpose-m"
+                }
+            )
+
+            Write-Host ""
+            Write-Host "Default models to deploy:" -ForegroundColor Cyan
+            foreach ($model in $defaultModels) {
+                Write-Host "  - $($model.Name): $($model.Description)" -ForegroundColor White
+            }
+            Write-Host ""
+
+            $successCount = 0
+            $failCount = 0
+
+            foreach ($model in $defaultModels) {
+                Write-Log "Deploying $($model.Name) model to TensorRT..."
+                Write-Host "========================================" -ForegroundColor Cyan
+                Write-Host "Building $($model.Name) TensorRT model..." -ForegroundColor Cyan
+                Write-Host "========================================" -ForegroundColor Cyan
+
+                try {
+                    $deployArgs = @(
+                        "tools/deploy.py",
+                        $model.DeployConfig,
+                        $model.ModelConfig,
+                        $model.Checkpoint,
+                        "demo/resources/human-pose.jpg",
+                        "--work-dir", $model.WorkDir,
+                        "--device", "cuda:0"
+                    )
+
+                    python @deployArgs
+
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "python deploy failed with exit code $LASTEXITCODE"
+                    }
+
+                    $enginePath = Join-Path $model.WorkDir "end2end.engine"
+                    if (Test-Path $enginePath) {
+                        $engineSize = [math]::Round((Get-Item $enginePath).Length / 1MB, 1)
+                        Write-Info "✅ $($model.Name) model deployed successfully ($engineSize MB)"
+                        $successCount++
+                    } else {
+                        Write-Warning-Custom "$($model.Name) engine file not found at: $enginePath"
+                        $failCount++
+                    }
+                }
+                catch {
+                    Write-Error-Custom "$($model.Name) TensorRT deployment failed: $($_.Exception.Message)"
+                    $failCount++
+                }
+            }
+
+            Set-Location $NTKCAP_ROOT
+            Write-Host ""
+            Write-Info "✅ Default TensorRT deployment completed"
+            Write-Info "   Successfully deployed: $successCount models"
+            if ($failCount -gt 0) {
+                Write-Warning-Custom "   Failed: $failCount models"
+            }
+        } else {
+            Write-Error-Custom "mmdeploy directory not found at: $mmdeployPath"
+        }
     } else {
         Write-Host ""
         Write-Host "TensorRT Model Setup Options" -ForegroundColor Cyan
