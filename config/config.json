@@ -2,7 +2,12 @@
     "cam": {
         "number": 4,
         "type": "usb",
-        "list": [0, 1, 2, 3],
+        "list": [
+            0,
+            1,
+            2,
+            3
+        ],
         "resolution": [
             1920,
             1080

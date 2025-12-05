@@ -955,40 +955,44 @@ function Install-PoetryDependencies {
         return
     }
     
-    # Ask user if they want to install Poetry dependencies
-    Write-Host ""
-    Write-Host "================================" -ForegroundColor Cyan
-    Write-Host "Poetry Dependency Installation" -ForegroundColor Cyan
-    Write-Host "================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Poetry will now generate a lockfile and install dependencies." -ForegroundColor White
-    Write-Host "This may take some time (5-10 minutes) depending on network speed." -ForegroundColor White
-    Write-Host ""
-    $response = Read-Host "Do you want to proceed with Poetry dependency installation? (y/N)"
-    if ($response -ne 'y' -and $response -ne 'Y') {
-        Write-Warning-Custom "Poetry dependency installation SKIPPED by user"
+    # Ask user if they want to install Poetry dependencies (skip prompt if AutoYes)
+    if ($AutoYes) {
+        Write-Info "Auto-proceeding with Poetry dependency installation (--AutoYes flag enabled)..."
+    } else {
+        Write-Host ""
+        Write-Host "================================" -ForegroundColor Cyan
+        Write-Host "Poetry Dependency Installation" -ForegroundColor Cyan
+        Write-Host "================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Poetry will now generate a lockfile and install dependencies." -ForegroundColor White
+        Write-Host "This may take some time (5-10 minutes) depending on network speed." -ForegroundColor White
+        Write-Host ""
+        $response = Read-Host "Do you want to proceed with Poetry dependency installation? (y/N)"
+        if ($response -ne 'y' -and $response -ne 'Y') {
+            Write-Warning-Custom "Poetry dependency installation SKIPPED by user"
 
-        # If user explicitly requested direct pip install via flag, or AutoYes, run direct pip path
-        if ($UseDirectPip -or $AutoYes) {
-            Write-Info "Proceeding with direct pip installation (--UseDirectPip or --AutoYes detected)..."
-            Install-DirectPipDependencies
+            # If user explicitly requested direct pip install via flag
+            if ($UseDirectPip) {
+                Write-Info "Proceeding with direct pip installation (--UseDirectPip detected)..."
+                Install-DirectPipDependencies
+                return
+            }
+
+            # Ask whether to fallback to direct pip installation
+            $pipResponse = Read-Host "Do you want to install dependencies via direct pip instead? (y/N)"
+            if ($pipResponse -eq 'y' -or $pipResponse -eq 'Y') {
+                Write-Info "User selected direct pip installation. Running direct pip installer..."
+                Install-DirectPipDependencies
+                return
+            }
+
+            Write-Info "You can run Poetry manually later with:"
+            Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
+            Write-Host "  conda activate $ENV_NAME" -ForegroundColor White
+            Write-Host "  poetry lock --no-cache" -ForegroundColor White
+            Write-Host "  poetry install" -ForegroundColor White
             return
         }
-
-        # Ask whether to fallback to direct pip installation
-        $pipResponse = Read-Host "Do you want to install dependencies via direct pip instead? (y/N)"
-        if ($pipResponse -eq 'y' -or $pipResponse -eq 'Y') {
-            Write-Info "User selected direct pip installation. Running direct pip installer..."
-            Install-DirectPipDependencies
-            return
-        }
-
-        Write-Info "You can run Poetry manually later with:"
-        Write-Host "  cd `$NTKCAP_ROOT  # e.g., D:\NTKCAP" -ForegroundColor White
-        Write-Host "  conda activate $ENV_NAME" -ForegroundColor White
-        Write-Host "  poetry lock --no-cache" -ForegroundColor White
-        Write-Host "  poetry install" -ForegroundColor White
-        return
     }
     
     Write-Log "Installing Poetry dependencies..."
