@@ -1,3 +1,9 @@
+import multiprocessing
+try:
+    multiprocessing.set_start_method("spawn", force=True)
+except RuntimeError:
+    pass
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import time
@@ -2460,28 +2466,53 @@ class MainWindow(QMainWindow):
 
     def select_result_cal_task(self, patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task):
         self.show_result_path = os.path.join(patient_path, result_select_patient_id, result_select_date, result_select_cal_time, result_select_task)
+        print(f"[DataViewer] Loading result from: {self.show_result_path}")
+        
+        # Load video frames
         self.video_player.load_video(self.show_result_path)
+        
+        # Load gait analysis data
         self.video_player.result_load_gait_figures(self.show_result_path)
+        
+        # Force plot update - setCurrentIndex(0) won't fire signal if already at 0
+        # So we explicitly call the plot function after setting the index
+        self.combobox_result_select_gait_figures.blockSignals(True)
         self.combobox_result_select_gait_figures.setCurrentIndex(0)
+        self.combobox_result_select_gait_figures.blockSignals(False)
+        
+        # Explicitly trigger the plot (since signal might not fire)
+        self.result_select_gait_figures(0)
+        
+        # Load 3D model
         self.video_player.load_gltf_file_in_viewer(f"./Patient_data/{result_select_patient_id}/{result_select_date}/{result_select_cal_time}/{result_select_task}/model.gltf")
+        
         self.playButton.setEnabled(True)
         self.result_video_slider.setEnabled(True)
+        print(f"[DataViewer] Data loaded successfully")
 
     def result_disconnet_gait_figures(self):
-        if self.result_current_gait_figures_index == 1: # Hip flexion
-            self.result_video_slider.valueChanged.disconnect(self.video_player.update_hip_flexion)
-        elif self.result_current_gait_figures_index ==2: # Knee flexion
-            self.result_video_slider.valueChanged.disconnect(self.video_player.update_knee_flexion)          
-        elif self.result_current_gait_figures_index ==3: # Ankle flexion
-            self.result_video_slider.valueChanged.disconnect(self.video_player.update_ankle_flexion)
-        elif self.result_current_gait_figures_index ==4: # Speed
-            self.result_video_slider.valueChanged.disconnect(self.video_player.update_speed)
-        elif self.result_current_gait_figures_index ==5: # Stride
-            self.result_video_slider.valueChanged.disconnect(self.video_player.update_stride)
+        try:
+            if self.result_current_gait_figures_index in (0, 1): # Hip flexion
+                self.result_video_slider.valueChanged.disconnect(self.video_player.update_hip_flexion)
+            elif self.result_current_gait_figures_index == 2: # Knee flexion
+                self.result_video_slider.valueChanged.disconnect(self.video_player.update_knee_flexion)          
+            elif self.result_current_gait_figures_index == 3: # Ankle flexion
+                self.result_video_slider.valueChanged.disconnect(self.video_player.update_ankle_flexion)
+            elif self.result_current_gait_figures_index == 4: # Speed
+                self.result_video_slider.valueChanged.disconnect(self.video_player.update_speed)
+            elif self.result_current_gait_figures_index == 5: # Stride
+                self.result_video_slider.valueChanged.disconnect(self.video_player.update_stride)
+        except TypeError:
+            # Signal was not connected, ignore
+            pass
 
     def result_select_gait_figures(self, index):
-        if index == 1: # Hip flexion
-            self.video_player.hip_flexion_plot()#
+        if index == 0: # Default - show Hip flexion (same as index 1)
+            self.video_player.hip_flexion_plot()
+            self.result_video_slider.valueChanged.connect(self.video_player.update_hip_flexion)
+            self.result_current_gait_figures_index = 1
+        elif index == 1: # Hip flexion
+            self.video_player.hip_flexion_plot()
             self.result_video_slider.valueChanged.connect(self.video_player.update_hip_flexion)
             self.result_current_gait_figures_index = 1
         elif index ==2: # Knee flexion

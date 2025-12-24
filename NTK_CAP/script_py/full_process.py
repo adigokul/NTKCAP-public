@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import os
 import math
+import platform
 import mmpose
 
 import subprocess
@@ -18,12 +19,201 @@ import subprocess
 import os
 from pathlib import Path
 import inspect
+MMDEPLOY_AVAILABLE = False
+RTMLIB_AVAILABLE = False
+# Force skip mmdeploy due to incompatible TensorRT engines (built on Windows)
+FORCE_RTMLIB = True
+
+# Try rtmlib first (preferred for cross-platform compatibility)
 try:
-    from mmdeploy_runtime import PoseTracker
+    from rtmlib import Body as RTMLibBody
+    RTMLIB_AVAILABLE = True
+    print('rtmlib found (using as primary backend)')
 except:
-    print('no mmdeploy found')
+    print('rtmlib not found')
+
+# Only try mmdeploy if rtmlib is not available and we're not forcing rtmlib
+if not RTMLIB_AVAILABLE and not FORCE_RTMLIB:
+    try:
+        from mmdeploy_runtime import PoseTracker as MMDeployPoseTracker
+        MMDEPLOY_AVAILABLE = True
+        print('mmdeploy SDK found')
+    except:
+        print('mmdeploy SDK not found')
 
 import traceback
+
+
+class RTMLibPoseTrackerWrapper:
+    """Wrapper to make rtmlib work like mmdeploy's PoseTracker interface."""
+    
+    def __init__(self, det_model_path, pose_model_path, device_name):
+        """Initialize using rtmlib's PoseTracker with BodyWithFeet for stable tracking."""
+        backend = 'onnxruntime'
+        device = 'cuda' if 'cuda' in device_name.lower() else 'cpu'
+        
+        # Use rtmlib's BodyWithFeet directly (tracking disabled due to instability with varying people count)
+        try:
+            from rtmlib import BodyWithFeet
+            # Direct model without tracking - more stable when number of people varies
+            self.body = BodyWithFeet(device=device, backend=backend)
+            self.model_type = 'halpe26'
+            self.use_tracker = False
+            print(f"RTMLibPoseTrackerWrapper: Using BodyWithFeet (Halpe26, no tracking) on {device}")
+        except Exception as e:
+            print(f"BodyWithFeet init failed: {e}, falling back to Body")
+            # Fallback to Body (COCO 17 keypoints)
+            from rtmlib import Body
+            self.body = Body(device=device, backend=backend)
+            self.model_type = 'coco17'
+            self.use_tracker = False
+            print(f"RTMLibPoseTrackerWrapper: Fallback to Body (COCO17) on {device}")
+        
+        self._frame_id = 0
+        self._prev_keypoints = None  # For temporal smoothing
+    
+    def create_state(self, **kwargs):
+        """Create a dummy state (rtmlib doesn't need state management)."""
+        return {"frame_id": 0}
+    
+    def __call__(self, state, frame, detect=-1):
+        """Run inference on a frame, returning (keypoints, bboxes, track_ids)."""
+        # rtmlib returns keypoints and scores
+        try:
+            keypoints, scores = self.body(frame)
+        except Exception as e:
+            print(f"[WARNING] Pose estimation failed: {e}")
+            return np.zeros((0, 26, 3)), np.zeros((0, 4)), np.zeros(0, dtype=np.uint32)
+        
+        # Convert to mmdeploy format: keypoints shape should be (N, K, 3) where 3 = x, y, score
+        if len(keypoints) == 0:
+            # No detections
+            return np.zeros((0, 26, 3)), np.zeros((0, 4)), np.zeros(0, dtype=np.uint32)
+        
+        num_people = len(keypoints)
+        num_kpts = keypoints.shape[1] if len(keypoints.shape) > 1 else 17
+        
+        # Create combined keypoints with scores
+        combined = np.zeros((num_people, 26, 3))
+        
+        if self.model_type == 'halpe26' and num_kpts >= 26:
+            # BodyWithFeet outputs Halpe26 format directly (26 keypoints)
+            for i in range(num_people):
+                for j in range(26):
+                    combined[i, j, 0] = keypoints[i, j, 0]  # x
+                    combined[i, j, 1] = keypoints[i, j, 1]  # y
+                    combined[i, j, 2] = scores[i, j] if j < len(scores[i]) else 0.5  # score
+        else:
+            # COCO 17 keypoints - need to map to Halpe26
+            # COCO: 0=nose, 1=left_eye, 2=right_eye, 3=left_ear, 4=right_ear, 
+            #       5=left_shoulder, 6=right_shoulder, 7=left_elbow, 8=right_elbow,
+            #       9=left_wrist, 10=right_wrist, 11=left_hip, 12=right_hip,
+            #       13=left_knee, 14=right_knee, 15=left_ankle, 16=right_ankle
+            for i in range(num_people):
+                # Direct mapping for first 17 keypoints
+                for j in range(min(num_kpts, 17)):
+                    combined[i, j, 0] = keypoints[i, j, 0]
+                    combined[i, j, 1] = keypoints[i, j, 1]
+                    combined[i, j, 2] = scores[i, j] if j < len(scores[i]) else 0.5
+                
+                # Synthesize additional keypoints (17-25)
+                # 17=head (top of head, above nose)
+                if num_kpts >= 3:
+                    combined[i, 17, 0] = keypoints[i, 0, 0]  # Same x as nose
+                    combined[i, 17, 1] = keypoints[i, 0, 1] - 30  # Above nose
+                    combined[i, 17, 2] = scores[i, 0] * 0.8
+                
+                # 18=neck (midpoint of shoulders)
+                if num_kpts >= 7:
+                    combined[i, 18, 0] = (keypoints[i, 5, 0] + keypoints[i, 6, 0]) / 2
+                    combined[i, 18, 1] = (keypoints[i, 5, 1] + keypoints[i, 6, 1]) / 2
+                    combined[i, 18, 2] = (scores[i, 5] + scores[i, 6]) / 2
+                
+                # 19=hip (midpoint of hips)
+                if num_kpts >= 13:
+                    combined[i, 19, 0] = (keypoints[i, 11, 0] + keypoints[i, 12, 0]) / 2
+                    combined[i, 19, 1] = (keypoints[i, 11, 1] + keypoints[i, 12, 1]) / 2
+                    combined[i, 19, 2] = (scores[i, 11] + scores[i, 12]) / 2
+                
+                # Foot keypoints (20-25) - leave as zeros for COCO fallback
+                # The triangulation will handle missing keypoints
+        
+        # Apply temporal smoothing to reduce jitter
+        if self._prev_keypoints is not None and num_people > 0:
+            # Simple exponential smoothing for stability
+            alpha = 0.7  # Higher = more responsive, lower = smoother
+            for i in range(min(num_people, len(self._prev_keypoints))):
+                for j in range(26):
+                    if combined[i, j, 2] > 0.3 and self._prev_keypoints[i, j, 2] > 0.3:
+                        # Only smooth high-confidence keypoints
+                        combined[i, j, 0] = alpha * combined[i, j, 0] + (1 - alpha) * self._prev_keypoints[i, j, 0]
+                        combined[i, j, 1] = alpha * combined[i, j, 1] + (1 - alpha) * self._prev_keypoints[i, j, 1]
+                    elif combined[i, j, 2] < 0.2 and self._prev_keypoints[i, j, 2] > 0.3:
+                        # Use previous frame if current detection is poor
+                        combined[i, j, :] = self._prev_keypoints[i, j, :]
+        
+        # Store for next frame
+        self._prev_keypoints = combined.copy() if num_people > 0 else None
+        
+        # Compute bboxes from keypoints
+        bboxes = np.zeros((num_people, 4))
+        for i in range(num_people):
+            valid_kpts = combined[i, :, 2] > 0.2  # Slightly higher threshold
+            if valid_kpts.any():
+                x_coords = combined[i, valid_kpts, 0]
+                y_coords = combined[i, valid_kpts, 1]
+                bboxes[i] = [x_coords.min(), y_coords.min(), x_coords.max(), y_coords.max()]
+        
+        track_ids = np.arange(num_people, dtype=np.uint32)
+        
+        return combined, bboxes, track_ids
+
+
+def create_pose_tracker(det_model_path, pose_model_path, device_name):
+    """Factory function to create a PoseTracker with fallback support."""
+    global MMDEPLOY_AVAILABLE, RTMLIB_AVAILABLE, FORCE_RTMLIB
+    
+    # Use rtmlib (preferred for cross-platform compatibility)
+    if RTMLIB_AVAILABLE:
+        try:
+            tracker = RTMLibPoseTrackerWrapper(det_model_path, pose_model_path, device_name)
+            print("Using rtmlib PoseTracker (ONNX Runtime - cross-platform)")
+            return tracker
+        except Exception as e:
+            print(f"rtmlib failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Fall back to mmdeploy if rtmlib fails
+    if MMDEPLOY_AVAILABLE and not FORCE_RTMLIB:
+        try:
+            from mmdeploy_runtime import PoseTracker as MMDeployPoseTracker
+            tracker = MMDeployPoseTracker(det_model_path, pose_model_path, device_name)
+            _ = tracker.create_state()
+            print("Using mmdeploy PoseTracker (TensorRT)")
+            return tracker
+        except Exception as e:
+            print(f"mmdeploy PoseTracker failed: {e}")
+    
+    raise RuntimeError("No pose tracking backend available. Install rtmlib: pip install rtmlib")
+
+# Platform detection for cross-platform executable handling
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+def get_executable_path(base_path, exe_name_without_ext):
+    """Get the correct executable path based on platform."""
+    if IS_WINDOWS:
+        return os.path.join(base_path, f"{exe_name_without_ext}.exe")
+    else:
+        local_path = os.path.join(base_path, exe_name_without_ext)
+        if os.path.exists(local_path) and os.access(local_path, os.X_OK):
+            return local_path
+        import shutil as sh
+        system_exe = sh.which(exe_name_without_ext)
+        if system_exe:
+            return system_exe
+        return local_path
 ####parameter
 def rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,calibrate_array):
     halpe26_pose2sim_rpj_order = [16,-1,-1,-1,-1,20,17,21,18,22,19,8,2,9,3,10,4,-1,14,1,11,5,12,6,13,7]
@@ -67,8 +257,11 @@ def rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,cali
     track_state = np.empty((1))
     cam_num =int(camera_num)-1
     a = []
-    if  not np.isnan(calibrate_array).any():
-        calibrate_array[:,cam_num]
+    
+    # Check if calibrate_array is valid (2D array with proper shape)
+    has_valid_calibration = (calibrate_array is not None and 
+                             calibrate_array.ndim == 2 and 
+                             not np.isnan(calibrate_array).any())
     
     for i in range(len(output_json)):
         f = open(os.path.join(output_file,output_json[frame_temp]))
@@ -110,7 +303,10 @@ def rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,cali
 
     while True:
         frame_count = count_frame
-        cap.set(cv2.CAP_PROP_POS_FRAMES,calibrate_array[:,cam_num][frame_count])
+        if has_valid_calibration:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, calibrate_array[:,cam_num][frame_count])
+        else:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
         ret, frame = cap.read()
         
        
@@ -394,7 +590,7 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     
     video = cv2.VideoCapture(Video_path)
     cam_num =int(os.path.splitext(os.path.basename(Video_path))[0])-1
-    tracker = PoseTracker(det_model, pose_model, device_name)    
+    tracker = create_pose_tracker(det_model, pose_model, device_name)    
     sigmas = VISUALIZATION_CFG[skeleton_type]['sigmas']
     state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
     ###skeleton style
@@ -438,12 +634,13 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
             data1.append(temp) #存成相同格式
         frame_id += 1
     
-    if  not np.isnan(calibrate_array).any():
+    # Check if calibrate_array is valid (2D array with proper shape)
+    if (calibrate_array is not None and 
+        calibrate_array.ndim == 2 and 
+        not np.isnan(calibrate_array).any()):
         rearranged_list = [data1[i].copy() for i in calibrate_array[:,cam_num]]
         for i in range(len(rearranged_list)):
             rearranged_list[i]['image_id'] = i  # Update 'image_id' to match the index (starting from 1)
-            #import pdb;pdb.set_trace()
-        
     else:
         rearranged_list = data1
     #import pdb;pdb.set_trace()
@@ -500,7 +697,7 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     
     ###
-    tracker = PoseTracker(det_model, pose_model, device_name)    
+    tracker = create_pose_tracker(det_model, pose_model, device_name)    
     sigmas = VISUALIZATION_CFG[skeleton_type]['sigmas']
     state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
     ###skeleton style
@@ -626,11 +823,20 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
     out.release()
     clear_output(wait=False)
 
-    os.chdir(AlphaPose_to_OpenPose )
-    subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir])
+    # Convert unified JSON to per-frame OpenPose format
+    os.chdir(AlphaPose_to_OpenPose)
+    result = subprocess.run(['python', '-m','AlphaPose_to_OpenPose', '-i', out_dir], 
+                           capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[WARNING] AlphaPose_to_OpenPose failed: {result.stderr}")
+        print(f"[INFO] Keeping JSON file for debugging: {out_dir}")
+    else:
+        # Only remove the merged JSON if conversion succeeded
+        try:
+            os.remove(out_dir)
+        except Exception as e:
+            print(f"[WARNING] Could not remove temp JSON: {e}")
     os.chdir(temp_dir)
-
-    os.remove(out_dir)
     
 
 
@@ -729,7 +935,7 @@ def rtm2json_cpu(Video_path,out_dir,out_video):
     out.release()
     clear_output(wait=False)
 
-    #### json to openpose perframe
+    #### json to openpose perframe - FIXED FORMAT to match AlphaPose_to_OpenPose expectations
     f = open(json_dir)
 
     # returns JSON object as 
@@ -743,16 +949,35 @@ def rtm2json_cpu(Video_path,out_dir,out_video):
     f.close()
     data1 = []
     for i in range(len(data)):
-        temp = []
-        for k in range(26):
-            score = data[i]['instances'][0][ 'keypoint_scores'][k]
-            x = data[i]['instances'][0][ 'keypoints'][k][0]
-            y =data[i]['instances'][0][ 'keypoints'][k][1]
-            temp.append(x)
-            temp.append(y)
-            temp.append(score)
-        data1.append({"image_id" : i,"keypoints" :temp})
-
+        temp_keypoints = []
+        # Handle case where instances might be empty
+        if len(data[i].get('instances', [])) == 0:
+            # No detection - create zero keypoints
+            for k in range(26):
+                temp_keypoints.append(0.0)
+                temp_keypoints.append(0.0)
+                temp_keypoints.append(0.0)
+            data1.append({
+                "image_id": i, 
+                "people": [{"person_id": -1, "pose_keypoints_2d": temp_keypoints}]
+            })
+        else:
+            # Process each detected person
+            people_list = []
+            for person_idx, instance in enumerate(data[i]['instances']):
+                temp_keypoints = []
+                for k in range(26):
+                    score = instance['keypoint_scores'][k]
+                    x = instance['keypoints'][k][0]
+                    y = instance['keypoints'][k][1]
+                    temp_keypoints.append(float(x))
+                    temp_keypoints.append(float(y))
+                    temp_keypoints.append(float(score))
+                people_list.append({
+                    "person_id": person_idx,
+                    "pose_keypoints_2d": temp_keypoints
+                })
+            data1.append({"image_id": i, "people": people_list})
 
     result = data1
 
@@ -769,7 +994,10 @@ def rtm2json_cpu(Video_path,out_dir,out_video):
 def rtm2json(Video_path,out_dir,out_video):
     try:
         rtm2json_gpu(Video_path,out_dir,out_video)
-    except:
+    except Exception as e:
+        print(f"[WARNING] GPU pose estimation failed: {e}")
+        print("[INFO] Falling back to CPU mode (MMPoseInferencer)...")
+        traceback.print_exc()
         rtm2json_cpu(Video_path,out_dir,out_video)
     
 
@@ -919,7 +1147,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
     os.chdir(temp_dir)
 def openpose2json_full(video_full_path,output_video,openpose,json_s_folder):
     ### openpose video
-    openpose_exe = os.path.join(openpose,'bin','OpenPoseDemo.exe')
+    openpose_exe = get_executable_path(os.path.join(openpose, 'bin'), 'OpenPoseDemo')
     dir_now = os.getcwd()
     #if not os.path.exists(os.path.join(output_path,'json_temp')):
         #os.mkdir(os.path.join(output_path,'json_temp'))

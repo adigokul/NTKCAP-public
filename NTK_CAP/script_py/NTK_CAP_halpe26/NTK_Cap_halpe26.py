@@ -2,6 +2,7 @@
 import os
 import cv2
 import json
+import platform
 import numpy as np
 import multiprocessing, threading, logging, sys, traceback
 import multiprocess
@@ -10,6 +11,24 @@ import keyboard
 import shutil
 from datetime import datetime
 import subprocess
+
+# Platform detection for cross-platform executable handling
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+def get_executable_path(base_path, exe_name_without_ext):
+    """Get the correct executable path based on platform."""
+    if IS_WINDOWS:
+        return os.path.join(base_path, f"{exe_name_without_ext}.exe")
+    else:
+        local_path = os.path.join(base_path, exe_name_without_ext)
+        if os.path.exists(local_path) and os.access(local_path, os.X_OK):
+            return local_path
+        import shutil as sh
+        system_exe = sh.which(exe_name_without_ext)
+        if system_exe:
+            return system_exe
+        return local_path
 #import function_b
 import easymocap
 import import_ipynb
@@ -567,11 +586,8 @@ def calib_extri(PWD):
 def marker_caculate(PWD):
     ori_path = PWD
 
-    posesim_path = os.path.join(PWD, "NTK_CAP")
-    posesim_path = os.path.join(posesim_path, "ThirdParty")
-    posesim_path = os.path.join(posesim_path, "OpenSim")
-    posesim_path = os.path.join(posesim_path, "bin")
-    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+    posesim_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "OpenSim", "bin")
+    posesim_exe = get_executable_path(posesim_path, "opensim-cmd")
 
     calib_ori_path = os.path.join(PWD, "calibration")
     calib_ori_path = os.path.join(calib_ori_path, "Calibration")

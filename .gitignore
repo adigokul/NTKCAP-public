@@ -61,4 +61,5 @@ cnimes_RT/Cygnus_Kernel_*/**
 cnimes_RT/Cygnus_Kernel_*/
 
 # Claude AI assistant
-.claude/
+.claude/*.engine
+*.onnx

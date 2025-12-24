@@ -30,9 +30,26 @@ class VideoPlayer(QThread):
     def load_video(self, cal_task_path: str):
         self.result_load_videos_allframes = []
         self.progress = 0
+        self.frame_count = 0
+        
+        video_folder = os.path.join(cal_task_path, 'videos_pose_estimation_repj_combine')
+        if not os.path.exists(video_folder):
+            print(f"[WARNING] Video folder not found: {video_folder}")
+            return
+            
         for i in range(4):
-            video_path = os.path.join(cal_task_path, 'videos_pose_estimation_repj_combine', f"{i+1}.mp4")
+            video_path = os.path.join(video_folder, f"{i+1}.mp4")
+            if not os.path.exists(video_path):
+                print(f"[WARNING] Video not found: {video_path}")
+                self.result_load_videos_allframes.append([])
+                continue
+                
             cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                print(f"[WARNING] Could not open video: {video_path}")
+                self.result_load_videos_allframes.append([])
+                continue
+                
             self.frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             self.result_load_videos_allframes.append([])
             while True:
@@ -40,6 +57,7 @@ class VideoPlayer(QThread):
                 if not ret: break                
                 self.result_load_videos_allframes[i].append(frame)
             cap.release()
+            print(f"[DataViewer] Loaded video {i+1}: {len(self.result_load_videos_allframes[i])} frames")
 
     def np2qimage(self, img):
         resized_frame = cv2.cvtColor(cv2.resize(img, (self.label2.width(), self.label2.height()), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)
@@ -51,6 +69,19 @@ class VideoPlayer(QThread):
     def result_load_gait_figures(self, cal_task_path: str):
         self.plot.clear()
         result_post_analysis_imgs_data_path = os.path.join(cal_task_path, 'post_analysis', "raw_data.npz")
+        
+        # Check if post_analysis data exists before trying to load
+        if not os.path.exists(result_post_analysis_imgs_data_path):
+            print(f"[WARNING] Post-analysis data not found: {result_post_analysis_imgs_data_path}")
+            print("[INFO] This task may not have completed post-processing yet.")
+            # Initialize with empty data to prevent crashes
+            self.knee_data = {'R_knee': [], 'L_knee': []}
+            self.hip_data = {}
+            self.ankle_data = {}
+            self.Stride = {}
+            self.Speed = {}
+            return
+            
         data = np.load(result_post_analysis_imgs_data_path, allow_pickle=True)
         self.knee_data = data['Knee'].item()
         self.hip_data = data['Hip'].item()
@@ -115,10 +146,16 @@ class VideoPlayer(QThread):
             
             # Update video frames to match 3D animation
             try:
-                self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
-                self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
-                self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
-                self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
+                # Check if video frames are loaded
+                if (len(self.result_load_videos_allframes) >= 4 and
+                    len(self.result_load_videos_allframes[0]) > frame_index and
+                    len(self.result_load_videos_allframes[1]) > frame_index and
+                    len(self.result_load_videos_allframes[2]) > frame_index and
+                    len(self.result_load_videos_allframes[3]) > frame_index):
+                    self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
+                    self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
+                    self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
+                    self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
             except (IndexError, TypeError) as e:
                 print(f"Error updating video frames: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
         
@@ -172,10 +209,16 @@ class VideoPlayer(QThread):
             
             # Update video frames to match slider position
             try:
-                self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
-                self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
-                self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
-                self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
+                # Check if video frames are loaded
+                if (len(self.result_load_videos_allframes) >= 4 and
+                    len(self.result_load_videos_allframes[0]) > frame_index and
+                    len(self.result_load_videos_allframes[1]) > frame_index and
+                    len(self.result_load_videos_allframes[2]) > frame_index and
+                    len(self.result_load_videos_allframes[3]) > frame_index):
+                    self.label1.setPixmap(self.np2qimage(self.result_load_videos_allframes[0][frame_index]))
+                    self.label2.setPixmap(self.np2qimage(self.result_load_videos_allframes[1][frame_index]))
+                    self.label3.setPixmap(self.np2qimage(self.result_load_videos_allframes[2][frame_index]))
+                    self.label4.setPixmap(self.np2qimage(self.result_load_videos_allframes[3][frame_index]))
             except (IndexError, TypeError) as e:
                 print(f"Error updating video frames in slider_changed: {e}, frame_index: {frame_index}, frame_count: {self.frame_count}")
         
@@ -209,6 +252,14 @@ class VideoPlayer(QThread):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
         self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
         self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
+        
+        # Check if data is loaded
+        if not hasattr(self, 'hip_data') or not self.hip_data or 'R_Hip' not in self.hip_data:
+            print("[WARNING] Hip data not loaded yet")
+            self.plot.clear()
+            self.plot.setTitle("No data available - please load a result first")
+            return
+            
         R_Hip = self.hip_data['R_Hip']
         L_Hip = self.hip_data['L_Hip']
         loc_max_finalR = self.hip_data['loc_max_finalR']
@@ -271,6 +322,14 @@ class VideoPlayer(QThread):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
         self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
         self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
+        
+        # Check if data is loaded
+        if not hasattr(self, 'knee_data') or not self.knee_data or 'R_knee' not in self.knee_data:
+            print("[WARNING] Knee data not loaded yet")
+            self.plot.clear()
+            self.plot.setTitle("No data available - please load a result first")
+            return
+            
         R_knee = self.knee_data['R_knee']
         L_knee = self.knee_data['L_knee']
         loc_max_finalR = self.knee_data['loc_max_finalR']
@@ -336,6 +395,14 @@ class VideoPlayer(QThread):
         self.scatter_ball_R, self.scatter_ball_L, self.xline = None, None, None
         self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
         self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
+        
+        # Check if data is loaded
+        if not hasattr(self, 'ankle_data') or not self.ankle_data or 'R_ankle' not in self.ankle_data:
+            print("[WARNING] Ankle data not loaded yet")
+            self.plot.clear()
+            self.plot.setTitle("No data available - please load a result first")
+            return
+            
         R_ankle = self.ankle_data['R_ankle']
         L_ankle = self.ankle_data['L_ankle']
         loc_max_finalR = self.ankle_data['loc_max_finalR']
@@ -397,6 +464,13 @@ class VideoPlayer(QThread):
         self.scatter_ball_R, self.scatter_ball_L = None, None
         self.scatter_ball_heel_R, self.scatter_ball_heel_L = None, None
         self.plot.clear()
+        
+        # Check if data is loaded
+        if not hasattr(self, 'Speed') or not self.Speed or 'B' not in self.Speed:
+            print("[WARNING] Speed data not loaded yet")
+            self.plot.setTitle("No data available - please load a result first")
+            return
+            
         self.plot.addLegend(offset=(-10, 10)) 
         self.plot.showGrid(x=True, y=True, alpha=0.3)
         
@@ -475,6 +549,13 @@ class VideoPlayer(QThread):
         self.scatter_ball_R, self.scatter_ball_L = None, None
         self.scatter_ball_B, self.scatter_ball_mean, self.scatter_ball_flunc = None, None, None
         self.plot.clear()
+        
+        # Check if data is loaded
+        if not hasattr(self, 'Stride') or not self.Stride or 'R_heel' not in self.Stride:
+            print("[WARNING] Stride data not loaded yet")
+            self.plot.setTitle("No data available - please load a result first")
+            return
+            
         self.plot.addLegend()  # Re-add legend
         self.plot.showGrid(x=True, y=True, alpha=0.3)
         
@@ -554,13 +635,20 @@ class VideoPlayer(QThread):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex(('localhost', port)) == 0
     def kill_process_using_port(self, port):
+        import sys
         try:
-            result = subprocess.check_output(f"netstat -ano | findstr :{port}", shell=True, text=True)
-            for line in result.splitlines():
-                if "LISTENING" in line:
-                    pid = line.split()[-1]
-                    subprocess.run(f"taskkill /PID {pid} /F", shell=True)
-                    
+            if sys.platform.startswith('win'):
+                result = subprocess.check_output(f"netstat -ano | findstr :{port}", shell=True, text=True)
+                for line in result.splitlines():
+                    if "LISTENING" in line:
+                        pid = line.split()[-1]
+                        subprocess.run(f"taskkill /PID {pid} /F", shell=True)
+            else:
+                # Linux/macOS - use lsof and kill
+                result = subprocess.check_output(f"lsof -t -i:{port}", shell=True, text=True)
+                for pid in result.strip().split('\n'):
+                    if pid:
+                        subprocess.run(f"kill -9 {pid}", shell=True)
         except subprocess.CalledProcessError:
             pass
     

@@ -41,43 +41,87 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 # 设置 CUDA 和 TensorRT 环境变量（如果存在）
 def setup_cuda_tensorrt_env(pwd):
-    """设置 CUDA 和 TensorRT 环境变量"""
-    # CUDA 路径检测
-    cuda_paths = [
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7",
-        r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0",
-    ]
+    """设置 CUDA 和 TensorRT 环境变量 (Cross-platform: Linux/Windows)"""
+    import platform
+    is_windows = platform.system() == "Windows"
+    path_sep = ";" if is_windows else ":"
     
+    # CUDA 路径检测 - Platform-specific paths
+    if is_windows:
+        cuda_paths = [
+            r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8",
+            r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7",
+            r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0",
+        ]
+    else:
+        # Linux paths
+        cuda_paths = [
+            "/usr/local/cuda-11.8",
+            "/usr/local/cuda",
+            "/opt/cuda",
+        ]
+    
+    cuda_found = False
     for cuda_path in cuda_paths:
         if os.path.exists(cuda_path):
-            os.environ["CUDA_PATH"] = cuda_path
+            os.environ["CUDA_HOME"] = cuda_path
+            os.environ["CUDA_PATH"] = cuda_path  # For compatibility
             cuda_bin = os.path.join(cuda_path, "bin")
-            if cuda_bin not in os.environ["PATH"]:
-                os.environ["PATH"] = f"{cuda_bin};{os.environ['PATH']}"
+            cuda_lib = os.path.join(cuda_path, "lib64" if not is_windows else "lib")
+            
+            # Update PATH for binaries
+            current_path = os.environ.get("PATH", "")
+            if cuda_bin not in current_path:
+                os.environ["PATH"] = f"{cuda_bin}{path_sep}{current_path}"
+            
+            # On Linux, update LD_LIBRARY_PATH for libraries
+            if not is_windows:
+                current_ld = os.environ.get("LD_LIBRARY_PATH", "")
+                if cuda_lib not in current_ld:
+                    os.environ["LD_LIBRARY_PATH"] = f"{cuda_lib}{path_sep}{current_ld}" if current_ld else cuda_lib
+            
             print(f"✅ CUDA 路径设置: {cuda_path}")
+            cuda_found = True
             break
-    else:
+    
+    if not cuda_found:
         print("⚠️  未检测到 CUDA 安装")
     
     # TensorRT 路径设置
     tensorrt_dir = os.path.join(pwd, "NTK_CAP", "ThirdParty", "TensorRT-8.6.1.6")
     if os.path.exists(tensorrt_dir):
         tensorrt_lib = os.path.join(tensorrt_dir, "lib")
-        tensorrt_bin = os.path.join(tensorrt_dir, "bin")
+        tensorrt_bin = os.path.join(tensorrt_dir, "bin") if is_windows else None
         
         os.environ["TENSORRT_ROOT"] = tensorrt_dir
+        os.environ["TENSORRT_DIR"] = tensorrt_dir
         os.environ["TRT_LIBPATH"] = tensorrt_lib
         
-        # 添加到 PATH
-        if tensorrt_lib not in os.environ["PATH"]:
-            os.environ["PATH"] = f"{tensorrt_lib};{os.environ['PATH']}"
-        if tensorrt_bin not in os.environ["PATH"]:
-            os.environ["PATH"] = f"{tensorrt_bin};{os.environ['PATH']}"
+        if is_windows:
+            # Windows: Add to PATH
+            current_path = os.environ.get("PATH", "")
+            if tensorrt_lib not in current_path:
+                os.environ["PATH"] = f"{tensorrt_lib}{path_sep}{current_path}"
+            if tensorrt_bin and tensorrt_bin not in current_path:
+                os.environ["PATH"] = f"{tensorrt_bin}{path_sep}{os.environ['PATH']}"
+        else:
+            # Linux: Add to LD_LIBRARY_PATH
+            current_ld = os.environ.get("LD_LIBRARY_PATH", "")
+            if tensorrt_lib not in current_ld:
+                os.environ["LD_LIBRARY_PATH"] = f"{tensorrt_lib}{path_sep}{current_ld}" if current_ld else tensorrt_lib
         
         print(f"✅ TensorRT 路径设置: {tensorrt_dir}")
     else:
         print("⚠️  未检测到 TensorRT 安装")
+    
+    # MMDeploy SDK (libmmdeploy_trt_net.so) - Linux only
+    if not is_windows:
+        mmdeploy_lib = os.path.join(pwd, "NTK_CAP", "ThirdParty", "mmdeploy", "build", "lib")
+        if os.path.exists(mmdeploy_lib):
+            current_ld = os.environ.get("LD_LIBRARY_PATH", "")
+            if mmdeploy_lib not in current_ld:
+                os.environ["LD_LIBRARY_PATH"] = f"{mmdeploy_lib}{path_sep}{current_ld}" if current_ld else mmdeploy_lib
+            print(f"✅ MMDeploy SDK 路径设置: {mmdeploy_lib}")
 
 # Add NTK_CAP script_py directory to Python path
 script_py_path = os.path.join(os.path.dirname(__file__), 'NTK_CAP', 'script_py')

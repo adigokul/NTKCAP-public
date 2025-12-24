@@ -1,0 +1,164 @@
+
+
+---------------------------------------------------------------------
+Tracking of the person of interest for Apose, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose
+
+--> Mean reprojection error for Neck point on all frames is nan px, which roughly corresponds to nan mm. 
+--> In average, nan cameras had to be excluded to reach the demanded 10 px error threshold.
+
+Tracked json files are stored in /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose/pose-2d-tracked.
+Tracking took 0.29 s.
+
+
+---------------------------------------------------------------------
+Triangulation of 2D points for Apose, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose
+
+Mean reprojection error for Hip is 23.0 px (~ 0.136 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RHip is 32.7 px (~ 0.193 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RKnee is 11.2 px (~ 0.066 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RAnkle is 2.8 px (~ 0.017 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RBigToe is 15.1 px (~ 0.089 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RSmallToe is 12.7 px (~ 0.075 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RHeel is 5.3 px (~ 0.031 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LHip is 25.0 px (~ 0.148 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LKnee is 10.1 px (~ 0.06 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LAnkle is 3.7 px (~ 0.022 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LBigToe is 6.7 px (~ 0.04 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LSmallToe is 6.3 px (~ 0.037 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LHeel is 8.3 px (~ 0.049 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Neck is 20.0 px (~ 0.118 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Head is 3.7 px (~ 0.022 m), reached with 2.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Nose is 2.2 px (~ 0.013 m), reached with 2.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RShoulder is 9.5 px (~ 0.056 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RElbow is 9.1 px (~ 0.054 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RWrist is 4.7 px (~ 0.028 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LShoulder is 8.3 px (~ 0.049 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LElbow is 8.5 px (~ 0.05 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LWrist is 3.1 px (~ 0.018 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+
+--> Mean reprojection error for all points on all frames is 10.5 px, which roughly corresponds to 62.0 mm. 
+Cameras were excluded if likelihood was below 0.2 and if the reprojection error was above 5 px.
+In average, 0.95 cameras had to be excluded to reach these thresholds.
+Camera 3 was excluded 35% of the time, Camera 1: 15%, Camera 2: 27%, and Camera 4: 19%.
+
+3D coordinates are stored at /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose/pose-3d/Apose_0-50.trc.
+Triangulation took 2.15 s.
+
+
+---------------------------------------------------------------------
+Filtering 3D coordinates for Apose, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose
+--> Filter type: Butterworth low-pass. Order 4, Cut-off frequency 3 Hz.
+Filtered 3D coordinates are stored at /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Apose/pose-3d/Apose_filt_butterworth_0-50.trc.
+
+
+---------------------------------------------------------------------
+Tracking of the person of interest for Walk1, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1
+
+--> Mean reprojection error for Neck point on all frames is nan px, which roughly corresponds to nan mm. 
+--> In average, nan cameras had to be excluded to reach the demanded 10 px error threshold.
+
+Tracked json files are stored in /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1/pose-2d-tracked.
+Tracking took 0.82 s.
+
+
+---------------------------------------------------------------------
+Triangulation of 2D points for Walk1, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1
+
+Mean reprojection error for Hip is 52.8 px (~ 0.312 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RHip is 61.5 px (~ 0.363 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RKnee is 19.7 px (~ 0.116 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RAnkle is 13.5 px (~ 0.08 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RBigToe is 16.7 px (~ 0.099 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RSmallToe is 16.6 px (~ 0.098 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RHeel is 13.9 px (~ 0.082 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LHip is 55.8 px (~ 0.33 m), reached with 0.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LKnee is 14.7 px (~ 0.087 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LAnkle is 11.9 px (~ 0.07 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LBigToe is 17.9 px (~ 0.106 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LSmallToe is 18.3 px (~ 0.108 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LHeel is 13.1 px (~ 0.077 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Neck is 17.8 px (~ 0.105 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Head is 3.0 px (~ 0.018 m), reached with 2.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for Nose is 3.1 px (~ 0.018 m), reached with 2.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RShoulder is 16.2 px (~ 0.096 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RElbow is 24.5 px (~ 0.145 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for RWrist is 21.1 px (~ 0.125 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LShoulder is 20.7 px (~ 0.122 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LElbow is 21.6 px (~ 0.128 m), reached with 1.0 excluded cameras. 
+  No frames needed to be interpolated.
+Mean reprojection error for LWrist is 16.6 px (~ 0.098 m), reached with 0.99 excluded cameras. 
+  No frames needed to be interpolated.
+
+--> Mean reprojection error for all points on all frames is 21.4 px, which roughly corresponds to 126.4 mm. 
+Cameras were excluded if likelihood was below 0.2 and if the reprojection error was above 5 px.
+In average, 0.95 cameras had to be excluded to reach these thresholds.
+Camera 2 was excluded 16% of the time, Camera 4: 30%, Camera 3: 39%, and Camera 1: 10%.
+
+3D coordinates are stored at /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1/pose-3d/Walk1_0-155.trc.
+Triangulation took 6.61 s.
+
+
+---------------------------------------------------------------------
+Filtering 3D coordinates for Walk1, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1
+--> Filter type: Butterworth low-pass. Order 4, Cut-off frequency 3 Hz.
+Filtered 3D coordinates are stored at /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_35_calculated/Walk1/pose-3d/Walk1_filt_butterworth_0-155.trc.

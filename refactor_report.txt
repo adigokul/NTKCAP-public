@@ -1,0 +1,326 @@
+================================================================================
+NTKCAP WINDOWS-TO-LINUX TRANSPLANTATION - PHASE 1 DEEP AUDIT REPORT
+================================================================================
+Generated: 2024-12-23
+Target Platform: Ubuntu 22.04/24.04 LTS
+CUDA Version Required: 11.8
+TensorRT Version Required: 8.6.1.6
+
+================================================================================
+SECTION 1: SYSTEM STATUS (CURRENT ENVIRONMENT)
+================================================================================
+
+✅ Ubuntu Version: 22.04 LTS (Jammy)
+✅ GCC Version: 11.4.0 (COMPATIBLE with CUDA 11.8)
+✅ NVIDIA GPU: GeForce RTX 4060, Driver 580.95.05, Compute Capability 8.9
+✅ CUDA Toolkit: 11.8 (nvcc at /usr/local/cuda-11.8/bin/nvcc)
+✅ libtinfo5: INSTALLED (libtinfo.so.5 at /lib/x86_64-linux-gnu/libtinfo.so.5)
+✅ libopencv-dev: INSTALLED (OpenCV 4.5.4)
+✅ gcc-11/g++-11: INSTALLED (11.4.0)
+
+================================================================================
+SECTION 2: SUBMODULE HEALTH CHECK
+================================================================================
+
+✅ NTK_CAP/ThirdParty/mmdeploy/CMakeLists.txt - EXISTS
+✅ NTK_CAP/ThirdParty/mmpose/setup.py - EXISTS  
+✅ NTK_CAP/ThirdParty/EasyMocap/setup.py - EXISTS
+✅ NTK_CAP/ThirdParty/OpenSim/ - EXISTS (Windows binaries, needs Linux replacement)
+
+================================================================================
+SECTION 3: MISSING COMPONENTS
+================================================================================
+
+❌ TensorRT-8.6.1.6: NOT FOUND in NTK_CAP/ThirdParty/
+   ACTION: Must download TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-11.8.tar.gz from NVIDIA
+   URL: https://developer.nvidia.com/tensorrt-download
+   
+❌ install/wheels/: NOT FOUND (Windows-specific .whl files)
+   ACTION: Not needed for Linux - will use pip install tensorrt==8.6.1
+
+================================================================================
+SECTION 4: WINDOWS PATH HARDCODING - REFACTORING REQUIRED
+================================================================================
+
+Total Files with Windows Paths: 143 matches across 40+ files
+
+-----------------------------------------------------------------------------
+CATEGORY A: CRITICAL - Main Application Files (MUST FIX)
+-----------------------------------------------------------------------------
+
+1. remote_calculate.py (Lines 47-80)
+   ISSUE: Windows-specific CUDA and TensorRT path detection
+   OLD:
+     cuda_paths = [r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8", ...]
+     tensorrt_lib = os.path.join(tensorrt_dir, "lib")
+     os.environ["PATH"] = f"{tensorrt_lib};{os.environ['PATH']}"
+   NEW:
+     cuda_paths = ["/usr/local/cuda-11.8", "/usr/local/cuda", "/opt/cuda"]
+     tensorrt_lib = os.path.join(tensorrt_dir, "lib")
+     os.environ["LD_LIBRARY_PATH"] = f"{tensorrt_lib}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+   
+2. final_NTK_Cap_GUI.py (Line 41)
+   ISSUE: Hardcoded Windows settings path
+   OLD: SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+   NEW: SETTINGS_FILE = os.path.join(os.path.dirname(__file__), 'Patient_data', 'settings.json')
+
+3. GUI_source/TrackerProcess.py (Lines 91-92)
+   ISSUE: Uses os.path.join correctly - NO CHANGE NEEDED
+   STATUS: ✅ Already cross-platform
+
+-----------------------------------------------------------------------------
+CATEGORY B: TEST/DEVELOPMENT FILES (Low Priority - Hardcoded Test Paths)
+-----------------------------------------------------------------------------
+
+These files contain hardcoded paths for testing purposes. They work as-is
+since the paths are only used when __name__ == "__main__".
+
+4. RT/Triangulation_cudastream.py (Lines 19-20, 43)
+   PATHS: r"C:\Users\MyUser\Desktop\NTKCAP\..." (test paths)
+   ACTION: Leave as-is (test code), or parameterize for CI/CD
+
+5. RT/test.py (Lines 96-100)
+   PATHS: r"C:\Users\MyUser\Desktop\NTKCAP\..." (test paths)
+   ACTION: Leave as-is (test code)
+
+6. RT/Triangulation.py (Lines 19-20, 43)
+   PATHS: r"C:\Users\MyUser\Desktop\NTKCAP\..." (test paths)
+   ACTION: Leave as-is (test code)
+
+7. RT/PreTri_Process.py (Lines 43-47)
+   PATHS: r"C:\Users\MyUser\Desktop\NTKCAP\..." (test paths)
+   ACTION: Leave as-is (test code)
+
+8. RT/real_time_testmod.py (Lines 305-311)
+   PATHS: r"C:\Users\MyUser\Desktop\NTKCAP\..." (test paths)
+   ACTION: Leave as-is (test code)
+
+9. Pose2Sim/triangulation_fastver1.py (Line 955)
+   PATHS: Commented out test path
+   ACTION: No change needed
+
+10. Pose2Sim/triangulation_multi.py (Line 1337)
+    PATHS: Comment with template path
+    ACTION: No change needed
+
+11. Pose2Sim/personAssociation_multi_fastver1.py (Lines 1075, 1174-1175)
+    PATHS: Commented test paths
+    ACTION: No change needed
+
+12. Pose2Sim/filtering.py (Line 577)
+    PATHS: Commented test path
+    ACTION: No change needed
+
+13. Pose2Sim/Sort_people_visualize.py (Lines 222-223, 369, 375)
+    PATHS: Test paths
+    ACTION: Leave as-is (visualization script)
+
+-----------------------------------------------------------------------------
+CATEGORY C: UTILITY/STANDALONE SCRIPTS (Low Priority)
+-----------------------------------------------------------------------------
+
+14. trigger_remote_calculation.py (Lines 172-203, 318)
+    ISSUE: Path conversion between Windows and Linux
+    STATUS: Already handles .replace('\\', '/') - semi cross-platform
+
+15. temp.py, temp_osimheight.py, dynamic_result_temp.py
+    PATHS: User-specific test paths
+    ACTION: Leave as-is (temporary scripts)
+
+16. posetracker_back.py (Line 10)
+    PATH: r'C:\Users\mauricetemp\Desktop\NTKCAP\NTK_CAP\ThirdParty\mmdeploy'
+    ACTION: Change to os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "mmdeploy")
+
+17. mp4combine.py (Lines 42-45)
+    PATHS: Test video paths
+    ACTION: Leave as-is (utility script)
+
+18. install/tests/test_acc_rtmcam.py (Lines 9, 99)
+    PATHS: Test paths
+    ACTION: Parameterize or leave as-is
+
+19. install/tests/test_acc_rtmcam_back.py (Line 9)
+    PATHS: Test path
+    ACTION: Parameterize or leave as-is
+
+20. icd10/sql_save.py (Line 5)
+    PATH: r'C:\Users\Hermes\Desktop\icd10\ICD_10_cm.csv'
+    ACTION: Should use relative path
+
+21. cloud_test.py (Line 14)
+    PATH: Font path for rendering
+    ACTION: Use relative path with fallback
+
+22. create_black_video.py (Lines 5-6)
+    PATHS: Input/output video paths
+    ACTION: Leave as-is (utility script)
+
+23. cnimes_RT/realtime_emg_plot.py (Line 442)
+    PATH: Cygnus kernel exe path (Windows-specific)
+    ACTION: This is Windows-only EMG hardware - may need Linux equivalent
+
+24. cnimes_RT/check_cygnus_kernel.py (Lines 9, 28)
+    PATH: Cygnus kernel exe path (Windows-specific)
+    ACTION: This is Windows-only EMG hardware
+
+25. check_extrinsic.py (Lines 13-14)
+    PATHS: Commented test paths
+    ACTION: No change needed
+
+26. NTK_CAP/script_py/*.py (multiple files)
+    PATHS: Various test paths in __main__ blocks
+    ACTION: Low priority - test code
+
+================================================================================
+SECTION 5: CUPY/GPU HARD DEPENDENCIES (15 FILES)
+================================================================================
+
+These files import cupy and require GPU. NO CPU FALLBACK should be added.
+Per directive: "If nvidia-smi fails, the program dies."
+
+Files with cupy imports:
+1. install/tests/test.py
+2. RT/Triangulation_cudastream.py
+3. RT/test.py
+4. RT/Triangulation.py
+5. RT/PreTri_Process.py
+6. RT/real_time_testmod.py
+7. Pose2Sim/triangulation_fastver1.py
+8. Pose2Sim/filtering.py (also cupyx.scipy.signal)
+9. Pose2Sim/personAssociation_multi_fastver1.py
+10. GUI_source/TrackerProcess.py
+11. GUI_source/DevelopVersion/real_time_test.py
+12. GUI_source/DevelopVersion/triangulation_fastver1.py
+
+================================================================================
+SECTION 6: PLATFORM-SPECIFIC CODE REQUIRING ATTENTION
+================================================================================
+
+1. diagnose_ae400.py (Lines 14, 34-38)
+   Has sys.platform == 'win32' checks for:
+   - Path separators in ping command
+   - Timeout parameter format
+   STATUS: Already cross-platform aware ✅
+
+2. test_paths.py (Line 11)
+   Has sys.platform == 'win32' check
+   STATUS: Already cross-platform aware ✅
+
+3. remote_calculate.py
+   Uses ';' as PATH separator (Windows-specific)
+   MUST CHANGE to ':' for Linux
+
+4. NTK_CAP/ThirdParty/OpenSim/
+   Contains Windows binaries (Uninstall.exe, jdk/, platform/)
+   ACTION: For Linux, use conda install -c opensim-org opensim=4.5
+
+================================================================================
+SECTION 7: TensorRT INTEGRATION POINTS
+================================================================================
+
+1. GUI_source/TrackerProcess.py (Lines 91-92)
+   Uses: from mmdeploy_runtime import PoseTracker
+   Model paths: 
+     - det_model_path = NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmdet-nano
+     - pose_model_path = NTK_CAP/ThirdParty/mmdeploy/rtmpose-trt/rtmpose-m
+   ACTION: These .engine files are GPU-architecture specific!
+           Must rebuild TensorRT engines on target Linux system.
+
+2. remote_calculate.py (Lines 63-80)
+   Exports TENSORRT_ROOT and TRT_LIBPATH
+   ACTION: Fix path separators for Linux
+
+================================================================================
+SECTION 8: ACTION ITEMS SUMMARY
+================================================================================
+
+IMMEDIATE (Before Any Testing):
+1. Download and extract TensorRT 8.6.1.6 for Linux to ThirdParty/
+2. Fix remote_calculate.py CUDA/TensorRT path detection for Linux
+3. Fix final_NTK_Cap_GUI.py SETTINGS_FILE to use relative path
+4. BUILD MMDEPLOY SDK (libmmdeploy_trt_net.so) - CRITICAL
+5. Rebuild TensorRT .engine files on target GPU
+
+ENVIRONMENT SETUP:
+1. Create conda environment (ntkcap_env, Python 3.10)
+2. Install PyTorch 2.0.1 with CUDA 11.8
+3. Install cupy-cuda11x
+4. Install numpy==1.22.4 (STRICT PIN)
+5. Install mmdeploy==1.3.1 and mmdeploy-runtime-gpu==1.3.1
+6. Install OpenSim via conda (not from Windows ThirdParty)
+7. Install MMEngine ecosystem via mim
+
+BUILD (CRITICAL - CMake vs Pip Disconnect):
+1. Install local mmpose from ThirdParty/mmpose
+2. Install local EasyMocap from ThirdParty/EasyMocap
+3. BUILD MMDEPLOY SDK WITH TENSORRT BACKEND:
+   
+   The pip-installed mmdeploy only provides Python bindings!
+   You MUST compile the C++ TensorRT operators to get libmmdeploy_trt_net.so
+   
+   Build steps:
+     cd NTK_CAP/ThirdParty/mmdeploy
+     rm -rf build && mkdir build && cd build
+     cmake .. \
+         -DMMDEPLOY_BUILD_SDK=ON \
+         -DMMDEPLOY_TARGET_DEVICES=cuda \
+         -DMMDEPLOY_TARGET_BACKENDS=trt \
+         -DTENSORRT_DIR="${NTKCAP_ROOT}/NTK_CAP/ThirdParty/TensorRT-8.6.1.6" \
+         -DCUDNN_DIR="/usr/local/cuda-11.8" \
+         -DOpenCV_DIR="/usr/lib/x86_64-linux-gnu/cmake/opencv4"
+     make -j$(nproc)
+   
+   VERIFY: libmmdeploy_trt_net.so must exist in build/lib/
+   
+   If missing: TensorRT inference will crash with "Library not loaded"
+   
+   Export in activate.sh:
+     export LD_LIBRARY_PATH=/path/to/mmdeploy/build/lib:$LD_LIBRARY_PATH
+
+================================================================================
+SECTION 9: GUI & PYQT6 SAFETY PROTOCOL
+================================================================================
+
+PROBLEM: PyQt6 on Ubuntu 22.04/24.04 crashes with:
+  "qt.qpa.plugin: Could not load the Qt platform plugin xcb"
+  
+CAUSES:
+1. Missing XCB libraries (libxcb-cursor0, etc.)
+2. OpenCV Qt conflict (opencv-python bundles its own Qt)
+3. PyQt6 version instability
+
+FIXES IMPLEMENTED:
+
+1. XCB LIBRARIES (apt):
+   sudo apt-get install -y \
+       libxcb-cursor0 \
+       libxcb-xinerama0 \
+       libxcb-xfixes0 \
+       libxcb-shape0 \
+       libxcb-icccm4 \
+       libxcb-image0 \
+       libxcb-keysyms1 \
+       libxcb-render-util0
+
+2. OPENCV CONFLICT PREVENTION:
+   pip uninstall opencv-python opencv-contrib-python
+   pip install opencv-python-headless==4.9.0.80
+   
+   WHY: Standard opencv-python includes Qt libraries that conflict with PyQt6
+   
+3. PYQT6 VERSION PINNING:
+   PyQt6==6.5.3
+   PyQt6-Qt6==6.5.3
+   PyQt6-sip==13.6.0
+   PyQt6-WebEngine==6.5.0
+   PyQt6-WebEngine-Qt6==6.5.3
+   
+4. ENVIRONMENT VARIABLES (in activate.sh):
+   export QT_QPA_PLATFORM=xcb
+   export QT_AUTO_SCREEN_SCALE_FACTOR=0
+   export QT_QPA_PLATFORMTHEME=gtk3
+
+================================================================================
+END OF REPORT
+================================================================================
+

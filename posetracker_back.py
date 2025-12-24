@@ -6,8 +6,9 @@ import threading
 import time
 import queue  # Import the queue module
 
-# Model paths and device
-dir_mmdeploy = r'C:\Users\mauricetemp\Desktop\NTKCAP\NTK_CAP\ThirdParty\mmdeploy'
+# Model paths and device - use relative paths from script directory (cross-platform)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+dir_mmdeploy = os.path.join(_script_dir, "NTK_CAP", "ThirdParty", "mmdeploy")
 det_model_path = os.path.join(dir_mmdeploy, "rtmpose-trt", "rtmdet-m")
 pose_model_path = os.path.join(dir_mmdeploy, "rtmpose-trt", "rtmpose-m")
 device = "cuda"

@@ -328,7 +328,7 @@ class VideoPlayer(QThread):
             return s.connect_ex(('localhost', port)) == 0
     def kill_process_using_port(self, port):
         try:
-            result = subprocess.check_output(f"netstat -ano | findstr :{port}", shell=True, text=True)
+            result = subprocess.check_output(f"netstat -ano | grep :{port}", shell=True, text=True)
             for line in result.splitlines():
                 if "LISTENING" in line:
                     pid = line.split()[-1]

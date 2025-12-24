@@ -38,7 +38,8 @@ import requests
 import sqlite3
 from natsort import natsorted
 from pathlib import Path
-SETTINGS_FILE = r'C:\Users\Hermes\Desktop\NTKCAP\Patient_data\settings.json'
+# Settings file path - use relative path from script directory (cross-platform)
+SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Patient_data', 'settings.json')
 
 FONT_PATH = os.path.join(os.getcwd(), "NTK_CAP", "ThirdParty", "Noto_Sans_HK", "NotoSansHK-Bold.otf")
 # 连接到SQLite数据库

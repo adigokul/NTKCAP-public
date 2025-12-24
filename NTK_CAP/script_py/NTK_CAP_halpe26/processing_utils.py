@@ -4,19 +4,25 @@ import os
 
 # 计算内外参
 def extract_video(PWD, file_path):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def detect_chessboard(PWD, file_path):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def finetune_chessboard(PWD, file_path):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def calib_intri(PWD):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def calib_extri(PWD):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def marker_caculate(PWD):
-    # Implementation
+    # Implementation placeholder
+    pass

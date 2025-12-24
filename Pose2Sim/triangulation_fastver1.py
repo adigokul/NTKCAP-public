@@ -192,7 +192,16 @@ def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excl
     Dm = euclidean_distance(calib_cam1['translation'], [0,0,0])
 
     logging.info('')
+    
+    # Check if error DataFrame is empty or has no valid data
+    if error.empty or error.shape[0] == 0:
+        logging.warning('No valid pose data was detected in the videos.')
+        logging.info(f'\n3D coordinates are stored at {trc_path}.')
+        return
+    
     for idx, name in enumerate(keypoints_names):
+        if idx >= error.shape[1]:
+            continue
         mean_error_keypoint_px = np.around(error.iloc[:,idx].mean(), decimals=1) # RMS à la place?
         mean_error_keypoint_m = np.around(mean_error_keypoint_px * Dm / fm, decimals=3)
         mean_cam_excluded_keypoint = np.around(nb_cams_excluded.iloc[:,idx].mean(), decimals=2)
@@ -208,6 +217,12 @@ def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excl
             else:
                 logging.info(f'  No frames were interpolated because \'interpolation_kind\' was set to none. ')
     
+    # Check if 'mean' column exists
+    if 'mean' not in error.columns:
+        logging.warning('Could not compute mean error statistics.')
+        logging.info(f'\n3D coordinates are stored at {trc_path}.')
+        return
+        
     mean_error_px = np.around(error['mean'].mean(), decimals=1)
     mean_error_mm = np.around(mean_error_px * Dm / fm *1000, decimals=1)
     mean_cam_excluded = np.around(nb_cams_excluded['mean'].mean(), decimals=2)

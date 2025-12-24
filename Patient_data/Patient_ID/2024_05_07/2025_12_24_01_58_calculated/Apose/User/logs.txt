@@ -1,0 +1,20 @@
+
+
+---------------------------------------------------------------------
+Tracking of the person of interest for Apose, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_58_calculated/Apose
+
+--> Mean reprojection error for Neck point on all frames is nan px, which roughly corresponds to nan mm. 
+--> In average, nan cameras had to be excluded to reach the demanded 10 px error threshold.
+
+Tracked json files are stored in /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_58_calculated/Apose/pose-2d-tracked.
+Tracking took 0.26 s.
+
+
+---------------------------------------------------------------------
+Triangulation of 2D points for Apose, for all frames.
+---------------------------------------------------------------------
+
+Project directory: /home/ntkcap-kuo/ntkcap/Patient_data/Patient_ID/2024_05_07/2025_12_24_01_58_calculated/Apose

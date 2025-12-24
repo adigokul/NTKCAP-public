@@ -107,6 +107,19 @@ def interpolate_zeros_nans(col, *args):
     # Interpolate nans
     mask = ~(np.isnan(col) | col.eq(0)) # true where nans or zeros
     idx_good = np.where(mask)[0]
+    
+    # Handle case where no valid data points exist
+    if len(idx_good) == 0:
+        # Return all NaN if there's no valid data to interpolate from
+        return col.copy().replace(0, np.nan)
+    
+    # Handle case where only one valid data point exists
+    if len(idx_good) == 1:
+        # Fill with the single valid value
+        col_interp = col.copy()
+        col_interp[~mask] = col[idx_good[0]]
+        return col_interp
+    
     # import ipdb; ipdb.set_trace()
     if 'kind' not in locals(): # 'linear', 'slinear', 'quadratic', 'cubic'
         f_interp = interpolate.interp1d(idx_good, col[idx_good], kind="linear", bounds_error=False)
@@ -268,7 +281,31 @@ def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excl
     Dm = euclidean_distance(calib_cam1['translation'], [0,0,0])
 
     logging.info('')
+    
+    # Check if error DataFrame is empty or has no valid data
+    if error.empty or error.shape[0] == 0:
+        logging.warning('No valid pose data was detected in the videos.')
+        logging.warning('This usually means pose estimation failed to detect any people.')
+        logging.warning('Please check:')
+        logging.warning('  1. Video files contain visible people')
+        logging.warning('  2. Pose estimation completed without errors')
+        logging.warning('  3. JSON output files in pose-2d/ directory contain valid keypoints')
+        logging.info(f'\n3D coordinates file (may be empty): {trc_path}.')
+        return
+    
+    # Check if we have enough columns to iterate
+    num_cols = error.shape[1]
+    if num_cols == 0:
+        logging.warning('Error dataframe has no columns. Cannot compute statistics.')
+        logging.info(f'\n3D coordinates file (may be incomplete): {trc_path}.')
+        return
+    
     for idx, name in enumerate(keypoints_names):
+        # Safety check: ensure idx is within DataFrame bounds
+        if idx >= num_cols:
+            logging.warning(f'Keypoint index {idx} ({name}) exceeds available columns ({num_cols}). Skipping.')
+            continue
+            
         mean_error_keypoint_px = np.around(error.iloc[:,idx].mean(), decimals=1) # RMS à la place?
         mean_error_keypoint_m = np.around(mean_error_keypoint_px * Dm / fm, decimals=3)
         mean_cam_excluded_keypoint = np.around(nb_cams_excluded.iloc[:,idx].mean(), decimals=2)
@@ -284,9 +321,18 @@ def recap_triangulate(config, error, nb_cams_excluded, keypoints_names, cam_excl
             else:
                 logging.info(f'  No frames were interpolated because \'interpolation_kind\' was set to none. ')
     
-    mean_error_px = np.around(error['mean'].mean(), decimals=1)
-    mean_error_mm = np.around(mean_error_px * Dm / fm *1000, decimals=1)
-    mean_cam_excluded = np.around(nb_cams_excluded['mean'].mean(), decimals=2)
+    # Check if 'mean' column exists before accessing it
+    if 'mean' in error.columns:
+        mean_error_px = np.around(error['mean'].mean(), decimals=1)
+        mean_error_mm = np.around(mean_error_px * Dm / fm *1000, decimals=1)
+    else:
+        mean_error_px = np.nan
+        mean_error_mm = np.nan
+        
+    if 'mean' in nb_cams_excluded.columns:
+        mean_cam_excluded = np.around(nb_cams_excluded['mean'].mean(), decimals=2)
+    else:
+        mean_cam_excluded = np.nan
 
     logging.info(f'\n--> Mean reprojection error for all points on all frames is {mean_error_px} px, which roughly corresponds to {mean_error_mm} mm. ')
     logging.info(f'Cameras were excluded if likelihood was below {likelihood_threshold} and if the reprojection error was above {error_threshold_triangulation} px.')
@@ -1061,8 +1107,18 @@ def triangulate_all(config):
     cam_excluded_count = dict(Counter(id_excluded_cams_tot))
     cam_excluded_count.update((x, y/keypoints_nb/frames_nb) for x, y in cam_excluded_count.items())
     
-    error_tot['mean'] = error_tot.mean(axis = 1)
-    nb_cams_excluded_tot['mean'] = nb_cams_excluded_tot.mean(axis = 1)
+    # Safely compute mean columns, handling empty dataframes
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        if not error_tot.empty and error_tot.shape[1] > 0:
+            error_tot['mean'] = error_tot.mean(axis=1)
+        else:
+            error_tot['mean'] = np.nan
+        if not nb_cams_excluded_tot.empty and nb_cams_excluded_tot.shape[1] > 0:
+            nb_cams_excluded_tot['mean'] = nb_cams_excluded_tot.mean(axis=1)
+        else:
+            nb_cams_excluded_tot['mean'] = np.nan
 
     # Optionally, for each keypoint, show indices of frames that should be interpolated
     if show_interp_indices:

@@ -8,15 +8,19 @@ import time
 
 # update camera ID config
 def camera_config_update(save_path, search_num=20):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 # create camera ID config
 def camera_config_create(save_path):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 # 检查相机(imshow)
 def camera_show(camera_id, pos, event_start, event_stop, frame_queue):
-    # Implementation
+    # Implementation placeholder
+    pass
 
 def camera_config_open_camera_v2(save_path):
-    # Implementation
+    # Implementation placeholder
+    pass

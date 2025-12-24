@@ -3,6 +3,7 @@ import os
 import cv2
 import json
 import sys
+import platform
 import numpy as np
 import multiprocessing
 import multiprocessing, threading, logging, sys, traceback
@@ -19,6 +20,24 @@ from .xml_update import *
 from Pose2Sim import Pose2Sim
 from ultralytics import YOLO
 import inspect;inspect.getfile(Pose2Sim)
+
+# Platform detection for cross-platform executable handling
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+def get_executable_path(base_path, exe_name_without_ext):
+    """Get the correct executable path based on platform."""
+    if IS_WINDOWS:
+        return os.path.join(base_path, f"{exe_name_without_ext}.exe")
+    else:
+        local_path = os.path.join(base_path, exe_name_without_ext)
+        if os.path.exists(local_path) and os.access(local_path, os.X_OK):
+            return local_path
+        import shutil as sh
+        system_exe = sh.which(exe_name_without_ext)
+        if system_exe:
+            return system_exe
+        return local_path
 
 
 
@@ -639,18 +658,11 @@ def calib_extri(PWD):
 
 def marker_caculate(PWD,cal_data_path):
     ori_path = PWD
-    openpose_path = os.path.join(PWD, "NTK_CAP")
-    openpose_path = os.path.join(openpose_path, "ThirdParty")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_exe = os.path.join(openpose_path, "bin")
-    openpose_exe = os.path.join(openpose_exe, "OpenPoseDemo.exe")
+    openpose_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "openpose", "openpose", "bin")
+    openpose_exe = get_executable_path(openpose_path, "OpenPoseDemo")
 
-    posesim_path = os.path.join(PWD, "NTK_CAP")
-    posesim_path = os.path.join(posesim_path, "ThirdParty")
-    posesim_path = os.path.join(posesim_path, "OpenSim")
-    posesim_path = os.path.join(posesim_path, "bin")
-    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+    posesim_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "OpenSim", "bin")
+    posesim_exe = get_executable_path(posesim_path, "opensim-cmd")
 
 
     data_path = cal_data_path

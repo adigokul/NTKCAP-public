@@ -1,8 +1,15 @@
+import multiprocessing
+try:
+    multiprocessing.set_start_method("spawn", force=True)
+except RuntimeError:
+    pass
+
 # get camera number andwrite config
 import os
 import cv2
 import json
 import sys
+import platform
 import numpy as np
 import multiprocessing
 import multiprocessing, sys
@@ -11,6 +18,31 @@ import keyboard
 import shutil
 from datetime import datetime
 import subprocess
+
+# Platform detection for cross-platform executable handling
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+def get_executable_path(base_path, exe_name_without_ext):
+    """
+    Get the correct executable path based on platform.
+    On Windows: returns path with .exe extension
+    On Linux: returns path without .exe extension, or checks for system-installed version
+    """
+    if IS_WINDOWS:
+        return os.path.join(base_path, f"{exe_name_without_ext}.exe")
+    else:
+        # Linux - try local path first without .exe
+        local_path = os.path.join(base_path, exe_name_without_ext)
+        if os.path.exists(local_path) and os.access(local_path, os.X_OK):
+            return local_path
+        # Try system-installed version
+        import shutil as sh
+        system_exe = sh.which(exe_name_without_ext)
+        if system_exe:
+            return system_exe
+        # Return local path anyway (will error if not found, but gives clear message)
+        return local_path
 
 # ============== 抑制日誌輸出 ==============
 os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
@@ -998,18 +1030,11 @@ def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_
 def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, current_folder_idx=0, total_folders=1, allowed_tasks=None):
 
     ori_path = PWD
-    openpose_path = os.path.join(PWD, "NTK_CAP")
-    openpose_path = os.path.join(openpose_path, "ThirdParty")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_exe = os.path.join(openpose_path, "bin")
-    openpose_exe = os.path.join(openpose_exe, "OpenPoseDemo.exe")
+    openpose_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "openpose", "openpose", "bin")
+    openpose_exe = get_executable_path(openpose_path, "OpenPoseDemo")
 
-    posesim_path = os.path.join(PWD, "NTK_CAP")
-    posesim_path = os.path.join(posesim_path, "ThirdParty")
-    posesim_path = os.path.join(posesim_path, "OpenSim")
-    posesim_path = os.path.join(posesim_path, "bin")
-    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+    posesim_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "OpenSim", "bin")
+    posesim_exe = get_executable_path(posesim_path, "opensim-cmd")
 
     data_path = cal_data_path
     calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
@@ -1023,11 +1048,11 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
     calculated_ending = "_calculated"
     folder_name = formatted_datetime + calculated_ending
     data_path = cal_data_path
-    date = data_path.split('\\')[-1]
+    date = data_path.replace('\\', '/').split('/')[-1]
     Patient_data_path = os.path.join(PWD, 'Patient_data')
     empty_project_path = os.path.join(PWD, "NTK_CAP", "template", "Empty_project")
 
-    if data_path.split('\\')[-2] == 'multi_person':
+    if data_path.replace('\\', '/').split('/')[-2] == 'multi_person':
         raw_data_path = os.path.join(data_path, 'raw_data')
         task_caculate_finshed_path = os.path.join(data_path, folder_name)
         for task in os.listdir(raw_data_path):
@@ -1469,7 +1494,6 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
             print("切換至" + os.getcwd())
             #######################################
             #halpe26_xml_update(now_project)
-            import pdb; pdb.set_trace()
             subprocess.run([posesim_exe, "run-tool", now_project_opensim_scaling])
             os.chdir(ori_path)
         if gait_token:
@@ -1493,18 +1517,11 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
 def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_idx=0, total_folders=1, allowed_tasks=None):
     from .full_process import rtm2json,rtm2json_rpjerror,timesync_video,timesync2rtm,rtm2json_rpjerror_with_calibrate_array
     ori_path = PWD
-    openpose_path = os.path.join(PWD, "NTK_CAP")
-    openpose_path = os.path.join(openpose_path, "ThirdParty")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_path = os.path.join(openpose_path, "openpose")
-    openpose_exe = os.path.join(openpose_path, "bin")
-    openpose_exe = os.path.join(openpose_exe, "OpenPoseDemo.exe")
+    openpose_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "openpose", "openpose", "bin")
+    openpose_exe = get_executable_path(openpose_path, "OpenPoseDemo")
 
-    posesim_path = os.path.join(PWD, "NTK_CAP")
-    posesim_path = os.path.join(posesim_path, "ThirdParty")
-    posesim_path = os.path.join(posesim_path, "OpenSim")
-    posesim_path = os.path.join(posesim_path, "bin")
-    posesim_exe = os.path.join(posesim_path, "opensim-cmd.exe")
+    posesim_path = os.path.join(PWD, "NTK_CAP", "ThirdParty", "OpenSim", "bin")
+    posesim_exe = get_executable_path(posesim_path, "opensim-cmd")
 
 
     data_path = cal_data_path
@@ -1531,7 +1548,7 @@ def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_
     calculated_ending = "_calculated"
     folder_name = formatted_datetime + calculated_ending
     caculate_finshed_path = os.path.join(data_path, folder_name)
-    os.makedirs(caculate_finshed_path)
+    os.makedirs(caculate_finshed_path, exist_ok=True)
     print("資料夾成功創建:", caculate_finshed_path)
     
     old_apose_path = caculate_finshed_path
