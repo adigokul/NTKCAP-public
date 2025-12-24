@@ -1,0 +1,67 @@
+%YAML:1.0
+---
+names:
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+R_1: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [2.051, 1.071, -0.466]
+Rot_1: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [0.582, 0.813, 0.026, 0.535, -0.358, -0.765, -0.613, 0.459, -0.644]
+T_1: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [-0.486, 0.640, 2.483]
+R_2: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.872, 2.317, -1.312]
+Rot_2: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [-0.754, 0.656, -0.007, 0.344, 0.386, -0.856, -0.559, -0.648, -0.517]
+T_2: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [-0.148, 0.553, 3.460]
+R_3: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [1.933, -1.096, 0.545]
+Rot_3: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [0.526, -0.850, -0.028, -0.491, -0.277, -0.826, 0.695, 0.448, -0.563]
+T_3: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.154, 1.038, 2.207]
+R_4: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.886, -2.334, 1.279]
+Rot_4: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [-0.750, -0.662, 0.005, -0.360, 0.402, -0.842, 0.555, -0.633, -0.540]
+T_4: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.635, 0.796, 2.966]
