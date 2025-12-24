@@ -110,47 +110,64 @@ def create_calibration_folder(PWD, button_create=False):
 ######################################################
 # update camera ID config
 def camera_config_update(save_path, search_num=20, new_gui=False):
+    import sys
     config_name = os.path.join(save_path, "config.json")
     with open(config_name, 'r') as f:
         data = json.load(f)
     camera_list = []
+    
+    # Platform-specific camera backend
+    if sys.platform.startswith('win'):
+        backend = cv2.CAP_DSHOW
+        backend_name = "DirectShow"
+    else:
+        backend = cv2.CAP_V4L2
+        backend_name = "V4L2"
+    
+    print(f"Scanning cameras using {backend_name} backend...")
+    
     for i in range(search_num):
-        print(i)
         if len(camera_list) == data['cam']['number']:
             break
         try:
-            # 使用 DirectShow backend (Windows 專用)
-            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            # Try platform-specific backend first
+            cap = cv2.VideoCapture(i, backend)
+            if not cap.isOpened():
+                # Fallback to default backend
+                cap = cv2.VideoCapture(i)
             if not cap.isOpened():
                 continue
+                
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-            # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            ret, frame = cap.read()
-            frame_shape = np.shape(frame)
-            # import ipdb;ipdb.set_trace()
-            for j in range(10):
-                ret, frame = cap.read()
-
-            if ret:
-                if len(frame_shape) >= 2:
-                    if frame_shape[0] == 1080:
-                        if frame_shape[1] == 1920:
-                            camera_list.append(i)
-                            print("HD:" + str(i))
             
-        except:
-            print("無法開啟USB Port:" + str(i))
+            # Read a few frames to stabilize
+            ret, frame = cap.read()
+            for j in range(5):
+                ret, frame = cap.read()
+            
+            if ret and frame is not None:
+                frame_shape = np.shape(frame)
+                if len(frame_shape) >= 2:
+                    height, width = frame_shape[0], frame_shape[1]
+                    # Accept cameras that can provide HD or FHD resolution
+                    if height >= 720 and width >= 1280:
+                        camera_list.append(i)
+                        print(f"  ✓ Camera {i}: {width}x{height}")
+            
+            cap.release()
+            
+        except Exception as e:
+            print(f"  ✗ Camera {i}: Failed ({e})")
+            
     print("============================")
-    # import ipdb;ipdb.set_trace()
     for i in camera_list:
-        print("Detect FHD Camera : " + str(i))
-    print("更新config.json檔案")
+        print(f"Detected Camera: {i}")
+    print(f"Total cameras found: {len(camera_list)}")
+    print("Updating config.json...")
     data['cam']['list'] = camera_list
 
-    # 写入更新后的JSON文件
     with open(config_name, 'w') as f:
         json.dump(data, f, indent=4)
     if new_gui:
@@ -179,10 +196,11 @@ def camera_config_create(save_path):
         json.dump(data, f, indent=4)
 
 ######################################################
-# 檢查相機(imshow) - Windows 優化版
+# 檢查相機(imshow) - Cross-platform version
 def camera_show(camera_id, pos, event_start, event_stop):
-    # 使用 DirectShow backend (Windows 專用)
-    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    # Platform-specific camera backend
+    backend = cv2.CAP_DSHOW if sys.platform.startswith('win') else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(camera_id, backend)
     
     if not cap.isOpened():
         print(f"❌ Camera {camera_id} failed to open")
@@ -269,9 +287,10 @@ def camera_intrinsic_calibration(config_path, save_path, button_capture=False, b
     mesage = "press q to stop recording"
     mesage2 = "press c to stop capture"
 
+    backend = cv2.CAP_DSHOW if sys.platform.startswith('win') else cv2.CAP_V4L2
     for i in select_camera:
         number = 0
-        cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture(i, backend)
         width = 1920
         height = 1080
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -311,7 +330,8 @@ def camera_intrinsic_calibration(config_path, save_path, button_capture=False, b
 ######################################################
 # 拍攝外參
 def camera_extrinsicCalibration_calibration(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
-    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    backend = cv2.CAP_DSHOW if sys.platform.startswith('win') else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(camera_id, backend)
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -402,7 +422,8 @@ def camera_extrinsicCalibration_record(config_path, save_path, button_capture=Fa
 ######################################################
 # A pose
 def camera_Apose(camera_id, now_cam_num, save_path, pos, event_start, event_stop, button_start=False, button_stop=False):
-    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    backend = cv2.CAP_DSHOW if sys.platform.startswith('win') else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(camera_id, backend)
     width = 1920
     height = 1080
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -524,7 +545,8 @@ def camera_Apose_record(config_path, save_path, patientID, date, button_capture=
 def camera_Motion(camera_id, now_cam_num, save_path, pos, event_start, event_stop,start_time,button_start=False, button_stop=False):
     # Define the shape of the array
     time_stamp= np.empty((1000000, 2))
-    cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    backend = cv2.CAP_DSHOW if sys.platform.startswith('win') else cv2.CAP_V4L2
+    cap = cv2.VideoCapture(camera_id, backend)
     
     width = 1920
     height = 1080
@@ -995,6 +1017,43 @@ def read_err_calib_extri(PWD):
     except:
         err_list ='no calibration file found'
     return err_list
+
+def validate_calibration(PWD, max_error_threshold=5.0):
+    """
+    Validate calibration quality by checking error values.
+    Returns (is_valid, error_message) tuple.
+    """
+    try:
+        file_name = os.path.join(PWD, "calibration", "err_value.txt")
+        if not os.path.exists(file_name):
+            return False, "Calibration file not found"
+        
+        bad_cameras = []
+        with open(file_name, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if 'err' in line:
+                    # Parse camera number and error value
+                    # Format: "1 center => [...], err = 0.310"
+                    parts = line.split()
+                    cam_num = parts[0]
+                    err_idx = line.find('err = ')
+                    if err_idx >= 0:
+                        err_val = float(line[err_idx + 6:])
+                        if err_val > max_error_threshold:
+                            bad_cameras.append((cam_num, err_val))
+        
+        if bad_cameras:
+            msg = "⚠️ CALIBRATION WARNING: High error detected!\n"
+            for cam, err in bad_cameras:
+                msg += f"  Camera {cam}: error = {err:.2f} (threshold: {max_error_threshold})\n"
+            msg += "Please re-do extrinsic calibration for these cameras."
+            print(msg)
+            return False, msg
+        
+        return True, "Calibration OK"
+    except Exception as e:
+        return False, f"Error validating calibration: {e}"
 ######################################################
 # openpose & pose2sim
 def mp_marker_calculate(PWD, calculate_path_list, fast_cal, gait=True, progress_queue=None, task_filter_dict=None):
@@ -1038,6 +1097,35 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
 
     data_path = cal_data_path
     calib_ori_path = os.path.join(data_path,'raw_data', 'calibration',"Calib.toml")
+
+    # Check for cameras with failed calibration
+    try:
+        import toml
+        calib_data = toml.load(calib_ori_path)
+        failed_cameras = []
+        for cam_key in calib_data.keys():
+            if cam_key.startswith('cam_'):
+                rot = calib_data[cam_key].get('rotation', [])
+                trans = calib_data[cam_key].get('translation', [])
+                # Check if rotation and translation are all zeros (default values)
+                if (len(rot) == 3 and all(abs(r) < 1e-6 for r in rot) and
+                    len(trans) == 3 and all(abs(t) < 1e-6 for t in trans)):
+                    cam_num = cam_key.split('_')[1]
+                    failed_cameras.append(cam_num)
+
+        if failed_cameras:
+            print(f"⚠️ WARNING: Cameras {', '.join(failed_cameras)} have failed extrinsic calibration!")
+            print("   These cameras will not contribute to triangulation and 3D reconstruction.")
+            print("   To fix: Ensure chessboard is clearly visible in these camera views during calibration.")
+
+    except Exception as e:
+        print(f"[WARNING] Could not check calibration quality: {e}")
+
+    # Validate calibration quality before proceeding
+    calib_valid, calib_msg = validate_calibration(PWD)
+    if not calib_valid:
+        print(calib_msg)
+        # Continue anyway, but warn user
 
     empty_project_path = os.path.join(PWD, "NTK_CAP")
     empty_project_path = os.path.join(empty_project_path, "template")
@@ -1316,7 +1404,7 @@ def marker_caculate(PWD, cal_data_path, gait_token=False, progress_queue=None, c
                 print("資料夾成功創建")
             except:
                 print("將覆蓋Apose")
-                subprocess.run(["rmdir", "/s", "/q", cal_apose_path], check=True, shell=True)
+                shutil.rmtree(cal_apose_path, ignore_errors=True)
                 print("重新創建資料夾")
                 cal_apose_path = old_apose_path
                 os.makedirs(cal_apose_path, exist_ok=True)
@@ -1583,7 +1671,7 @@ def marker_caculate_fast(PWD,cal_data_path, progress_queue=None, current_folder_
             print("資料夾成功創建")
         except:
             print("將覆蓋Apose")
-            subprocess.run(["rmdir", "/s", "/q", cal_apose_path], check=True, shell=True)
+            shutil.rmtree(cal_apose_path, ignore_errors=True)
             print("重新創建資料夾")
             cal_apose_path = old_apose_path
             os.makedirs(cal_apose_path)

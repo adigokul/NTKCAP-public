@@ -375,18 +375,21 @@ import cv2
 def calculate_camera_position(calib_file=r'C:\Users\Brian\NTKCAP\NTK_CAP\template\Empty_project\User\Config.toml'):
     calib = toml.load(calib_file)
     camera_positions = []
-    
+
     for cam in calib.keys():
         if cam != 'metadata':
-            K = np.array(calib[cam]['matrix'])
-            dist = np.array(calib[cam]['distortions'])
             rotation_vector = np.array(calib[cam]['rotation'])
             translation_vector = np.array(calib[cam]['translation'])
+
+            # Skip cameras with failed calibration (zero extrinsic parameters)
+            if np.allclose(rotation_vector, [0, 0, 0]) and np.allclose(translation_vector, [0, 0, 0]):
+                print(f"[INFO] Skipping camera {cam} with failed calibration (zero extrinsic parameters)")
+                continue
 
             R, _ = cv2.Rodrigues(rotation_vector)
             cam_center = -np.dot(R.T, translation_vector)
             camera_positions.append(cam_center)
-    
+
     return camera_positions
 # tracker[f'person1']['keypoints'] = real_data_1
 # tracker[f'person2']['keypoints'] = real_data_2

@@ -643,18 +643,21 @@ import toml
 def calculate_camera_position(calib_file):
     calib = toml.load(calib_file)
     camera_positions = []
-    
+
     for cam in calib.keys():
         if cam != 'metadata':
-            K = np.array(calib[cam]['matrix'])
-            dist = np.array(calib[cam]['distortions'])
             rotation_vector = np.array(calib[cam]['rotation'])
             translation_vector = np.array(calib[cam]['translation'])
+
+            # Skip cameras with failed calibration (zero extrinsic parameters)
+            if np.allclose(rotation_vector, [0, 0, 0]) and np.allclose(translation_vector, [0, 0, 0]):
+                print(f"[INFO] Skipping camera {cam} with failed calibration (zero extrinsic parameters)")
+                continue
 
             R, _ = cv2.Rodrigues(rotation_vector)
             cam_center = -np.dot(R.T, translation_vector)
             camera_positions.append(cam_center)
-    
+
     return camera_positions
 
 def projection_matrix(idx, calib_file):
@@ -837,7 +840,7 @@ def outsider(js, calib_file, frame, P, frame_range, json_tracked_files_f, state)
                 "version": 1.3,
                 "people": [
                     {
-                        "person_id": [-1],
+                        "person_id": -1,
                         "pose_keypoints_2d": [],
                         "face_keypoints_2d": [],
                         "hand_left_keypoints_2d": [],

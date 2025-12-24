@@ -8,11 +8,17 @@
 import numpy as np
 import cv2
 from func_timeout import func_set_timeout
-from ultralytics import YOLO
-import cv2
 import os
 import shutil
-import numpy as np
+
+# Try to import YOLO, but make it optional
+YOLO_AVAILABLE = False
+try:
+    from ultralytics import YOLO
+    YOLO_AVAILABLE = True
+except ImportError:
+    pass
+
 from easymocap.annotator.GUI_detectchessboard import Manual_GUI_detection
 def getChessboard3d(pattern, gridSize, axis='xy'):
     object_points = np.zeros((pattern[1]*pattern[0], 3), np.float32)
@@ -66,18 +72,85 @@ def _findChessboardCornersAdapt(img, pattern,imgname, debug):
     # cv2.waitKey(0)
     return _findChessboardCorners(img, pattern,imgname, debug)
 def _findChessboardCornersYOLO(img, pattern,imgname ,debug):
-    model_trained = YOLO('yolo_model_v1.pt')   
-    img = cv2.imread(imgname)
-    result_ex = model_trained.predict(source =imgname, save=False, conf=0.5, max_det=1)
-    x_min, y_min, x_max, y_max, _, _ = result_ex[0].boxes.data[0]       
-    img[:int(y_min), :] = np.array([0, 255, 0])
-    img[int(y_max):, :] = np.array([0, 255, 0])
-    img[:, :int(x_min)] = np.array([0, 255, 0])
-    img[:, int(x_max):] = np.array([0, 255, 0])
-    img =cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-                cv2.THRESH_BINARY, 21, 2)
-    return _findChessboardCorners(img, pattern,imgname, debug)
+    """YOLO-based chessboard detection - requires yolo_model_v1.pt"""
+    # Check if YOLO is available and model exists
+    if not YOLO_AVAILABLE:
+        return False, None
+    
+    model_path = 'yolo_model_v1.pt'
+    if not os.path.exists(model_path):
+        # Try to find model in common locations
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        alt_paths = [
+            os.path.join(script_dir, model_path),
+            os.path.join(script_dir, '..', '..', model_path),
+            os.path.join(os.getcwd(), model_path),
+        ]
+        model_found = False
+        for alt_path in alt_paths:
+            if os.path.exists(alt_path):
+                model_path = alt_path
+                model_found = True
+                break
+        if not model_found:
+            # Model not found, skip YOLO detection
+            return False, None
+    
+    try:
+        model_trained = YOLO(model_path)   
+        img = cv2.imread(imgname)
+        result_ex = model_trained.predict(source =imgname, save=False, conf=0.5, max_det=1)
+        if len(result_ex[0].boxes.data) == 0:
+            return False, None
+        x_min, y_min, x_max, y_max, _, _ = result_ex[0].boxes.data[0]       
+        img[:int(y_min), :] = np.array([0, 255, 0])
+        img[int(y_max):, :] = np.array([0, 255, 0])
+        img[:, :int(x_min)] = np.array([0, 255, 0])
+        img[:, int(x_max):] = np.array([0, 255, 0])
+        img =cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                    cv2.THRESH_BINARY, 21, 2)
+        return _findChessboardCorners(img, pattern,imgname, debug)
+    except Exception as e:
+        # YOLO detection failed, return False to try other methods
+        return False, None
+
+def validate_corners_grid(corners, pattern):
+    """
+    Validate that detected corners form a proper grid pattern.
+    
+    This is a lightweight check - OpenCV's findChessboardCornersSB is reliable,
+    so we only reject obviously wrong detections (e.g., random noise).
+    
+    Returns True if valid, False if corners appear completely scrambled.
+    """
+    try:
+        rows, cols = pattern
+        total_corners = rows * cols
+        
+        # Basic sanity check: correct number of corners
+        if len(corners) != total_corners:
+            return False
+        
+        corners_2d = corners.reshape(rows, cols, 2)
+        
+        # Check that corners span a reasonable area (not all clustered in one spot)
+        all_x = corners_2d[:, :, 0].flatten()
+        all_y = corners_2d[:, :, 1].flatten()
+        
+        x_range = np.max(all_x) - np.min(all_x)
+        y_range = np.max(all_y) - np.min(all_y)
+        
+        # If all corners are within 50 pixels, something is wrong
+        if x_range < 50 and y_range < 50:
+            return False
+        
+        # Trust OpenCV's detection for everything else
+        return True
+        
+    except Exception as e:
+        # Don't block on validation error
+        return True
 
 @func_set_timeout(5000)
 def findChessboardCorners(img, annots, pattern,imgname, debug=False):
@@ -89,12 +162,26 @@ def findChessboardCorners(img, annots, pattern,imgname, debug=False):
     annots['visited'] = True
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     # Find the chess board corners
-    for func in [_findChessboardCorners, _findChessboardCornersAdapt,_findChessboardCornersYOLO]:
-        ret, corners = func(gray, pattern, imgname,debug)
-        #import pdb;pdb.set_trace()
-        if ret:break
+    methods_tried = []
+    for func_name, func in [("_findChessboardCorners", _findChessboardCorners),
+                           ("_findChessboardCornersAdapt", _findChessboardCornersAdapt),
+                           ("_findChessboardCornersYOLO", _findChessboardCornersYOLO)]:
+        ret, corners = func(gray, pattern, imgname, debug)
+        methods_tried.append(func_name)
+        if ret:
+            # Validate corners form a proper grid
+            if not validate_corners_grid(corners, pattern):
+                print(f"[WARNING] Detected corners for {imgname} using {func_name} appear scrambled, trying next method...")
+                ret = False
+                continue
+            break
     else:
+        # All methods failed
+        print(f"[ERROR] Chessboard detection failed for {imgname} after trying: {', '.join(methods_tried)}")
+        print(f"        This usually means the chessboard is not visible, poorly lit, or has glare.")
+        print(f"        Try: Better lighting, remove glare/reflections, ensure full chessboard is in frame.")
         return None
+
     # found the corners
     show = img.copy()
     show = cv2.drawChessboardCorners(show, pattern, corners, ret)

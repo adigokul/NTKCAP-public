@@ -257,6 +257,8 @@ class MainWindow(QMainWindow):
         self.record_enter_task_name_kb_listen = False
         self.record_enter_task_name.focusInEvent = self.record_enter_task_name_infocus
         self.record_enter_task_name.focusOutEvent = self.record_enter_task_name_outfocus
+        # Connect returnPressed signal for reliable Enter key handling
+        self.record_enter_task_name.returnPressed.connect(self.on_task_name_entered)
         self.list_widget_patient_task_record = self.findChild(QListWidget, "list_widget_patient_task_record")
         self.btn_multi_match_gui = self.findChild(QPushButton, "btn_multi_match_gui")
         self.btn_multi_match_gui.clicked.connect(self.multi_match_gui)
@@ -829,31 +831,47 @@ class MainWindow(QMainWindow):
             
     # start record
     def keyPressEvent(self, event):
+        # Keep for backward compatibility, but primary handler is on_task_name_entered()
         if (self.record_enter_task_name_kb_listen) and (event.key() == 16777220):
-            if os.path.exists(os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", self.record_enter_task_name.text())):
-                reply = QMessageBox.question(
-                    self, 
-                    "task name already exists",
-                    "Are you sure to cover it?",
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-                )
-                if reply == QMessageBox.StandardButton.Yes:
-                    self.record_task_name = self.record_enter_task_name.text()
-                    self.btnStartRecording.setEnabled(True)
-                    self.btnStopRecording.setEnabled(True)
-                    self.btn_Apose_record.setEnabled(False)
-                    self.label_log.setText(f"Current task name : {self.record_task_name}")
-            else:
-                self.record_task_name = self.record_enter_task_name.text()
-                self.btnStartRecording.setEnabled(True)
-                self.btnStopRecording.setEnabled(True)
-                self.btn_Apose_record.setEnabled(False)
-                self.label_log.setText(f"Current task name : {self.record_task_name}")
+            self.on_task_name_entered()
+
+    def on_task_name_entered(self):
+        """Handle task name entry when Enter is pressed - called by returnPressed signal"""
+        if not self.record_select_patientID:
+            self.label_log.setText("Please select a patient ID first")
+            return
+        
+        task_name = self.record_enter_task_name.text().strip()
+        if not task_name:
+            self.label_log.setText("Please enter a task name")
+            return
+        
+        task_path = os.path.join(self.patient_path, self.record_select_patientID, datetime.now().strftime("%Y_%m_%d"), "raw_data", task_name)
+        
+        if os.path.exists(task_path):
+            reply = QMessageBox.question(
+                self, 
+                "task name already exists",
+                "Are you sure to cover it?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.No:
+                return
+        
+        # Set task name and enable recording buttons
+        self.record_task_name = task_name
+        self.btnStartRecording.setEnabled(True)
+        self.btnStopRecording.setEnabled(True)
+        self.btn_Apose_record.setEnabled(False)
+        self.label_log.setText(f"Current task name : {self.record_task_name}")
+        print(f"✓ Task name set: {self.record_task_name}, Record button enabled")
 
     def record_enter_task_name_infocus(self, event):
+        """Called when task name field gains focus"""
         self.record_enter_task_name_kb_listen = True
 
     def record_enter_task_name_outfocus(self, event):
+        """Called when task name field loses focus"""
         self.record_enter_task_name_kb_listen = False
     def lw_patient_task_record(self):
         self.list_widget_patient_task_record.clear()

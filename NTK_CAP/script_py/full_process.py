@@ -280,7 +280,7 @@ def rtm2json_rpjerror_with_calibrate_array(Video_path,out_video,rpj_all_dir,cali
         else:
             track_state = np.append(track_state,[1])
         
-        if temp["people"][0] == {}:
+        if len(temp["people"]) == 0 or temp["people"][0] == {} or len(temp["people"][0].get('pose_keypoints_2d', [])) == 0:
             x = np.zeros(26)
             y = np.zeros(26)
             scores = np.zeros(26)
@@ -1058,7 +1058,7 @@ def rtm2json_rpjerror(Video_path,out_video,rpj_all_dir):
         else:
             track_state = np.append(track_state,[1])
         
-        if temp["people"][0] == {}:
+        if len(temp["people"]) == 0 or temp["people"][0] == {} or len(temp["people"][0].get('pose_keypoints_2d', [])) == 0:
             x = np.zeros(26)
             y = np.zeros(26)
             scores = np.zeros(26)

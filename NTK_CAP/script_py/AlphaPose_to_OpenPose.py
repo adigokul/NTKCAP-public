@@ -90,7 +90,7 @@ def AlphaPose_to_OpenPose_func(*args):
                 
                 for k in range(num_people):
                     coords = people_data[k].get('pose_keypoints_2d', [])
-                    person_data = {'person_id': [k], 
+                    person_data = {'person_id': k, 
                                     'pose_keypoints_2d': coords, 
                                     'face_keypoints_2d': [],   
                                     'hand_left_keypoints_2d':[], 
@@ -104,7 +104,7 @@ def AlphaPose_to_OpenPose_func(*args):
             elif has_keypoints_key:
                 # Legacy RTMPose format: {"image_id": N, "keypoints": [...]}
                 coords = alpha_js[i].get('keypoints', [])
-                person_data = {'person_id': [0], 
+                person_data = {'person_id': 0, 
                                 'pose_keypoints_2d': coords, 
                                 'face_keypoints_2d': [],   
                                 'hand_left_keypoints_2d':[], 

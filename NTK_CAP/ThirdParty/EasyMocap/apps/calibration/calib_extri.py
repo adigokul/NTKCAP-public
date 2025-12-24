@@ -149,7 +149,13 @@ def calib_extri(path, image, intriname, image_id):
         extri[cam]['R'] = cv2.Rodrigues(rvec)[0]
         extri[cam]['T'] = tvec
         center = - extri[cam]['R'].T @ tvec
-        print('{} center => {}, err = {:.3f}'.format(cam, center.squeeze(), err))
+        
+        # Warn if calibration error is too high
+        if err > 5.0:
+            print('⚠️ [WARNING] {} center => {}, err = {:.3f} - ERROR TOO HIGH! Chessboard detection may have failed.'.format(cam, center.squeeze(), err))
+            print('   Please re-do calibration for this camera with better chessboard visibility.')
+        else:
+            print('{} center => {}, err = {:.3f}'.format(cam, center.squeeze(), err))
         final_list.append(['{} center => {}, err = {:.3f}'.format(cam, center.squeeze(), err)])
     write_intri(join(path, 'intri.yml'), intri)
     write_extri(join(path, 'extri.yml'), extri)

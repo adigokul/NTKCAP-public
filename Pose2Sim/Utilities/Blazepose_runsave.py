@@ -105,7 +105,7 @@ def save_to_json(kpt_list, output_folder, video_name):
 
     # json preparation
     json_dict = {'version':1.3, 'people':[]}
-    json_dict['people'] = [{'person_id':[-1], 
+    json_dict['people'] = [{'person_id':-1, 
                     'pose_keypoints_2d': [], 
                     'face_keypoints_2d': [], 
                     'hand_left_keypoints_2d':[], 

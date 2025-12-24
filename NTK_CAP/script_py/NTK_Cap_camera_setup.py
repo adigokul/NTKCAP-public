@@ -47,43 +47,52 @@ def create_calibration_folder(PWD, button_create=False):
 ######################################################
 # update camera ID config
 def camera_config_update(save_path, search_num=20):
+    import sys
     config_name = os.path.join(save_path, "config.json")
     with open(config_name, 'r') as f:
         data = json.load(f)
     camera_list = []
+    
+    # Platform-specific camera backend
+    if sys.platform.startswith('win'):
+        backend = cv2.CAP_DSHOW
+    else:
+        backend = cv2.CAP_V4L2
+    
     for i in range(search_num):
-        print(i)
         if len(camera_list) == data['cam']['number']:
             break
         try:
-            cap = cv2.VideoCapture(i)
+            cap = cv2.VideoCapture(i, backend)
+            if not cap.isOpened():
+                cap = cv2.VideoCapture(i)
+            if not cap.isOpened():
+                continue
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-            # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            
             ret, frame = cap.read()
-            frame_shape = np.shape(frame)
-            # import ipdb;ipdb.set_trace()
-            for j in range(10):
+            for j in range(5):
                 ret, frame = cap.read()
 
-            if ret:
+            if ret and frame is not None:
+                frame_shape = np.shape(frame)
                 if len(frame_shape) >= 2:
-                    if frame_shape[0] == 1080:
-                        if frame_shape[1] == 1920:
-                            camera_list.append(i)
-                            print("HD:" + str(i))
+                    height, width = frame_shape[0], frame_shape[1]
+                    if height >= 720 and width >= 1280:
+                        camera_list.append(i)
+                        print(f"  ✓ Camera {i}: {width}x{height}")
+            cap.release()
             
-        except:
-            print("無法開啟USB Port:" + str(i))
+        except Exception as e:
+            print(f"  ✗ Camera {i}: {e}")
     print("============================")
-    # import ipdb;ipdb.set_trace()
     for i in camera_list:
-        print("Detect FHD Camera : " + str(i))
-    print("更新config.json檔案")
+        print(f"Detected Camera: {i}")
+    print(f"Total: {len(camera_list)} cameras")
     data['cam']['list'] = camera_list
 
-    # 写入更新后的JSON文件
     with open(config_name, 'w') as f:
         json.dump(data, f, indent=4)
 

@@ -37,20 +37,37 @@ class SimpleCameraDisplay:
         self.init_cameras()
     
     def init_cameras(self):
-        """初始化四個攝影機（Windows DSHOW 優化）"""
+        """初始化四個攝影機 (Cross-platform with V4L2/DirectShow)"""
+        import sys
         print("正在初始化攝影機...")
-        for i in range(4):
+        
+        # Platform-specific backend
+        if sys.platform.startswith('win'):
+            backend = cv2.CAP_DSHOW
+        else:
+            backend = cv2.CAP_V4L2
+        
+        # On Linux, cameras might be at even indices (0, 2, 4, 6) due to V4L2 naming
+        camera_indices = [0, 2, 4, 6] if not sys.platform.startswith('win') else [0, 1, 2, 3]
+        
+        for idx, i in enumerate(camera_indices):
+            if idx >= 4:
+                break
             # 先快速檢查相機是否存在
-            test_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            test_cap = cv2.VideoCapture(i, backend)
+            if not test_cap.isOpened():
+                # Try default backend
+                test_cap = cv2.VideoCapture(i)
             if not test_cap.isOpened():
                 print(f"❌ 攝影機 {i} 不可用")
                 self.cameras.append(None)
-                test_cap.release()
                 continue
             test_cap.release()
             
             # 相機存在，正式開啟並設定參數
-            cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            cap = cv2.VideoCapture(i, backend)
+            if not cap.isOpened():
+                cap = cv2.VideoCapture(i)
             if cap.isOpened():
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)

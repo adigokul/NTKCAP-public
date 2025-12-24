@@ -6,11 +6,15 @@ from datetime import datetime
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
 
 class CameraProcess(Process):
-    def __init__(self, shared_name, cam_id, start_evt, task_rec_evt, apose_rec_evt, calib_rec_evt, stop_evt, task_stop_rec_evt, calib_video_save_path, queue, address_base, record_task_name, *args, **kwargs):
+    def __init__(self, shared_name, cam_id, start_evt, task_rec_evt, apose_rec_evt, calib_rec_evt, stop_evt, task_stop_rec_evt, calib_video_save_path, queue, address_base, record_task_name, cam_type='usb', cam_config=None, *args, **kwargs):
         super().__init__()
         ### define
         self.shared_name = shared_name
-        self.cam_id = cam_id
+        self.cam_id = cam_id  # Logical camera index (0, 1, 2, 3)
+        self.cam_type = cam_type
+        self.cam_config = cam_config or {}
+        # Get actual device index from config (e.g., 0, 2, 4, 6 on Linux)
+        self.device_index = self.cam_config.get('device_index', cam_id)
         self.start_evt = start_evt
         self.task_rec_evt = task_rec_evt
         self.apose_rec_evt = apose_rec_evt
@@ -41,27 +45,55 @@ class CameraProcess(Process):
         existing_shm = shared_memory.SharedMemory(name=self.shared_name)
         shared_array = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm.buf)
 
-        # Use DirectShow backend (Windows-specific) for better USB camera handling
-        cap = cv2.VideoCapture(self.cam_id, cv2.CAP_DSHOW)
+        # Platform-specific camera backend
+        import sys
+        
+        # Use the actual device index from config
+        device_id = self.device_index
+        
+        if sys.platform.startswith('win'):
+            # Use DirectShow backend (Windows-specific) for better USB camera handling
+            cap = cv2.VideoCapture(device_id, cv2.CAP_DSHOW)
+            print(f"[Cam {self.cam_id + 1}] Opening device {device_id} with DirectShow backend")
+        else:
+            # Use V4L2 on Linux for better performance
+            cap = cv2.VideoCapture(device_id, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                # Fallback to default backend
+                cap = cv2.VideoCapture(device_id)
+            print(f"[Cam {self.cam_id + 1}] Opening device {device_id} with V4L2/default backend")
 
         if not cap.isOpened():
-            print(f"[Cam {self.cam_id + 1}] Camera failed to open")
+            print(f"[Cam {self.cam_id + 1}] ❌ Camera device {device_id} failed to open")
             return
 
-        (width, height) = (1920, 1080)
+        # Use 1280x720 for better real-time performance
+        # Recording still uses 1920x1080 (frame is resized for display only)
+        (capture_width, capture_height) = (1280, 720)
+        (target_width, target_height) = (1920, 1080)
         self.frame_id_task = 0
         self.frame_id_apose = 0
         self.frame_counter = 0
         self.fps_start_time = time.time()
         self.fps_counter = 0
         self.current_fps = 0
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        
+        # Try to set camera resolution - use lower resolution for speed
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, capture_width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, capture_height)
+        
+        # Verify actual resolution
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        print(f"[Cam {self.cam_id + 1}] Requested {capture_width}x{capture_height}, got {actual_width}x{actual_height}")
 
         # Set camera buffer size to reduce latency
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        # Try to set FPS
+        cap.set(cv2.CAP_PROP_FPS, 30)
 
-        print(f"[Cam {self.cam_id + 1}] USB camera initialized with DirectShow backend")
+        print(f"[Cam {self.cam_id + 1}] Camera initialized")
 
         self.start_evt.wait()
 
@@ -72,6 +104,10 @@ class CameraProcess(Process):
 
             if not ret or self.stop_evt.is_set():
                 break
+
+            # Resize frame to target resolution if needed (for consistent recording/display)
+            if frame.shape[1] != target_width or frame.shape[0] != target_height:
+                frame = cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
 
             # Update frame counter and calculate FPS
             self.frame_counter += 1
@@ -92,8 +128,8 @@ class CameraProcess(Process):
             color = (0, 255, 0)  # Green color
             thickness = 2
 
-            # Camera index (top-left)
-            cv2.putText(frame, f"Cam {self.cam_id + 1}", (20, 40), font, font_scale, color, thickness)
+            # Camera index (top-left) - show logical cam number
+            cv2.putText(frame, f"Cam {self.cam_id + 1} (dev:{self.device_index})", (20, 40), font, font_scale, color, thickness)
 
             # Frame counter (top-left, below camera index)
             cv2.putText(frame, f"Frame: {self.frame_counter}", (20, 80), font, font_scale, color, thickness)
@@ -101,7 +137,7 @@ class CameraProcess(Process):
             # FPS (top-right)
             fps_text = f"FPS: {self.current_fps:.1f}"
             text_size = cv2.getTextSize(fps_text, font, font_scale, thickness)[0]
-            cv2.putText(frame, fps_text, (width - text_size[0] - 20, 40), font, font_scale, color, thickness)
+            cv2.putText(frame, fps_text, (target_width - text_size[0] - 20, 40), font, font_scale, color, thickness)
 
             if self.task_stop_rec_evt.is_set() and self.recording:
                 self.recording = False

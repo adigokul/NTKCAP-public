@@ -76,7 +76,7 @@ def AlphaPose_to_OpenPose_func(*args):
                     with open(json_file, 'w') as js_f:
                         js_f.write(json.dumps(json_dict))
                 # Reset json_dict
-                json_dict['people'] = [{'person_id':[-1], 
+                json_dict['people'] = [{'person_id':-1, 
                     'pose_keypoints_2d': [], 
                     'face_keypoints_2d': [], 
                     'hand_left_keypoints_2d':[], 
@@ -87,7 +87,7 @@ def AlphaPose_to_OpenPose_func(*args):
                     'hand_right_keypoints_3d':[]}]
             else:
                 # Add new person to json_dict
-                json_dict['people'] += [{'person_id':[-1], 
+                json_dict['people'] += [{'person_id':-1, 
                     'pose_keypoints_2d': [], 
                     'face_keypoints_2d': [], 
                     'hand_left_keypoints_2d':[], 

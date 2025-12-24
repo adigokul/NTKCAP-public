@@ -1,10 +1,35 @@
 import os
 import cv2
 import time
+import math
 import numpy as np
-import cupy as cp
-from mmdeploy_runtime import PoseTracker
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
+
+# Try to import backends with fallback
+MMDEPLOY_AVAILABLE = False
+RTMLIB_AVAILABLE = False
+
+try:
+    from mmdeploy_runtime import PoseTracker as MMDeployPoseTracker
+    MMDEPLOY_AVAILABLE = True
+except ImportError:
+    pass
+
+try:
+    from rtmlib import BodyWithFeet
+    RTMLIB_AVAILABLE = True
+except ImportError:
+    try:
+        from rtmlib import Body
+        RTMLIB_AVAILABLE = True
+    except ImportError:
+        pass
+
+# Optional cupy (not required)
+try:
+    import cupy as cp
+except ImportError:
+    cp = None
 VISUALIZATION_CFG = dict(
     coco=dict(
         skeleton=[(15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
@@ -121,19 +146,47 @@ class TrackerProcess(Process):
         # Only initialize pose tracker if pose detection is enabled
         tracker = None
         state = None
+        use_rtmlib = False
+        rtmlib_body = None
+        prev_keypoints = None  # For temporal smoothing
+        
         if self.enable_pose_detection:
-            try:
-                tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-                state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
-                print(f"✅ Pose tracker initialized for camera {self.cam_id}")
-            except Exception as e:
-                print(f"❌ Failed to initialize pose tracker for camera {self.cam_id}: {e}")
-                print(f"📋 Running camera {self.cam_id} without pose detection")
+            # Try mmdeploy first (TensorRT - fastest)
+            if MMDEPLOY_AVAILABLE:
+                try:
+                    tracker = MMDeployPoseTracker(det_model=det_model_path, pose_model=pose_model_path, device_name=device)
+                    state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+                    print(f"✅ [Cam {self.cam_id}] mmdeploy TensorRT tracker initialized")
+                except Exception as e:
+                    print(f"⚠️ [Cam {self.cam_id}] mmdeploy failed: {e}")
+                    tracker = None
+            
+            # Fallback to rtmlib (ONNX Runtime)
+            if tracker is None and RTMLIB_AVAILABLE:
+                try:
+                    from rtmlib import BodyWithFeet
+                    rtmlib_body = BodyWithFeet(device='cuda', backend='onnxruntime')
+                    use_rtmlib = True
+                    print(f"✅ [Cam {self.cam_id}] rtmlib BodyWithFeet (ONNX) initialized")
+                except Exception as e:
+                    print(f"⚠️ [Cam {self.cam_id}] rtmlib BodyWithFeet failed: {e}")
+                    try:
+                        from rtmlib import Body
+                        rtmlib_body = Body(device='cuda', backend='onnxruntime')
+                        use_rtmlib = True
+                        print(f"✅ [Cam {self.cam_id}] rtmlib Body (ONNX) initialized")
+                    except Exception as e2:
+                        print(f"❌ [Cam {self.cam_id}] All pose backends failed: {e2}")
+                        self.enable_pose_detection = False
+            
+            if tracker is None and rtmlib_body is None:
+                print(f"📋 [Cam {self.cam_id}] Running without pose detection")
                 self.enable_pose_detection = False
         
         existing_shm_kp = shared_memory.SharedMemory(name=self.shm_kp)
         shared_array_kp = np.ndarray((self.buffer_length,) + shape, dtype=np.uint8, buffer=existing_shm_kp.buf)
         idx = 0
+        
         while self.start_evt.is_set():
             try:
                 idx_get = self.queue_cam.get(timeout=1)
@@ -142,16 +195,46 @@ class TrackerProcess(Process):
                 continue
             frame = shared_array[idx_get, : ]
             
-            # Only run pose detection if enabled and tracker is available
-            if self.enable_pose_detection and tracker is not None and state is not None:
+            # Only run pose detection if enabled
+            if self.enable_pose_detection:
                 try:
-                    keypoints, _ = tracker(state, frame, detect=-1)[:2]
-                    scores = keypoints[..., 2]
-                    keypoints = np.round(keypoints[..., :2], 3)
-                    self.draw_frame(frame, keypoints, scores, palette, skeleton, link_color, point_color)
+                    if use_rtmlib and rtmlib_body is not None:
+                        # rtmlib inference
+                        kpts, scores_raw = rtmlib_body(frame)
+                        if len(kpts) > 0:
+                            num_people = len(kpts)
+                            num_kpts = kpts.shape[1]
+                            
+                            # Build keypoints array (N, K, 3)
+                            keypoints = np.zeros((num_people, num_kpts, 3))
+                            for i in range(num_people):
+                                for j in range(num_kpts):
+                                    keypoints[i, j, 0] = kpts[i, j, 0]
+                                    keypoints[i, j, 1] = kpts[i, j, 1]
+                                    keypoints[i, j, 2] = scores_raw[i, j]
+                            
+                            # Apply temporal smoothing
+                            alpha = 0.6  # Smoothing factor
+                            if prev_keypoints is not None and len(prev_keypoints) > 0:
+                                for i in range(min(num_people, len(prev_keypoints))):
+                                    for j in range(min(num_kpts, prev_keypoints.shape[1])):
+                                        if keypoints[i, j, 2] > 0.3 and prev_keypoints[i, j, 2] > 0.3:
+                                            keypoints[i, j, 0] = alpha * keypoints[i, j, 0] + (1 - alpha) * prev_keypoints[i, j, 0]
+                                            keypoints[i, j, 1] = alpha * keypoints[i, j, 1] + (1 - alpha) * prev_keypoints[i, j, 1]
+                            prev_keypoints = keypoints.copy()
+                            
+                            scores = keypoints[..., 2]
+                            kpts_draw = np.round(keypoints[..., :2], 3)
+                            self.draw_frame(frame, kpts_draw, scores, palette, skeleton, link_color, point_color)
+                    elif tracker is not None and state is not None:
+                        # mmdeploy inference
+                        keypoints, _ = tracker(state, frame, detect=-1)[:2]
+                        scores = keypoints[..., 2]
+                        keypoints = np.round(keypoints[..., :2], 3)
+                        self.draw_frame(frame, keypoints, scores, palette, skeleton, link_color, point_color)
                 except Exception as e:
-                    print(f"❌ Pose detection error on camera {self.cam_id}: {e}")
-                    # Continue without pose detection for this frame
+                    # Silently continue on error (don't spam console)
+                    pass
             
             np.copyto(shared_array_kp[idx,:], frame)
             
