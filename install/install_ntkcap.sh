@@ -1,0 +1,1024 @@
+#!/bin/bash
+################################################################################
+# NTKCAP Complete Installation Script
+# ================================================================================
+# This script sets up the complete NTKCAP environment with TensorRT support.
+#
+# PREREQUISITES:
+#   - Ubuntu 20.04/22.04 with NVIDIA GPU
+#   - CUDA 11.8 installed (nvcc available)
+#   - cuDNN 8.x installed
+#   - Miniconda/Anaconda installed
+#   - Git installed
+#
+# MANUAL DOWNLOADS REQUIRED:
+#   1. TensorRT 8.6.1.6 (Linux x86_64 GNU/Linux)
+#      Download from: https://developer.nvidia.com/tensorrt
+#      File: TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-11.8.tar.gz
+#
+# USAGE:
+#   1. Download TensorRT and place it in this script's directory
+#   2. Run: chmod +x install_ntkcap.sh
+#   3. Run: ./install_ntkcap.sh
+#
+# WHAT THIS SCRIPT DOES:
+#   1. Creates conda environment "NTKCAP" with pinned dependencies
+#   2. Extracts and configures TensorRT
+#   3. Clones and builds ppl.cv with CUDA support
+#   4. Builds mmdeploy SDK with TensorRT backend
+#   5. Downloads model weights and generates TensorRT engines
+#   6. Fixes pipeline.json files for proper inference
+#   7. Verifies the installation
+#
+# TIME: 30-60 minutes depending on internet and GPU
+################################################################################
+
+set -e
+
+# ==============================================================================
+# CONFIGURATION - All paths are relative to project root
+# ==============================================================================
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Project root is parent of install directory
+PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+
+# Conda environment name
+CONDA_ENV_NAME="NTKCAP"
+
+# Directory structure (relative to PROJECT_ROOT)
+THIRDPARTY_DIR="${PROJECT_ROOT}/NTK_CAP/ThirdParty"
+MMDEPLOY_DIR="${THIRDPARTY_DIR}/mmdeploy"
+TENSORRT_VERSION="8.6.1.6"
+TENSORRT_DIR="${THIRDPARTY_DIR}/TensorRT-${TENSORRT_VERSION}"
+PPLCV_DIR="${THIRDPARTY_DIR}/ppl.cv"
+
+# TensorRT archive (user must download this)
+TENSORRT_ARCHIVE="TensorRT-${TENSORRT_VERSION}.Linux.x86_64-gnu.cuda-11.8.tar.gz"
+
+# Model weights URLs
+RTMDET_WEIGHT_URL="https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet_m_8xb32-300e_coco/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
+RTMPOSE_HALPE_WEIGHT_URL="https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.pth"
+
+# CUDA Architecture - Auto-detect or override
+CUDA_ARCH=""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+log() { echo -e "${GREEN}[$(date +'%H:%M:%S')] ✓ $1${NC}"; }
+warn() { echo -e "${YELLOW}[$(date +'%H:%M:%S')] ⚠ $1${NC}"; }
+error() { echo -e "${RED}[$(date +'%H:%M:%S')] ✗ ERROR: $1${NC}"; exit 1; }
+info() { echo -e "${CYAN}[$(date +'%H:%M:%S')] ℹ $1${NC}"; }
+section() {
+    echo ""
+    echo -e "${BLUE}══════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  $1${NC}"
+    echo -e "${BLUE}══════════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
+ask_continue() {
+    echo ""
+    read -p "$(echo -e ${YELLOW}Continue with $1? [Y/n]: ${NC})" response
+    case "$response" in
+        [nN][oO]|[nN])
+            warn "Skipping $1"
+            return 1
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
+detect_cuda_arch() {
+    # Auto-detect GPU compute capability
+    if command -v nvidia-smi &>/dev/null; then
+        local gpu_info=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1)
+        if [[ -n "${gpu_info}" ]]; then
+            # Convert 8.9 to 89
+            CUDA_ARCH=$(echo "${gpu_info}" | tr -d '.')
+            log "Detected GPU compute capability: ${gpu_info} (sm_${CUDA_ARCH})"
+            return 0
+        fi
+    fi
+
+    # Fallback - ask user
+    warn "Could not auto-detect GPU architecture"
+    echo "Common values:"
+    echo "  - RTX 40 series: 89"
+    echo "  - RTX 30 series: 86"
+    echo "  - RTX 20 series: 75"
+    echo "  - GTX 10 series: 61"
+    read -p "Enter your GPU compute capability (e.g., 89 for RTX 4060): " CUDA_ARCH
+
+    if [[ -z "${CUDA_ARCH}" ]]; then
+        error "CUDA architecture is required"
+    fi
+}
+
+# ==============================================================================
+# BANNER
+# ==============================================================================
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════════════╗"
+echo "║                                                                        ║"
+echo "║     ███╗   ██╗████████╗██╗  ██╗ ██████╗ █████╗ ██████╗                ║"
+echo "║     ████╗  ██║╚══██╔══╝██║ ██╔╝██╔════╝██╔══██╗██╔══██╗               ║"
+echo "║     ██╔██╗ ██║   ██║   █████╔╝ ██║     ███████║██████╔╝               ║"
+echo "║     ██║╚██╗██║   ██║   ██╔═██╗ ██║     ██╔══██║██╔═══╝                ║"
+echo "║     ██║ ╚████║   ██║   ██║  ██╗╚██████╗██║  ██║██║                    ║"
+echo "║     ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝                    ║"
+echo "║                                                                        ║"
+echo "║              Complete Installation Script v1.0                         ║"
+echo "║                                                                        ║"
+echo "╚════════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Project Root: ${PROJECT_ROOT}"
+echo ""
+
+# ==============================================================================
+# STEP 0: PREREQUISITES CHECK
+# ==============================================================================
+
+section "Step 0: Checking Prerequisites"
+
+# Check if running as root (not recommended)
+if [[ $EUID -eq 0 ]]; then
+    warn "Running as root is not recommended. Consider running as regular user."
+fi
+
+# Check CUDA
+if ! command -v nvcc &>/dev/null; then
+    # Try common CUDA paths
+    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+        if [[ -f "${cuda_path}/bin/nvcc" ]]; then
+            export PATH="${cuda_path}/bin:${PATH}"
+            export LD_LIBRARY_PATH="${cuda_path}/lib64:${LD_LIBRARY_PATH:-}"
+            export CUDA_HOME="${cuda_path}"
+            break
+        fi
+    done
+fi
+
+if ! command -v nvcc &>/dev/null; then
+    error "CUDA not found. Please install CUDA 11.8 and ensure nvcc is in PATH.
+
+Installation guide: https://developer.nvidia.com/cuda-11-8-0-download-archive"
+fi
+
+CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release //' | sed 's/,.*//')
+log "CUDA version: ${CUDA_VERSION}"
+
+# Check if CUDA 11.8
+if [[ ! "${CUDA_VERSION}" == "11.8"* ]]; then
+    warn "CUDA ${CUDA_VERSION} detected. This script is tested with CUDA 11.8."
+    warn "Compatibility with other versions is not guaranteed."
+fi
+
+# Check GPU
+if ! command -v nvidia-smi &>/dev/null; then
+    error "nvidia-smi not found. Please ensure NVIDIA drivers are installed."
+fi
+
+GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)
+log "GPU: ${GPU_NAME}"
+
+# Detect CUDA architecture
+detect_cuda_arch
+
+# Check conda
+if ! command -v conda &>/dev/null; then
+    error "Conda not found. Please install Miniconda or Anaconda.
+
+Installation guide: https://docs.conda.io/en/latest/miniconda.html"
+fi
+
+CONDA_BASE=$(conda info --base)
+log "Conda base: ${CONDA_BASE}"
+
+# Check git
+if ! command -v git &>/dev/null; then
+    error "Git not found. Please install git."
+fi
+log "Git: $(git --version)"
+
+# Check cmake
+if ! command -v cmake &>/dev/null; then
+    warn "cmake not found. Will install via pip."
+fi
+
+# Check TensorRT archive
+if [[ ! -f "${SCRIPT_DIR}/${TENSORRT_ARCHIVE}" ]] && [[ ! -d "${TENSORRT_DIR}" ]]; then
+    echo ""
+    error "TensorRT archive not found!
+
+Please download TensorRT ${TENSORRT_VERSION} from:
+  https://developer.nvidia.com/tensorrt
+
+Download file: ${TENSORRT_ARCHIVE}
+Place it in: ${SCRIPT_DIR}/
+
+After downloading, run this script again."
+fi
+
+log "All prerequisites satisfied"
+
+if ! ask_continue "installation"; then
+    exit 0
+fi
+
+# ==============================================================================
+# STEP 1: CREATE CONDA ENVIRONMENT
+# ==============================================================================
+
+section "Step 1: Creating Conda Environment '${CONDA_ENV_NAME}'"
+
+# Source conda
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+
+# Check if environment exists
+if conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+    warn "Environment '${CONDA_ENV_NAME}' already exists."
+    read -p "$(echo -e ${YELLOW}Recreate environment? This will delete existing. [y/N]: ${NC})" response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            info "Removing existing environment..."
+            conda deactivate 2>/dev/null || true
+            conda env remove -n "${CONDA_ENV_NAME}" -y
+            ;;
+        *)
+            info "Using existing environment"
+            conda activate "${CONDA_ENV_NAME}"
+            log "Activated existing environment"
+            ;;
+    esac
+fi
+
+# Create environment if it doesn't exist
+if ! conda env list | grep -q "^${CONDA_ENV_NAME} "; then
+    info "Creating conda environment with Python 3.10..."
+    conda create -n "${CONDA_ENV_NAME}" python=3.10 -y
+fi
+
+# Activate environment
+conda activate "${CONDA_ENV_NAME}"
+log "Activated environment: ${CONDA_ENV_NAME}"
+
+# ==============================================================================
+# STEP 2: INSTALL PYTHON DEPENDENCIES
+# ==============================================================================
+
+section "Step 2: Installing Python Dependencies"
+
+info "Installing PyTorch with CUDA 11.8..."
+pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 \
+    --index-url https://download.pytorch.org/whl/cu118
+
+info "Installing numpy (pinned version to avoid conflicts)..."
+pip install numpy==1.22.4
+
+info "Installing OpenMMLab packages..."
+pip install openmim
+mim install mmengine==0.10.7
+mim install mmcv==2.1.0
+mim install mmdet==3.3.0
+mim install mmpose==1.3.1
+
+info "Installing mmdeploy..."
+pip install mmdeploy==1.3.1
+pip install mmdeploy-runtime-gpu==1.3.1
+
+info "Installing TensorRT Python bindings..."
+pip install tensorrt==8.6.1
+
+info "Installing CuPy for GPU acceleration..."
+pip install cupy-cuda11x==13.6.0
+
+info "Installing ONNX and ONNXRuntime..."
+pip install onnx==1.17.0
+pip install onnxruntime-gpu==1.17.1
+
+info "Installing other dependencies..."
+pip install opencv-python-headless
+pip install pyqt5==5.15.11
+pip install scipy==1.13.0
+pip install matplotlib==3.8.4
+pip install tqdm
+pip install pyyaml
+pip install cmake
+
+log "Python dependencies installed"
+
+# Verify numpy version (critical)
+NUMPY_VERSION=$(python -c "import numpy; print(numpy.__version__)")
+if [[ "${NUMPY_VERSION}" != "1.22.4" ]]; then
+    warn "numpy version is ${NUMPY_VERSION}, expected 1.22.4"
+    info "Fixing numpy version..."
+    pip install numpy==1.22.4 --force-reinstall
+fi
+log "numpy version: ${NUMPY_VERSION}"
+
+if ! ask_continue "TensorRT setup"; then
+    exit 0
+fi
+
+# ==============================================================================
+# STEP 3: SETUP TENSORRT
+# ==============================================================================
+
+section "Step 3: Setting up TensorRT ${TENSORRT_VERSION}"
+
+mkdir -p "${THIRDPARTY_DIR}"
+
+if [[ ! -d "${TENSORRT_DIR}" ]]; then
+    if [[ -f "${SCRIPT_DIR}/${TENSORRT_ARCHIVE}" ]]; then
+        info "Extracting TensorRT..."
+        tar -xzf "${SCRIPT_DIR}/${TENSORRT_ARCHIVE}" -C "${THIRDPARTY_DIR}"
+        log "TensorRT extracted to ${TENSORRT_DIR}"
+    else
+        error "TensorRT archive not found: ${SCRIPT_DIR}/${TENSORRT_ARCHIVE}"
+    fi
+else
+    log "TensorRT already exists at ${TENSORRT_DIR}"
+fi
+
+# Verify TensorRT
+if [[ ! -f "${TENSORRT_DIR}/lib/libnvinfer.so" ]]; then
+    error "TensorRT installation invalid. libnvinfer.so not found."
+fi
+
+# Set environment variables
+export TENSORRT_DIR="${TENSORRT_DIR}"
+export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${LD_LIBRARY_PATH:-}"
+
+log "TensorRT configured: ${TENSORRT_DIR}"
+
+if ! ask_continue "ppl.cv build"; then
+    exit 0
+fi
+
+# ==============================================================================
+# STEP 4: BUILD PPL.CV
+# ==============================================================================
+
+section "Step 4: Building ppl.cv with CUDA Support"
+
+if [[ ! -d "${PPLCV_DIR}" ]]; then
+    info "Cloning ppl.cv..."
+    git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
+    log "ppl.cv cloned"
+else
+    log "ppl.cv already exists"
+fi
+
+cd "${PPLCV_DIR}"
+
+# Create build directory
+PPLCV_BUILD_DIR="${PPLCV_DIR}/cuda-build"
+mkdir -p "${PPLCV_BUILD_DIR}"
+cd "${PPLCV_BUILD_DIR}"
+
+info "Configuring ppl.cv with CMake..."
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
+    -DPPLCV_USE_CUDA=ON \
+    -DPPLCV_USE_X86_64=OFF \
+    -DPPLCV_USE_AARCH64=OFF \
+    -DPPLCV_BUILD_TESTS=OFF \
+    -DPPLCV_BUILD_BENCHMARK=OFF \
+    -DPPLCV_INSTALL=ON \
+    -DCMAKE_INSTALL_PREFIX="${PPLCV_BUILD_DIR}/install"
+
+info "Building ppl.cv (this may take a few minutes)..."
+make -j$(nproc)
+
+info "Installing ppl.cv..."
+make install
+
+# Verify
+if [[ ! -f "${PPLCV_BUILD_DIR}/install/lib/libpplcv_static.a" ]]; then
+    error "ppl.cv build failed. Library not found."
+fi
+
+log "ppl.cv built successfully"
+
+cd "${PROJECT_ROOT}"
+
+if ! ask_continue "mmdeploy SDK build"; then
+    exit 0
+fi
+
+# ==============================================================================
+# STEP 5: BUILD MMDEPLOY SDK
+# ==============================================================================
+
+section "Step 5: Building mmdeploy SDK with TensorRT"
+
+cd "${MMDEPLOY_DIR}"
+
+# Initialize submodules
+info "Initializing mmdeploy submodules..."
+git submodule update --init --recursive
+
+# Create build directory
+MMDEPLOY_BUILD_DIR="${MMDEPLOY_DIR}/build"
+mkdir -p "${MMDEPLOY_BUILD_DIR}"
+cd "${MMDEPLOY_BUILD_DIR}"
+
+info "Configuring mmdeploy with CMake..."
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
+    -DMMDEPLOY_BUILD_SDK=ON \
+    -DMMDEPLOY_BUILD_SDK_PYTHON_API=ON \
+    -DMMDEPLOY_BUILD_SDK_MONOLITHIC=ON \
+    -DMMDEPLOY_TARGET_BACKENDS=trt \
+    -DMMDEPLOY_TARGET_DEVICES=cuda \
+    -DMMDEPLOY_CODEBASES=all \
+    -DTENSORRT_DIR="${TENSORRT_DIR}" \
+    -Dpplcv_DIR="${PPLCV_BUILD_DIR}/install/lib/cmake/ppl" \
+    -DCMAKE_INSTALL_PREFIX="${MMDEPLOY_BUILD_DIR}/install"
+
+info "Building mmdeploy SDK (this may take 10-20 minutes)..."
+make -j$(nproc)
+
+info "Installing mmdeploy SDK..."
+make install
+
+# Verify the TensorRT ops library was built
+TENSORRT_OPS_LIB="${MMDEPLOY_BUILD_DIR}/lib/libmmdeploy_tensorrt_ops.so"
+if [[ ! -f "${TENSORRT_OPS_LIB}" ]]; then
+    error "mmdeploy build failed. TensorRT ops library not found."
+fi
+
+log "mmdeploy SDK built successfully"
+log "TensorRT ops library: ${TENSORRT_OPS_LIB}"
+
+cd "${PROJECT_ROOT}"
+
+if ! ask_continue "TensorRT engine generation"; then
+    exit 0
+fi
+
+# ==============================================================================
+# STEP 6: DOWNLOAD MODEL WEIGHTS
+# ==============================================================================
+
+section "Step 6: Downloading Model Weights"
+
+WEIGHTS_DIR="${MMDEPLOY_DIR}/build_engines"
+mkdir -p "${WEIGHTS_DIR}"
+
+RTMDET_WEIGHT="${WEIGHTS_DIR}/rtmdet_m.pth"
+RTMPOSE_WEIGHT="${WEIGHTS_DIR}/rtmpose_m_halpe.pth"
+
+if [[ ! -f "${RTMDET_WEIGHT}" ]]; then
+    info "Downloading RTMDet-m weights (~214MB)..."
+    wget -q --show-progress -O "${RTMDET_WEIGHT}" "${RTMDET_WEIGHT_URL}"
+    log "RTMDet weights downloaded"
+else
+    log "RTMDet weights already exist"
+fi
+
+if [[ ! -f "${RTMPOSE_WEIGHT}" ]]; then
+    info "Downloading RTMPose-m Halpe26 weights (~53MB)..."
+    wget -q --show-progress -O "${RTMPOSE_WEIGHT}" "${RTMPOSE_HALPE_WEIGHT_URL}"
+    log "RTMPose weights downloaded"
+else
+    log "RTMPose weights already exist"
+fi
+
+# ==============================================================================
+# STEP 7: GENERATE TENSORRT ENGINES
+# ==============================================================================
+
+section "Step 7: Generating TensorRT Engines"
+
+# Set environment for engine generation
+export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${LD_LIBRARY_PATH:-}"
+
+# Engine output directories
+RTMDET_ENGINE_DIR="${MMDEPLOY_DIR}/rtmpose-trt/rtmdet-m"
+RTMPOSE_ENGINE_DIR="${MMDEPLOY_DIR}/rtmpose-trt/rtmpose-m"
+mkdir -p "${RTMDET_ENGINE_DIR}"
+mkdir -p "${RTMPOSE_ENGINE_DIR}"
+
+# Config paths
+RTMDET_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmdet/detection/detection_tensorrt_static-320x320.py"
+RTMPOSE_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmpose/pose-detection_simcc_tensorrt_dynamic-256x192.py"
+
+RTMDET_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmdetection/mmdet/configs/rtmdet/rtmdet_m_8xb32_300e_coco.py"
+RTMPOSE_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmpose/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
+
+# Demo images
+DET_IMAGE="${MMDEPLOY_DIR}/demo/resources/det.jpg"
+POSE_IMAGE="${MMDEPLOY_DIR}/demo/resources/human-pose.jpg"
+
+# Deploy script
+DEPLOY_SCRIPT="${MMDEPLOY_DIR}/tools/deploy.py"
+
+# Check if engines already exist
+if [[ -f "${RTMDET_ENGINE_DIR}/end2end.engine" ]] && [[ -f "${RTMPOSE_ENGINE_DIR}/end2end.engine" ]]; then
+    log "TensorRT engines already exist"
+    read -p "$(echo -e ${YELLOW}Regenerate engines? [y/N]: ${NC})" response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            info "Regenerating engines..."
+            ;;
+        *)
+            log "Using existing engines"
+            SKIP_ENGINE_GEN=1
+            ;;
+    esac
+fi
+
+if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
+    # Build RTMDet engine
+    info "Building RTMDet TensorRT engine (320x320)..."
+    python "${DEPLOY_SCRIPT}" \
+        "${RTMDET_DEPLOY_CFG}" \
+        "${RTMDET_MODEL_CFG}" \
+        "${RTMDET_WEIGHT}" \
+        "${DET_IMAGE}" \
+        --work-dir "${RTMDET_ENGINE_DIR}" \
+        --device cuda:0 \
+        --dump-info
+
+    if [[ ! -f "${RTMDET_ENGINE_DIR}/end2end.engine" ]]; then
+        error "RTMDet engine generation failed"
+    fi
+    log "RTMDet engine generated"
+
+    # Build RTMPose engine
+    info "Building RTMPose TensorRT engine (256x192)..."
+    python "${DEPLOY_SCRIPT}" \
+        "${RTMPOSE_DEPLOY_CFG}" \
+        "${RTMPOSE_MODEL_CFG}" \
+        "${RTMPOSE_WEIGHT}" \
+        "${POSE_IMAGE}" \
+        --work-dir "${RTMPOSE_ENGINE_DIR}" \
+        --device cuda:0 \
+        --dump-info
+
+    if [[ ! -f "${RTMPOSE_ENGINE_DIR}/end2end.engine" ]]; then
+        error "RTMPose engine generation failed"
+    fi
+    log "RTMPose engine generated"
+fi
+
+# ==============================================================================
+# STEP 8: FIX PIPELINE.JSON FILES
+# ==============================================================================
+
+section "Step 8: Fixing Pipeline Configuration Files"
+
+# Fix RTMDet pipeline.json
+RTMDET_PIPELINE="${RTMDET_ENGINE_DIR}/pipeline.json"
+if [[ -f "${RTMDET_PIPELINE}" ]]; then
+    info "Fixing RTMDet pipeline.json..."
+
+    # Create fixed version
+    cat > "${RTMDET_PIPELINE}" << 'RTMDET_PIPELINE_EOF'
+{
+    "pipeline": {
+        "input": [
+            "img"
+        ],
+        "output": [
+            "dets"
+        ],
+        "tasks": [
+            {
+                "type": "Task",
+                "module": "Transform",
+                "name": "Preprocess",
+                "input": [
+                    "img"
+                ],
+                "output": [
+                    "prep_output"
+                ],
+                "transforms": [
+                    {
+                        "type": "LoadImageFromFile"
+                    },
+                    {
+                        "type": "Resize",
+                        "size": [
+                            320,
+                            320
+                        ],
+                        "keep_ratio": true
+                    },
+                    {
+                        "type": "Pad",
+                        "size": [
+                            320,
+                            320
+                        ],
+                        "pad_val": {
+                            "img": [
+                                114,
+                                114,
+                                114
+                            ]
+                        }
+                    },
+                    {
+                        "type": "Normalize",
+                        "mean": [
+                            103.53,
+                            116.28,
+                            123.675
+                        ],
+                        "std": [
+                            57.375,
+                            57.12,
+                            58.395
+                        ],
+                        "to_rgb": false
+                    },
+                    {
+                        "type": "DefaultFormatBundle"
+                    },
+                    {
+                        "type": "Collect",
+                        "keys": [
+                            "img"
+                        ],
+                        "meta_keys": [
+                            "ori_shape",
+                            "img_shape",
+                            "scale_factor",
+                            "pad_param"
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "Task",
+                "module": "Net",
+                "name": "detection",
+                "is_batched": false,
+                "input": [
+                    "prep_output"
+                ],
+                "output": [
+                    "infer_output"
+                ],
+                "input_map": {
+                    "img": "input"
+                },
+                "output_map": {}
+            },
+            {
+                "type": "Task",
+                "module": "mmdet",
+                "name": "postprocess",
+                "component": "ResizeBBox",
+                "params": {
+                    "score_thr": 0.3
+                },
+                "input": [
+                    "prep_output",
+                    "infer_output"
+                ],
+                "output": [
+                    "dets"
+                ]
+            }
+        ]
+    }
+}
+RTMDET_PIPELINE_EOF
+    log "RTMDet pipeline.json fixed"
+fi
+
+# Fix RTMPose pipeline.json
+RTMPOSE_PIPELINE="${RTMPOSE_ENGINE_DIR}/pipeline.json"
+if [[ -f "${RTMPOSE_PIPELINE}" ]]; then
+    info "Fixing RTMPose pipeline.json..."
+
+    cat > "${RTMPOSE_PIPELINE}" << 'RTMPOSE_PIPELINE_EOF'
+{
+    "pipeline": {
+        "input": [
+            "img"
+        ],
+        "output": [
+            "post_output"
+        ],
+        "tasks": [
+            {
+                "type": "Task",
+                "module": "Transform",
+                "name": "Preprocess",
+                "input": [
+                    "img"
+                ],
+                "output": [
+                    "prep_output"
+                ],
+                "transforms": [
+                    {
+                        "type": "LoadImageFromFile"
+                    },
+                    {
+                        "type": "TopDownGetBboxCenterScale",
+                        "padding": 1.25,
+                        "image_size": [
+                            192,
+                            256
+                        ]
+                    },
+                    {
+                        "type": "TopDownAffine",
+                        "image_size": [
+                            192,
+                            256
+                        ]
+                    },
+                    {
+                        "type": "Normalize",
+                        "mean": [
+                            123.675,
+                            116.28,
+                            103.53
+                        ],
+                        "std": [
+                            58.395,
+                            57.12,
+                            57.375
+                        ],
+                        "to_rgb": true
+                    },
+                    {
+                        "type": "ImageToTensor",
+                        "keys": [
+                            "img"
+                        ]
+                    },
+                    {
+                        "type": "Collect",
+                        "keys": [
+                            "img"
+                        ],
+                        "meta_keys": [
+                            "img_shape",
+                            "pad_shape",
+                            "ori_shape",
+                            "img_norm_cfg",
+                            "scale_factor",
+                            "bbox_score",
+                            "center",
+                            "scale"
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "pose",
+                "type": "Task",
+                "module": "Net",
+                "is_batched": false,
+                "input": [
+                    "prep_output"
+                ],
+                "output": [
+                    "infer_output"
+                ],
+                "input_map": {
+                    "img": "input"
+                },
+                "output_map": {
+                    "output": "simcc_x",
+                    "700": "simcc_y"
+                }
+            },
+            {
+                "type": "Task",
+                "module": "mmpose",
+                "name": "postprocess",
+                "component": "SimCCLabelDecode",
+                "params": {
+                    "flip_test": false,
+                    "type": "SimCCLabel",
+                    "input_size": [
+                        192,
+                        256
+                    ],
+                    "sigma": [
+                        6.0,
+                        6.93
+                    ],
+                    "simcc_split_ratio": 2.0,
+                    "normalize": false,
+                    "use_dark": false,
+                    "export_postprocess": false
+                },
+                "output": [
+                    "post_output"
+                ],
+                "input": [
+                    "prep_output",
+                    "infer_output"
+                ]
+            }
+        ]
+    }
+}
+RTMPOSE_PIPELINE_EOF
+    log "RTMPose pipeline.json fixed"
+fi
+
+# ==============================================================================
+# STEP 9: CREATE ACTIVATION SCRIPT
+# ==============================================================================
+
+section "Step 9: Creating Activation Script"
+
+ACTIVATE_SCRIPT="${PROJECT_ROOT}/activate_ntkcap.sh"
+
+cat > "${ACTIVATE_SCRIPT}" << ACTIVATE_EOF
+#!/bin/bash
+# NTKCAP Environment Activation Script
+# Source this file to set up the environment: source activate_ntkcap.sh
+
+# Get the directory where this script is located
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+
+# Set TensorRT path
+export TENSORRT_DIR="\${SCRIPT_DIR}/NTK_CAP/ThirdParty/TensorRT-${TENSORRT_VERSION}"
+export LD_LIBRARY_PATH="\${TENSORRT_DIR}/lib:\${LD_LIBRARY_PATH:-}"
+
+# Set CUDA path (if not already set)
+if [[ -z "\${CUDA_HOME}" ]]; then
+    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+        if [[ -d "\${cuda_path}" ]]; then
+            export CUDA_HOME="\${cuda_path}"
+            export PATH="\${CUDA_HOME}/bin:\${PATH}"
+            export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${LD_LIBRARY_PATH:-}"
+            break
+        fi
+    done
+fi
+
+# Activate conda environment
+CONDA_BASE=\$(conda info --base 2>/dev/null)
+if [[ -n "\${CONDA_BASE}" ]]; then
+    source "\${CONDA_BASE}/etc/profile.d/conda.sh"
+    conda activate ${CONDA_ENV_NAME}
+fi
+
+# Set project root
+export NTKCAP_ROOT="\${SCRIPT_DIR}"
+cd "\${NTKCAP_ROOT}"
+
+echo "NTKCAP environment activated"
+echo "  Python: \$(which python)"
+echo "  TensorRT: \${TENSORRT_DIR}"
+echo "  Project: \${NTKCAP_ROOT}"
+ACTIVATE_EOF
+
+chmod +x "${ACTIVATE_SCRIPT}"
+log "Activation script created: ${ACTIVATE_SCRIPT}"
+
+# ==============================================================================
+# STEP 10: VERIFICATION
+# ==============================================================================
+
+section "Step 10: Verifying Installation"
+
+info "Running verification tests..."
+
+# Test Python imports
+python << 'VERIFY_EOF'
+import sys
+print("Python:", sys.version)
+
+# Test numpy
+import numpy as np
+print(f"numpy: {np.__version__}")
+assert np.__version__ == "1.22.4", f"numpy version mismatch: {np.__version__}"
+
+# Test torch
+import torch
+print(f"torch: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+
+# Test cupy
+import cupy as cp
+print(f"cupy: {cp.__version__}")
+
+# Test tensorrt
+import tensorrt as trt
+print(f"tensorrt: {trt.__version__}")
+
+# Test mmdeploy
+import mmdeploy_runtime
+print("mmdeploy_runtime: OK")
+
+# Test mmpose
+import mmpose
+print(f"mmpose: {mmpose.__version__}")
+
+# Test mmdet
+import mmdet
+print(f"mmdet: {mmdet.__version__}")
+
+print("\n✓ All Python packages verified!")
+VERIFY_EOF
+
+if [[ $? -ne 0 ]]; then
+    error "Python package verification failed"
+fi
+
+log "Python packages verified"
+
+# Test TensorRT ops library
+info "Testing TensorRT ops library..."
+python << VERIFY_TRT_EOF
+import ctypes
+import os
+
+# Find the library
+script_dir = "${PROJECT_ROOT}"
+lib_path = os.path.join(script_dir, "NTK_CAP/ThirdParty/mmdeploy/build/lib/libmmdeploy_tensorrt_ops.so")
+
+if os.path.exists(lib_path):
+    try:
+        ctypes.CDLL(lib_path, mode=ctypes.RTLD_GLOBAL)
+        print(f"✓ TensorRT ops library loaded: {lib_path}")
+    except Exception as e:
+        print(f"✗ Failed to load TensorRT ops library: {e}")
+        exit(1)
+else:
+    print(f"✗ TensorRT ops library not found: {lib_path}")
+    exit(1)
+VERIFY_TRT_EOF
+
+if [[ $? -ne 0 ]]; then
+    error "TensorRT ops library verification failed"
+fi
+
+log "TensorRT ops library verified"
+
+# Test TensorRT engines
+info "Testing TensorRT engines..."
+if [[ -f "${RTMDET_ENGINE_DIR}/end2end.engine" ]]; then
+    log "RTMDet engine exists: ${RTMDET_ENGINE_DIR}/end2end.engine"
+else
+    warn "RTMDet engine not found"
+fi
+
+if [[ -f "${RTMPOSE_ENGINE_DIR}/end2end.engine" ]]; then
+    log "RTMPose engine exists: ${RTMPOSE_ENGINE_DIR}/end2end.engine"
+else
+    warn "RTMPose engine not found"
+fi
+
+# ==============================================================================
+# DONE
+# ==============================================================================
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════════════╗"
+echo "║                                                                        ║"
+echo "║              NTKCAP Installation Complete!                             ║"
+echo "║                                                                        ║"
+echo "╚════════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "To activate the environment, run:"
+echo ""
+echo "    source ${ACTIVATE_SCRIPT}"
+echo ""
+echo "Or manually:"
+echo ""
+echo "    conda activate ${CONDA_ENV_NAME}"
+echo "    export LD_LIBRARY_PATH=${TENSORRT_DIR}/lib:\$LD_LIBRARY_PATH"
+echo ""
+echo "Installation Summary:"
+echo "  - Conda environment: ${CONDA_ENV_NAME}"
+echo "  - TensorRT: ${TENSORRT_DIR}"
+echo "  - ppl.cv: ${PPLCV_DIR}"
+echo "  - mmdeploy: ${MMDEPLOY_DIR}"
+echo "  - RTMDet engine: ${RTMDET_ENGINE_DIR}"
+echo "  - RTMPose engine: ${RTMPOSE_ENGINE_DIR}"
+echo ""
+log "Installation completed successfully!"
