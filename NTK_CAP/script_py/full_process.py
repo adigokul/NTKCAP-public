@@ -1,4 +1,5 @@
 ##draw normal background
+# TensorRT-only pose estimation using Detector + CuPy TensorRT
 
 from mmpose.apis import MMPoseInferencer
 import json
@@ -8,6 +9,7 @@ import os
 import math
 import platform
 import mmpose
+import ctypes
 
 import subprocess
 from PIL import Image, ImageOps
@@ -19,183 +21,260 @@ import subprocess
 import os
 from pathlib import Path
 import inspect
-MMDEPLOY_AVAILABLE = False
-RTMLIB_AVAILABLE = False
-# Force skip mmdeploy due to incompatible TensorRT engines (built on Windows)
-FORCE_RTMLIB = True
-
-# Try rtmlib first (preferred for cross-platform compatibility)
-try:
-    from rtmlib import Body as RTMLibBody
-    RTMLIB_AVAILABLE = True
-    print('rtmlib found (using as primary backend)')
-except:
-    print('rtmlib not found')
-
-# Only try mmdeploy if rtmlib is not available and we're not forcing rtmlib
-if not RTMLIB_AVAILABLE and not FORCE_RTMLIB:
-    try:
-        from mmdeploy_runtime import PoseTracker as MMDeployPoseTracker
-        MMDEPLOY_AVAILABLE = True
-        print('mmdeploy SDK found')
-    except:
-        print('mmdeploy SDK not found')
-
 import traceback
 
+# Load TensorRT plugin FIRST before any mmdeploy imports
+_PLUGIN_PATH = os.path.join(os.path.dirname(__file__), "..", "ThirdParty", "mmdeploy", "build", "lib", "libmmdeploy_tensorrt_ops.so")
+if os.path.exists(_PLUGIN_PATH):
+    ctypes.CDLL(_PLUGIN_PATH, mode=ctypes.RTLD_GLOBAL)
+    print(f"Loaded TensorRT plugin: {_PLUGIN_PATH}")
+else:
+    print(f"WARNING: TensorRT plugin not found at {_PLUGIN_PATH}")
 
-class RTMLibPoseTrackerWrapper:
-    """Wrapper to make rtmlib work like mmdeploy's PoseTracker interface."""
-    
-    def __init__(self, det_model_path, pose_model_path, device_name):
-        """Initialize using rtmlib's PoseTracker with BodyWithFeet for stable tracking."""
-        backend = 'onnxruntime'
-        device = 'cuda' if 'cuda' in device_name.lower() else 'cpu'
-        
-        # Use rtmlib's BodyWithFeet directly (tracking disabled due to instability with varying people count)
-        try:
-            from rtmlib import BodyWithFeet
-            # Direct model without tracking - more stable when number of people varies
-            self.body = BodyWithFeet(device=device, backend=backend)
-            self.model_type = 'halpe26'
-            self.use_tracker = False
-            print(f"RTMLibPoseTrackerWrapper: Using BodyWithFeet (Halpe26, no tracking) on {device}")
-        except Exception as e:
-            print(f"BodyWithFeet init failed: {e}, falling back to Body")
-            # Fallback to Body (COCO 17 keypoints)
-            from rtmlib import Body
-            self.body = Body(device=device, backend=backend)
-            self.model_type = 'coco17'
-            self.use_tracker = False
-            print(f"RTMLibPoseTrackerWrapper: Fallback to Body (COCO17) on {device}")
-        
-        self._frame_id = 0
-        self._prev_keypoints = None  # For temporal smoothing
-    
-    def create_state(self, **kwargs):
-        """Create a dummy state (rtmlib doesn't need state management)."""
-        return {"frame_id": 0}
-    
+# Import mmdeploy TensorRT backend - Detector works, PoseTracker does not
+import mmdeploy_runtime
+
+# Import CuPy and TensorRT for direct pose estimation
+import cupy as cp
+import tensorrt as trt
+
+print('mmdeploy TensorRT SDK loaded successfully')
+
+
+class TensorRTPoseEstimator:
+    """Direct TensorRT pose estimation using CuPy for GPU memory management."""
+
+    def __init__(self, engine_path):
+        """Initialize TensorRT engine for pose estimation.
+
+        Args:
+            engine_path: Path to the TensorRT engine file (.engine)
+        """
+        self.logger = trt.Logger(trt.Logger.WARNING)
+
+        # Load engine
+        engine_file = os.path.join(engine_path, "end2end.engine")
+        if not os.path.exists(engine_file):
+            raise FileNotFoundError(f"TensorRT engine not found: {engine_file}")
+
+        with open(engine_file, "rb") as f:
+            runtime = trt.Runtime(self.logger)
+            self.engine = runtime.deserialize_cuda_engine(f.read())
+
+        self.context = self.engine.create_execution_context()
+
+        # Allocate CuPy buffers for input/output
+        # RTMPose-m input: 1x3x256x192, outputs: simcc_x (1x26x384), simcc_y (1x26x512)
+        self.d_input = cp.zeros((1, 3, 256, 192), dtype=cp.float32)
+        self.d_output_x = cp.zeros((1, 26, 384), dtype=cp.float32)
+        self.d_output_y = cp.zeros((1, 26, 512), dtype=cp.float32)
+
+        # Set tensor addresses
+        self.context.set_tensor_address("input", self.d_input.data.ptr)
+        self.context.set_tensor_address("output", self.d_output_x.data.ptr)
+        self.context.set_tensor_address("700", self.d_output_y.data.ptr)
+
+        # Create CUDA stream
+        self.stream = cp.cuda.Stream()
+
+        # Normalization parameters (ImageNet)
+        self.mean = np.array([123.675, 116.28, 103.53], dtype=np.float32)
+        self.std = np.array([58.395, 57.12, 57.375], dtype=np.float32)
+
+    def __call__(self, img, bboxes):
+        """Run pose estimation on detected bounding boxes.
+
+        Args:
+            img: BGR image (H, W, 3)
+            bboxes: List of [x1, y1, x2, y2, score] arrays
+
+        Returns:
+            List of dicts with 'keypoints' (26x2), 'scores' (26,), 'bbox' (5,)
+        """
+        results = []
+        img_h, img_w = img.shape[:2]
+
+        for bbox in bboxes:
+            x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+            score = float(bbox[4]) if len(bbox) > 4 else 1.0
+
+            # Expand bbox by 1.25x for better pose estimation
+            w, h = x2 - x1, y2 - y1
+            cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+            size = max(w, h) * 1.25
+
+            x1_new = int(cx - size / 2)
+            y1_new = int(cy - size / 2)
+            x2_new = int(cx + size / 2)
+            y2_new = int(cy + size / 2)
+
+            # Clamp to image bounds
+            x1_new = max(0, x1_new)
+            y1_new = max(0, y1_new)
+            x2_new = min(img_w, x2_new)
+            y2_new = min(img_h, y2_new)
+
+            # Crop and resize
+            crop = img[y1_new:y2_new, x1_new:x2_new]
+            if crop.size == 0:
+                continue
+
+            resized = cv2.resize(crop, (192, 256))
+
+            # Preprocess: BGR->RGB, normalize, transpose to CHW
+            rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            normalized = (rgb.astype(np.float32) - self.mean) / self.std
+            input_np = np.transpose(normalized, (2, 0, 1))[np.newaxis, ...].astype(np.float32)
+
+            # Copy to GPU and run inference
+            self.d_input[:] = cp.asarray(input_np)
+            with self.stream:
+                self.context.execute_async_v3(self.stream.ptr)
+            self.stream.synchronize()
+
+            # Get outputs
+            output_x = cp.asnumpy(self.d_output_x)
+            output_y = cp.asnumpy(self.d_output_y)
+
+            # Decode SimCC keypoints
+            keypoints = []
+            scores_list = []
+            crop_w, crop_h = x2_new - x1_new, y2_new - y1_new
+
+            for k in range(26):
+                x_idx = np.argmax(output_x[0, k])
+                y_idx = np.argmax(output_y[0, k])
+
+                # Confidence is minimum of x and y predictions
+                kpt_score = float(min(output_x[0, k, x_idx], output_y[0, k, y_idx]))
+
+                # Convert from SimCC 2x resolution back to original coords
+                kx = x_idx / 2.0  # SimCC uses 2x resolution
+                ky = y_idx / 2.0
+
+                # Map from crop coords (192x256) back to original image
+                orig_x = x1_new + (kx / 192.0) * crop_w
+                orig_y = y1_new + (ky / 256.0) * crop_h
+
+                keypoints.append([orig_x, orig_y])
+                scores_list.append(kpt_score)
+
+            results.append({
+                'keypoints': np.array(keypoints, dtype=np.float32),
+                'scores': np.array(scores_list, dtype=np.float32),
+                'bbox': np.array([x1, y1, x2, y2, score], dtype=np.float32)
+            })
+
+        return results
+
+
+class TensorRTTrackerState:
+    """State object for TensorRT tracker (placeholder for compatibility)."""
+    def __init__(self, det_interval=1, det_min_bbox_size=100, keypoint_sigmas=None):
+        self.det_interval = det_interval
+        self.det_min_bbox_size = det_min_bbox_size
+        self.keypoint_sigmas = keypoint_sigmas
+        self.frame_count = 0
+
+
+class TensorRTTracker:
+    """TensorRT-based pose tracker using Detector + direct TensorRT pose estimation.
+
+    Provides similar interface to mmdeploy PoseTracker but uses working components.
+    """
+
+    def __init__(self, det_model_path, pose_model_path, device_name="cuda", device_id=0):
+        """Initialize tracker with detection and pose models.
+
+        Args:
+            det_model_path: Path to RTMDet TensorRT model directory
+            pose_model_path: Path to RTMPose TensorRT model directory
+            device_name: Device name ('cuda')
+            device_id: GPU device ID
+        """
+        # Initialize detector (mmdeploy Detector works)
+        self.detector = mmdeploy_runtime.Detector(
+            model_path=det_model_path,
+            device_name=device_name,
+            device_id=device_id
+        )
+        print(f"TensorRT Detector initialized on {device_name}:{device_id}")
+
+        # Initialize pose estimator (direct TensorRT)
+        self.pose_estimator = TensorRTPoseEstimator(pose_model_path)
+        print(f"TensorRT PoseEstimator initialized")
+
+        self.person_class_id = 0  # COCO person class
+        self.min_score = 0.3
+
+    def create_state(self, det_interval=1, det_min_bbox_size=100, keypoint_sigmas=None):
+        """Create tracker state (for API compatibility)."""
+        return TensorRTTrackerState(det_interval, det_min_bbox_size, keypoint_sigmas)
+
     def __call__(self, state, frame, detect=-1):
-        """Run inference on a frame, returning (keypoints, bboxes, track_ids)."""
-        # rtmlib returns keypoints and scores
-        try:
-            keypoints, scores = self.body(frame)
-        except Exception as e:
-            print(f"[WARNING] Pose estimation failed: {e}")
-            return np.zeros((0, 26, 3)), np.zeros((0, 4)), np.zeros(0, dtype=np.uint32)
-        
-        # Convert to mmdeploy format: keypoints shape should be (N, K, 3) where 3 = x, y, score
-        if len(keypoints) == 0:
+        """Process a frame and return pose results.
+
+        Args:
+            state: Tracker state object
+            frame: BGR image (H, W, 3)
+            detect: Detection mode (-1 = always detect)
+
+        Returns:
+            Tuple of (keypoints, bboxes, None):
+                - keypoints: (N, 26, 3) array with [x, y, score]
+                - bboxes: (N, 5) array with [x1, y1, x2, y2, score]
+                - None: Placeholder for compatibility
+        """
+        state.frame_count += 1
+
+        # Run detection
+        det_result = self.detector(frame)
+        bboxes_raw, labels, _ = det_result
+
+        # Filter for persons with sufficient confidence
+        person_bboxes = []
+        for bbox, label in zip(bboxes_raw, labels):
+            if label == self.person_class_id and bbox[4] > self.min_score:
+                person_bboxes.append(bbox)
+
+        if len(person_bboxes) == 0:
             # No detections
-            return np.zeros((0, 26, 3)), np.zeros((0, 4)), np.zeros(0, dtype=np.uint32)
-        
-        num_people = len(keypoints)
-        num_kpts = keypoints.shape[1] if len(keypoints.shape) > 1 else 17
-        
-        # Create combined keypoints with scores
-        combined = np.zeros((num_people, 26, 3))
-        
-        if self.model_type == 'halpe26' and num_kpts >= 26:
-            # BodyWithFeet outputs Halpe26 format directly (26 keypoints)
-            for i in range(num_people):
-                for j in range(26):
-                    combined[i, j, 0] = keypoints[i, j, 0]  # x
-                    combined[i, j, 1] = keypoints[i, j, 1]  # y
-                    combined[i, j, 2] = scores[i, j] if j < len(scores[i]) else 0.5  # score
-        else:
-            # COCO 17 keypoints - need to map to Halpe26
-            # COCO: 0=nose, 1=left_eye, 2=right_eye, 3=left_ear, 4=right_ear, 
-            #       5=left_shoulder, 6=right_shoulder, 7=left_elbow, 8=right_elbow,
-            #       9=left_wrist, 10=right_wrist, 11=left_hip, 12=right_hip,
-            #       13=left_knee, 14=right_knee, 15=left_ankle, 16=right_ankle
-            for i in range(num_people):
-                # Direct mapping for first 17 keypoints
-                for j in range(min(num_kpts, 17)):
-                    combined[i, j, 0] = keypoints[i, j, 0]
-                    combined[i, j, 1] = keypoints[i, j, 1]
-                    combined[i, j, 2] = scores[i, j] if j < len(scores[i]) else 0.5
-                
-                # Synthesize additional keypoints (17-25)
-                # 17=head (top of head, above nose)
-                if num_kpts >= 3:
-                    combined[i, 17, 0] = keypoints[i, 0, 0]  # Same x as nose
-                    combined[i, 17, 1] = keypoints[i, 0, 1] - 30  # Above nose
-                    combined[i, 17, 2] = scores[i, 0] * 0.8
-                
-                # 18=neck (midpoint of shoulders)
-                if num_kpts >= 7:
-                    combined[i, 18, 0] = (keypoints[i, 5, 0] + keypoints[i, 6, 0]) / 2
-                    combined[i, 18, 1] = (keypoints[i, 5, 1] + keypoints[i, 6, 1]) / 2
-                    combined[i, 18, 2] = (scores[i, 5] + scores[i, 6]) / 2
-                
-                # 19=hip (midpoint of hips)
-                if num_kpts >= 13:
-                    combined[i, 19, 0] = (keypoints[i, 11, 0] + keypoints[i, 12, 0]) / 2
-                    combined[i, 19, 1] = (keypoints[i, 11, 1] + keypoints[i, 12, 1]) / 2
-                    combined[i, 19, 2] = (scores[i, 11] + scores[i, 12]) / 2
-                
-                # Foot keypoints (20-25) - leave as zeros for COCO fallback
-                # The triangulation will handle missing keypoints
-        
-        # Apply temporal smoothing to reduce jitter
-        if self._prev_keypoints is not None and num_people > 0:
-            # Simple exponential smoothing for stability
-            alpha = 0.7  # Higher = more responsive, lower = smoother
-            for i in range(min(num_people, len(self._prev_keypoints))):
-                for j in range(26):
-                    if combined[i, j, 2] > 0.3 and self._prev_keypoints[i, j, 2] > 0.3:
-                        # Only smooth high-confidence keypoints
-                        combined[i, j, 0] = alpha * combined[i, j, 0] + (1 - alpha) * self._prev_keypoints[i, j, 0]
-                        combined[i, j, 1] = alpha * combined[i, j, 1] + (1 - alpha) * self._prev_keypoints[i, j, 1]
-                    elif combined[i, j, 2] < 0.2 and self._prev_keypoints[i, j, 2] > 0.3:
-                        # Use previous frame if current detection is poor
-                        combined[i, j, :] = self._prev_keypoints[i, j, :]
-        
-        # Store for next frame
-        self._prev_keypoints = combined.copy() if num_people > 0 else None
-        
-        # Compute bboxes from keypoints
-        bboxes = np.zeros((num_people, 4))
-        for i in range(num_people):
-            valid_kpts = combined[i, :, 2] > 0.2  # Slightly higher threshold
-            if valid_kpts.any():
-                x_coords = combined[i, valid_kpts, 0]
-                y_coords = combined[i, valid_kpts, 1]
-                bboxes[i] = [x_coords.min(), y_coords.min(), x_coords.max(), y_coords.max()]
-        
-        track_ids = np.arange(num_people, dtype=np.uint32)
-        
-        return combined, bboxes, track_ids
+            return np.empty((0, 26, 3)), np.empty((0, 5)), None
+
+        # Run pose estimation
+        pose_results = self.pose_estimator(frame, person_bboxes)
+
+        if len(pose_results) == 0:
+            return np.empty((0, 26, 3)), np.empty((0, 5)), None
+
+        # Format output to match PoseTracker interface
+        num_people = len(pose_results)
+        keypoints_out = np.zeros((num_people, 26, 3), dtype=np.float32)
+        bboxes_out = np.zeros((num_people, 5), dtype=np.float32)
+
+        for i, result in enumerate(pose_results):
+            keypoints_out[i, :, :2] = result['keypoints']
+            keypoints_out[i, :, 2] = result['scores']
+            bboxes_out[i] = result['bbox']
+
+        return keypoints_out, bboxes_out, None
 
 
 def create_pose_tracker(det_model_path, pose_model_path, device_name):
-    """Factory function to create a PoseTracker with fallback support."""
-    global MMDEPLOY_AVAILABLE, RTMLIB_AVAILABLE, FORCE_RTMLIB
-    
-    # Use rtmlib (preferred for cross-platform compatibility)
-    if RTMLIB_AVAILABLE:
-        try:
-            tracker = RTMLibPoseTrackerWrapper(det_model_path, pose_model_path, device_name)
-            print("Using rtmlib PoseTracker (ONNX Runtime - cross-platform)")
-            return tracker
-        except Exception as e:
-            print(f"rtmlib failed: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    # Fall back to mmdeploy if rtmlib fails
-    if MMDEPLOY_AVAILABLE and not FORCE_RTMLIB:
-        try:
-            from mmdeploy_runtime import PoseTracker as MMDeployPoseTracker
-            tracker = MMDeployPoseTracker(det_model_path, pose_model_path, device_name)
-            _ = tracker.create_state()
-            print("Using mmdeploy PoseTracker (TensorRT)")
-            return tracker
-        except Exception as e:
-            print(f"mmdeploy PoseTracker failed: {e}")
-    
-    raise RuntimeError("No pose tracking backend available. Install rtmlib: pip install rtmlib")
+    """Create a TensorRT-based PoseTracker using Detector + direct TensorRT pose."""
+    try:
+        tracker = TensorRTTracker(
+            det_model_path=det_model_path,
+            pose_model_path=pose_model_path,
+            device_name=device_name
+        )
+        _ = tracker.create_state()
+        print(f"TensorRT Tracker (Detector + CuPy Pose) initialized on {device_name}")
+        return tracker
+    except Exception as e:
+        print(f"TensorRT Tracker failed: {e}")
+        traceback.print_exc()
+        raise RuntimeError(f"TensorRT pose tracking failed: {e}")
 
 # Platform detection for cross-platform executable handling
 IS_WINDOWS = platform.system() == 'Windows'
@@ -560,7 +639,9 @@ def timesync_video(video_folder,cam_num,opensim_folder):
     else:
         print('No Time Sync File')
 def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
-    AlphaPose_to_OpenPose = "./NTK_CAP/script_py"
+    # Use script location for AlphaPose_to_OpenPose path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    AlphaPose_to_OpenPose = script_dir
     temp_dir = os.getcwd()
     VISUALIZATION_CFG = dict(
     halpe26=dict(
@@ -580,17 +661,20 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
             0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
         ]))
-    det_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")#連到轉換過的det_model的資料夾
-    pose_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")#連到轉換過的pose_model的資料夾
+    # Use script location to find model paths (works regardless of cwd)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ntkcap_dir = os.path.dirname(script_dir)  # Go up from script_py to NTK_CAP
+    det_model = os.path.join(ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")
+    pose_model = os.path.join(ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
     device_name = "cuda"
     thr=0.5
     frame_id = 0
     skeleton_type='halpe26'
     np.set_printoptions(precision=13, suppress=True)
-    
+
     video = cv2.VideoCapture(Video_path)
     cam_num =int(os.path.splitext(os.path.basename(Video_path))[0])-1
-    tracker = create_pose_tracker(det_model, pose_model, device_name)    
+    tracker = create_pose_tracker(det_model, pose_model, device_name)
     sigmas = VISUALIZATION_CFG[skeleton_type]['sigmas']
     state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
     ###skeleton style
@@ -661,7 +745,9 @@ def rtm2json_gpu_sync_calibrate(Video_path, out_dir, calibrate_array):
     
         
 def rtm2json_gpu(Video_path, out_dir, out_video):
-    AlphaPose_to_OpenPose = "./NTK_CAP/script_py"
+    # Use script location for AlphaPose_to_OpenPose path
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    AlphaPose_to_OpenPose = script_dir
     temp_dir = os.getcwd()
     VISUALIZATION_CFG = dict(
     halpe26=dict(
@@ -681,23 +767,26 @@ def rtm2json_gpu(Video_path, out_dir, out_video):
             0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 0.026,
             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
         ]))
-    det_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")#連到轉換過的det_model的資料夾
-    pose_model = os.path.join(temp_dir , "NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")#連到轉換過的pose_model的資料夾
+    # Use script location to find model paths (works regardless of cwd)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    ntkcap_dir = os.path.dirname(script_dir)  # Go up from script_py to NTK_CAP
+    det_model = os.path.join(ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")
+    pose_model = os.path.join(ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
     device_name = "cuda"
     thr=0.5
     frame_id = 0
     skeleton_type='halpe26'
     np.set_printoptions(precision=13, suppress=True)
-    
+
     video = cv2.VideoCapture(Video_path)
     ###save new video setting
     fps = video.get(cv2.CAP_PROP_FPS)
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    
+
     ###
-    tracker = create_pose_tracker(det_model, pose_model, device_name)    
+    tracker = create_pose_tracker(det_model, pose_model, device_name)
     sigmas = VISUALIZATION_CFG[skeleton_type]['sigmas']
     state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
     ###skeleton style

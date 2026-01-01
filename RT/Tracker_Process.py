@@ -1,9 +1,25 @@
 from multiprocessing import Event, shared_memory, Manager, Queue, Array, Lock, Process
-from mmdeploy_runtime import PoseTracker
 import os
+import sys
 import cv2
 import time
 import numpy as np
+import ctypes
+
+# Add NTK_CAP to path for imports
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_ntkcaptensor_dir = os.path.dirname(_script_dir)
+_ntkcap_dir = os.path.join(_ntkcaptensor_dir, "NTK_CAP")
+sys.path.insert(0, _ntkcap_dir)
+
+# Load TensorRT plugin FIRST
+_PLUGIN_PATH = os.path.join(_ntkcap_dir, "ThirdParty", "mmdeploy", "build", "lib", "libmmdeploy_tensorrt_ops.so")
+if os.path.exists(_PLUGIN_PATH):
+    ctypes.CDLL(_PLUGIN_PATH, mode=ctypes.RTLD_GLOBAL)
+
+# Import our working TensorRT Tracker
+from script_py.full_process import TensorRTTracker
+
 VISUALIZATION_CFG = dict(
     halpe26=dict(
         skeleton=[(15,13), (13,11), (11,19),(16,14), (14,12), (12,19),
@@ -24,8 +40,9 @@ VISUALIZATION_CFG = dict(
             0.026, 0.066, 0.079, 0.079, 0.079, 0.079, 0.079, 0.079
         ]))
 
-det_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-nano")
-pose_model_path = os.path.join(os.getcwd(),"NTK_CAP", "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
+# Use script location to find model paths
+det_model_path = os.path.join(_ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmdet-m")
+pose_model_path = os.path.join(_ntkcap_dir, "ThirdParty", "mmdeploy", "rtmpose-trt", "rtmpose-m")
 device ="cuda"
 
 sigmas = VISUALIZATION_CFG['halpe26']['sigmas']
@@ -52,9 +69,9 @@ class Tracker_Process(Process):
         self.buffer_length = 20
         self.tracker_shm_shape = (1, 26, 3)
     def run(self):
-        # RTM model
-        tracker = PoseTracker(det_model=det_model_path,pose_model=pose_model_path,device_name=device)
-        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas, pose_max_num_bboxes=1)
+        # RTM model using TensorRT Tracker (Detector + CuPy Pose)
+        tracker = TensorRTTracker(det_model_path=det_model_path, pose_model_path=pose_model_path, device_name=device)
+        state = tracker.create_state(det_interval=1, det_min_bbox_size=100, keypoint_sigmas=sigmas)
     
         existing_shm_frame1 = shared_memory.SharedMemory(name=self.sync_frame_shm_name1)
         shared_array_frame1 = np.ndarray((self.buffer_length,) + self.frame_shm_shape, dtype=np.uint8, buffer=existing_shm_frame1.buf)
