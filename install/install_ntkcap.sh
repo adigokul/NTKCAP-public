@@ -287,8 +287,8 @@ info "Installing PyTorch with CUDA 11.8..."
 pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 \
     --index-url https://download.pytorch.org/whl/cu118
 
-info "Installing numpy (pinned version to avoid conflicts)..."
-pip install numpy==1.22.4
+info "Installing numpy..."
+pip install numpy==1.25.2  # OpenSim requires numpy>=1.25
 
 info "Installing OpenMMLab packages..."
 pip install openmim
@@ -302,7 +302,13 @@ pip install mmdeploy==1.3.1
 pip install mmdeploy-runtime-gpu==1.3.1
 
 info "Installing TensorRT Python bindings..."
-pip install tensorrt==8.6.1
+# Install TensorRT dependencies first from NVIDIA's PyPI to avoid build failures
+# The tensorrt package tries to install tensorrt_libs during wheel build, which can fail
+# if the NVIDIA index URL isn't passed correctly to the subprocess
+pip install tensorrt_libs==8.6.1 --index-url https://pypi.nvidia.com
+pip install tensorrt_bindings==8.6.1 --index-url https://pypi.nvidia.com
+# Use --no-build-isolation to prevent pip module issues in the build subprocess
+pip install tensorrt==8.6.1 --no-build-isolation
 
 info "Installing CuPy for GPU acceleration..."
 pip install cupy-cuda11x==13.6.0
@@ -313,22 +319,34 @@ pip install onnxruntime-gpu==1.17.1
 
 info "Installing other dependencies..."
 pip install opencv-python-headless
-pip install pyqt5==5.15.11
 pip install scipy==1.13.0
 pip install matplotlib==3.8.4
 pip install tqdm
 pip install pyyaml
 pip install cmake
+pip install toml
+pip install ipython
+pip install keyboard
+pip install beautifulsoup4 lxml
+pip install pyserial
+pip install pygltflib
+pip install natsort
+pip install openpyxl
+pip install websocket-client
+pip install func_timeout
+
+info "Installing OpenSim (biomechanics library)..."
+conda install -c opensim-org opensim -y
+
+info "Installing PyQt6 and pyqtgraph (GUI dependencies)..."
+pip install PyQt6==6.5.3 PyQt6-Qt6==6.5.3 PyQt6-sip==13.6.0
+pip install PyQt6-WebEngine==6.5.0 PyQt6-WebEngine-Qt6==6.5.3
+pip install pyqtgraph
 
 log "Python dependencies installed"
 
-# Verify numpy version (critical)
+# Verify numpy version
 NUMPY_VERSION=$(python -c "import numpy; print(numpy.__version__)")
-if [[ "${NUMPY_VERSION}" != "1.22.4" ]]; then
-    warn "numpy version is ${NUMPY_VERSION}, expected 1.22.4"
-    info "Fixing numpy version..."
-    pip install numpy==1.22.4 --force-reinstall
-fi
 log "numpy version: ${NUMPY_VERSION}"
 
 if ! ask_continue "TensorRT setup"; then
@@ -380,6 +398,11 @@ if [[ ! -d "${PPLCV_DIR}" ]]; then
     info "Cloning ppl.cv..."
     git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
     log "ppl.cv cloned"
+elif [[ ! -d "${PPLCV_DIR}/.git" ]]; then
+    warn "ppl.cv exists but is not a git repository. Re-cloning..."
+    rm -rf "${PPLCV_DIR}"
+    git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
+    log "ppl.cv re-cloned"
 else
     log "ppl.cv already exists"
 fi
@@ -388,6 +411,18 @@ cd "${PPLCV_DIR}"
 
 # Create build directory
 PPLCV_BUILD_DIR="${PPLCV_DIR}/cuda-build"
+
+# Clean stale CMake caches if they exist (prevents errors when building from different locations)
+if [[ -f "${PPLCV_BUILD_DIR}/CMakeCache.txt" ]]; then
+    info "Cleaning stale CMake cache..."
+    rm -rf "${PPLCV_BUILD_DIR}"
+fi
+# Also clean deps directory which contains FetchContent caches
+if [[ -d "${PPLCV_DIR}/deps" ]]; then
+    info "Cleaning stale dependency caches..."
+    rm -rf "${PPLCV_DIR}/deps"
+fi
+
 mkdir -p "${PPLCV_BUILD_DIR}"
 cd "${PPLCV_BUILD_DIR}"
 
@@ -428,6 +463,20 @@ fi
 
 section "Step 5: Building mmdeploy SDK with TensorRT"
 
+# Clone mmdeploy if it doesn't exist or isn't a valid git repo
+if [[ ! -d "${MMDEPLOY_DIR}" ]]; then
+    info "Cloning mmdeploy..."
+    git clone --depth 1 --branch v1.3.1 https://github.com/open-mmlab/mmdeploy.git "${MMDEPLOY_DIR}"
+    log "mmdeploy cloned"
+elif [[ ! -d "${MMDEPLOY_DIR}/.git" ]]; then
+    warn "mmdeploy exists but is not a git repository. Re-cloning..."
+    rm -rf "${MMDEPLOY_DIR}"
+    git clone --depth 1 --branch v1.3.1 https://github.com/open-mmlab/mmdeploy.git "${MMDEPLOY_DIR}"
+    log "mmdeploy re-cloned"
+else
+    log "mmdeploy already exists"
+fi
+
 cd "${MMDEPLOY_DIR}"
 
 # Initialize submodules
@@ -436,6 +485,13 @@ git submodule update --init --recursive
 
 # Create build directory
 MMDEPLOY_BUILD_DIR="${MMDEPLOY_DIR}/build"
+
+# Clean stale CMake cache if it exists (prevents errors when building from different locations)
+if [[ -f "${MMDEPLOY_BUILD_DIR}/CMakeCache.txt" ]]; then
+    info "Cleaning stale CMake cache..."
+    rm -rf "${MMDEPLOY_BUILD_DIR}"
+fi
+
 mkdir -p "${MMDEPLOY_BUILD_DIR}"
 cd "${MMDEPLOY_BUILD_DIR}"
 
@@ -521,8 +577,8 @@ mkdir -p "${RTMPOSE_ENGINE_DIR}"
 RTMDET_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmdet/detection/detection_tensorrt_static-320x320.py"
 RTMPOSE_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmpose/pose-detection_simcc_tensorrt_dynamic-256x192.py"
 
-RTMDET_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmdetection/mmdet/configs/rtmdet/rtmdet_m_8xb32_300e_coco.py"
-RTMPOSE_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmpose/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
+RTMDET_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmdet/.mim/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
+RTMPOSE_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmpose/.mim/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
 
 # Demo images
 DET_IMAGE="${MMDEPLOY_DIR}/demo/resources/det.jpg"

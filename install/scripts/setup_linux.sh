@@ -13,7 +13,7 @@
 # 3. Git Zombie State - Verifies submodule health
 # 4. CMake vs Pip Disconnect - Uses apt for dev libraries
 # 5. TensorRT Half-Install - Extracts full TAR.GZ with headers
-# 6. NumPy ABI Fracture - Pins numpy==1.22.4
+# 6. NumPy ABI Fracture - Pins numpy==1.25.2 (OpenSim requires >=1.25)
 # 7. pplcv Missing - Builds pplcv before mmdeploy SDK
 ################################################################################
 
@@ -448,7 +448,7 @@ install_python_deps() {
     
     # 1. BASE DEPENDENCIES (Pinned tight)
     info "Installing base dependencies..."
-    pip install "numpy==1.22.4" --force-reinstall
+    pip install "numpy==1.25.2" --force-reinstall  # OpenSim requires numpy>=1.25
     
     # 2. PYTORCH (CUDA 11.8)
     info "Installing PyTorch 2.0.1..."
@@ -473,7 +473,7 @@ install_python_deps() {
     
     # 5. MMDEPLOY & RUNTIME
     info "Installing mmdeploy and runtime..."
-    pip install mmdeploy==1.3.1 mmdeploy-runtime-gpu==1.3.1 "numpy==1.22.4"
+    pip install mmdeploy==1.3.1 mmdeploy-runtime-gpu==1.3.1
 
     # 6. ONNX RUNTIME
     info "Installing onnxruntime-gpu..."
@@ -482,7 +482,7 @@ install_python_deps() {
     # 7. MMEngine Ecosystem (DIRECT INSTALL - NO MIM)
     info "Installing MMEngine ecosystem (Direct Pip Mode)..."
     pip install -U openmim
-    pip install mmengine "mmcv==2.1.0" "mmdet>=3.3.0" "numpy==1.22.4" \
+    pip install mmengine "mmcv==2.1.0" "mmdet>=3.3.0" \
         -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0.0/index.html
 
     # 8. PYQT6 (Pinned)
@@ -516,9 +516,11 @@ install_python_deps() {
         keyboard \
         multiprocess \
         bs4 \
+        lxml \
+        ipython \
+        websocket-client \
         ultralytics \
-        Pose2Sim==0.4 \
-        "numpy==1.22.4"
+        Pose2Sim==0.4
     
     log "Python dependencies installed!"
 }

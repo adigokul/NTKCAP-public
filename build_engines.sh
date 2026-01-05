@@ -77,8 +77,8 @@ RTMDET_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmdet/detection/detection_tensorrt_st
 RTMPOSE_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmpose/pose-detection_simcc_tensorrt_dynamic-256x192.py"
 
 # Model configs (from build_engines subdirectory)
-RTMDET_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmdetection/mmdet/configs/rtmdet/rtmdet_m_8xb32_300e_coco.py"
-RTMPOSE_MODEL_CFG="${MMDEPLOY_DIR}/build_engines/mmpose/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-m_8xb256-420e_coco-256x192.py"
+RTMDET_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmdet/.mim/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
+RTMPOSE_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmpose/.mim/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
 
 # Demo images for calibration
 DET_IMAGE="${MMDEPLOY_DIR}/demo/resources/det.jpg"
