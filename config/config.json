@@ -1,16 +1,22 @@
 {
     "cam": {
         "number": 4,
-        "list": [
-            0,
-            2,
-            4,
-            6
-        ],
+        "list": [0, 2, 4, 6],
         "resolution": [
             1920,
             1080
         ],
-        "name": "HD camera"
+        "name": "HD camera",
+        "type": "usb",
+        "poe": {
+            "ips": [
+                "192.168.0.100",
+                "192.168.3.100",
+                "192.168.5.100",
+                "192.168.7.100"
+            ],
+            "openni2_base": "NTK_CAP/ThirdParty/OpenNI2",
+            "model": "ae450"
+        }
     }
 }

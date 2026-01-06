@@ -343,6 +343,9 @@ pip install PyQt6==6.5.3 PyQt6-Qt6==6.5.3 PyQt6-sip==13.6.0
 pip install PyQt6-WebEngine==6.5.0 PyQt6-WebEngine-Qt6==6.5.3
 pip install pyqtgraph
 
+info "Installing OpenNI2 Python bindings (for PoE cameras)..."
+pip install openni
+
 log "Python dependencies installed"
 
 # Verify numpy version
@@ -1050,6 +1053,73 @@ else
 fi
 
 # ==============================================================================
+# STEP 11: LIPSEDGE POE CAMERA SETUP (OPTIONAL)
+# ==============================================================================
+
+section "Step 11: LIPSedge PoE Camera Setup (Optional)"
+
+echo ""
+echo "LIPSedge AE400/AE450 PoE cameras require additional setup."
+echo ""
+echo "The OpenNI2 Python bindings have been installed (pip install openni)."
+echo "However, you need to install the LIPSedge SDK for full camera support."
+echo ""
+
+LIPSEDGE_SDK_DIR="${THIRDPARTY_DIR}/LIPSedge-SDK"
+OPENNI2_DIR="${THIRDPARTY_DIR}/OpenNI2"
+
+if ask_continue "LIPSedge PoE camera setup"; then
+    # Install system dependencies for OpenNI2
+    info "Installing system dependencies for OpenNI2..."
+    sudo apt-get update
+    sudo apt-get install -y libusb-1.0-0-dev libudev-dev libgtk2.0-dev freeglut3-dev
+
+    # Create OpenNI2 directory structure
+    mkdir -p "${OPENNI2_DIR}"
+
+    echo ""
+    echo "┌─────────────────────────────────────────────────────────────────────────┐"
+    echo "│                    LIPSedge SDK Manual Setup Required                   │"
+    echo "├─────────────────────────────────────────────────────────────────────────┤"
+    echo "│                                                                         │"
+    echo "│  To use LIPSedge AE400/AE450 PoE cameras, follow these steps:          │"
+    echo "│                                                                         │"
+    echo "│  1. Download LIPSedge SDK from:                                        │"
+    echo "│     https://dev.lips-hci.com/lipsedge-ae400-ae450-sdk-release          │"
+    echo "│                                                                         │"
+    echo "│  2. Extract and install the SDK:                                       │"
+    echo "│     tar -xzf LIPS-Linux-x64-OpenNI2.2.tar.gz                          │"
+    echo "│     cd LIPS-Linux-x64-OpenNI2.2                                        │"
+    echo "│     sudo ./install.sh                                                  │"
+    echo "│                                                                         │"
+    echo "│  3. For each camera, create a directory with its IP address:           │"
+    echo "│     mkdir -p ${OPENNI2_DIR}/192.168.0.100                              │"
+    echo "│                                                                         │"
+    echo "│  4. Copy OpenNI2 libraries and create network.json for each camera:    │"
+    echo "│     - OpenNI2.dll (or .so on Linux)                                    │"
+    echo "│     - OpenNI.ini                                                       │"
+    echo "│     - OpenNI2/Drivers/network.json (with camera IP configured)         │"
+    echo "│                                                                         │"
+    echo "│  5. Configure camera IPs in config/config.json:                        │"
+    echo "│     \"poe\": {                                                           │"
+    echo "│       \"ips\": [\"192.168.0.100\", \"192.168.3.100\", ...],               │"
+    echo "│       \"openni2_base\": \"NTK_CAP/ThirdParty/OpenNI2\",                   │"
+    echo "│       \"model\": \"ae450\"                                                │"
+    echo "│     }                                                                  │"
+    echo "│                                                                         │"
+    echo "│  Documentation: https://dev.lips-hci.com                               │"
+    echo "│  GitHub: https://github.com/lips-hci/LIPSedge-sdk-samples             │"
+    echo "│                                                                         │"
+    echo "└─────────────────────────────────────────────────────────────────────────┘"
+    echo ""
+
+    log "OpenNI2 directory created: ${OPENNI2_DIR}"
+    log "Please complete manual SDK installation as described above"
+else
+    info "Skipping LIPSedge setup. You can set it up later if needed."
+fi
+
+# ==============================================================================
 # DONE
 # ==============================================================================
 
@@ -1076,5 +1146,10 @@ echo "  - ppl.cv: ${PPLCV_DIR}"
 echo "  - mmdeploy: ${MMDEPLOY_DIR}"
 echo "  - RTMDet engine: ${RTMDET_ENGINE_DIR}"
 echo "  - RTMPose engine: ${RTMPOSE_ENGINE_DIR}"
+echo "  - OpenNI2 (PoE cameras): ${OPENNI2_DIR}"
+echo ""
+echo "Camera Support:"
+echo "  - USB Webcams: Ready to use"
+echo "  - PoE Cameras (AE400/AE450): Requires LIPSedge SDK (see Step 11)"
 echo ""
 log "Installation completed successfully!"

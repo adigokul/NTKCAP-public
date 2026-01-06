@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
                 padding: 5px 10px;
                 border-radius: 3px;
                 font-weight: bold;
-                min-width: 150px;
+                min-width: 180px;
             }
             QPushButton:checked {
                 background-color: #51cf66;
@@ -549,10 +549,11 @@ class MainWindow(QMainWindow):
             with open(camera_config_path, 'r') as f:
                 config = json.load(f)
             current_type = config['cam'].get('type', 'usb')
-            if current_type == 'ae400':
+            poe_model = config['cam'].get('poe', {}).get('model', 'ae450').upper()
+            if current_type in ('ae400', 'ae450', 'poe'):
                 self.btn_camera_mode.setChecked(True)
-                self.btn_camera_mode.setText("Camera: AE400")
-                print("✅ Camera Mode toggle button added to status bar (AE400)")
+                self.btn_camera_mode.setText(f"Camera: PoE ({poe_model})")
+                print(f"✅ Camera Mode toggle button added to status bar (PoE {poe_model})")
             else:
                 print("✅ Camera Mode toggle button added to status bar (Webcam)")
         except Exception as e:
@@ -579,24 +580,25 @@ class MainWindow(QMainWindow):
 
     # Camera Mode Toggle
     def on_camera_mode_toggled(self):
-        """Handle camera mode toggle between Webcam and AE400"""
-        is_ae400 = self.btn_camera_mode.isChecked()
+        """Handle camera mode toggle between Webcam and PoE (AE400/AE450)"""
+        is_poe = self.btn_camera_mode.isChecked()
 
-        # Update button text
-        if is_ae400:
-            self.btn_camera_mode.setText("Camera: AE400")
-            camera_type = "ae400"
-            print("✅ Switched to AE400 depth camera mode (RGB only)")
-        else:
-            self.btn_camera_mode.setText("Camera: Webcam")
-            camera_type = "usb"
-            print("✅ Switched to Webcam mode")
-
-        # Update config file
+        # Update config file and button text
         try:
             camera_config_path = os.path.join(self.config_path, 'config.json')
             with open(camera_config_path, 'r') as f:
                 config = json.load(f)
+
+            poe_model = config['cam'].get('poe', {}).get('model', 'ae450').upper()
+
+            if is_poe:
+                self.btn_camera_mode.setText(f"Camera: PoE ({poe_model})")
+                camera_type = "poe"
+                print(f"✅ Switched to PoE camera mode ({poe_model}, RGB only)")
+            else:
+                self.btn_camera_mode.setText("Camera: Webcam")
+                camera_type = "usb"
+                print("✅ Switched to Webcam mode")
 
             config['cam']['type'] = camera_type
 
@@ -610,13 +612,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(
                     self,
                     "Camera Mode Changed",
-                    f"Camera mode changed to {'AE400 Depth Camera' if is_ae400 else 'Webcam'}.\n\n"
+                    f"Camera mode changed to {'PoE Depth Camera (' + poe_model + ')' if is_poe else 'Webcam'}.\n\n"
                     "Please close and reopen cameras for changes to take effect."
                 )
             else:
                 if hasattr(self, 'label_log'):
                     self.label_log.setText(
-                        f"Camera mode: {'AE400 (RGB)' if is_ae400 else 'Webcam'} - Open cameras to apply"
+                        f"Camera mode: {'PoE (' + poe_model + ')' if is_poe else 'Webcam'} - Open cameras to apply"
                     )
 
         except Exception as e:
@@ -1317,24 +1319,29 @@ class MainWindow(QMainWindow):
         project_root = os.path.dirname(os.path.abspath(__file__))
         cam_configs = []
 
-        if camera_type == 'ae400':
-            # AE400 mode
-            ae400_config = cam_config.get('ae400', {})
-            ips = ae400_config.get('ips', [])
-            openni2_base = ae400_config.get('openni2_base', 'NTK_CAP/ThirdParty/OpenNI2')
+        if camera_type in ('ae400', 'ae450', 'poe'):
+            # PoE camera mode (AE400/AE450/LIPSedge)
+            # Try new 'poe' config first, fallback to 'ae400' for backwards compatibility
+            poe_config = cam_config.get('poe', cam_config.get('ae400', {}))
+            ips = poe_config.get('ips', [])
+            openni2_base = poe_config.get('openni2_base', 'NTK_CAP/ThirdParty/OpenNI2')
+            poe_model = poe_config.get('model', 'ae450')
+
+            print(f"  PoE Camera Model: {poe_model.upper()}")
 
             for i in range(4):
                 if i < len(ips):
                     openni2_path = os.path.join(project_root, openni2_base, ips[i])
                     cam_configs.append({
-                        'type': 'ae400',
+                        'type': 'poe',
                         'ip': ips[i],
-                        'openni2_path': openni2_path
+                        'openni2_path': openni2_path,
+                        'model': poe_model
                     })
-                    print(f"  Cam {i+1}: AE400 @ {ips[i]}")
+                    print(f"  Cam {i+1}: {poe_model.upper()} @ {ips[i]}")
                 else:
-                    print(f"  Warning: No AE400 config for camera {i+1}, using default")
-                    cam_configs.append({'type': 'usb'})
+                    print(f"  Warning: No PoE config for camera {i+1}, using USB fallback")
+                    cam_configs.append({'type': 'usb', 'device_index': i})
         else:
             # USB mode
             usb_indices = cam_config.get('list', [0, 1, 2, 3])
