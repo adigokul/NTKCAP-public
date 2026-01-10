@@ -180,14 +180,12 @@ if [[ $EUID -eq 0 ]]; then
     warn "Running as root is not recommended. Consider running as regular user."
 fi
 
-# Check CUDA
+# Check CUDA and ALWAYS set CUDA_HOME
+# First, try to find CUDA if nvcc is not in PATH
 if ! command -v nvcc &>/dev/null; then
-    # Try common CUDA paths
     for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
         if [[ -f "${cuda_path}/bin/nvcc" ]]; then
             export PATH="${cuda_path}/bin:${PATH}"
-            export LD_LIBRARY_PATH="${cuda_path}/lib64:${LD_LIBRARY_PATH:-}"
-            export CUDA_HOME="${cuda_path}"
             break
         fi
     done
@@ -198,6 +196,20 @@ if ! command -v nvcc &>/dev/null; then
 
 Installation guide: https://developer.nvidia.com/cuda-11-8-0-download-archive"
 fi
+
+# ALWAYS set CUDA_HOME (critical for library paths later)
+if [[ -z "${CUDA_HOME}" ]]; then
+    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+        if [[ -d "${cuda_path}" ]]; then
+            export CUDA_HOME="${cuda_path}"
+            break
+        fi
+    done
+fi
+
+# Ensure CUDA libraries are in LD_LIBRARY_PATH
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
+log "CUDA_HOME: ${CUDA_HOME}"
 
 CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release //' | sed 's/,.*//')
 log "CUDA version: ${CUDA_VERSION}"
