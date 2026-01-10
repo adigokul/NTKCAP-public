@@ -207,9 +207,12 @@ if [[ -z "${CUDA_HOME}" ]]; then
     done
 fi
 
-# Ensure CUDA libraries are in LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
+# Ensure CUDA 11.8 libraries are FIRST in LD_LIBRARY_PATH
+# Remove any other CUDA versions from LD_LIBRARY_PATH to prevent conflicts
+CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "cuda-1[2-9]" | grep -v "cuda-[2-9][0-9]" | tr '\n' ':' | sed 's/:$//')
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
 log "CUDA_HOME: ${CUDA_HOME}"
+log "LD_LIBRARY_PATH cleaned of conflicting CUDA versions"
 
 CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release //' | sed 's/,.*//')
 log "CUDA version: ${CUDA_VERSION}"
@@ -1322,9 +1325,12 @@ export TENSORRT_DIR="\${SCRIPT_DIR}/NTK_CAP/ThirdParty/TensorRT-${TENSORRT_VERSI
 # cuDNN path (standard Ubuntu location)
 CUDNN_LIB="/usr/lib/x86_64-linux-gnu"
 
-# Set LD_LIBRARY_PATH with CUDA lib64 FIRST (required for cuBLAS)
+# Clean LD_LIBRARY_PATH of conflicting CUDA versions (12.x, 13.x, etc.)
+CLEAN_LD_PATH=\$(echo "\${LD_LIBRARY_PATH:-}" | tr ':' '\\n' | grep -v "cuda-1[2-9]" | grep -v "cuda-[2-9][0-9]" | tr '\\n' ':' | sed 's/:\$//')
+
+# Set LD_LIBRARY_PATH with CUDA 11.8 lib64 FIRST (required for cuBLAS)
 export PATH="\${CUDA_HOME}/bin:\${PATH}"
-export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${CLEAN_LD_PATH}"
 
 # Activate conda environment
 CONDA_BASE=\$(conda info --base 2>/dev/null)
