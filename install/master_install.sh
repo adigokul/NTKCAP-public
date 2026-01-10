@@ -37,8 +37,8 @@ echo -e "${NC}"
 
 # Default installation directory
 DEFAULT_INSTALL_DIR="${HOME}/ntkcaptensor"
-REPO_URL="https://github.com/adigokul/NTKCAP.git"
-BRANCH="ntkcaptensor"
+REPO_URL="https://github.com/adigokul/NTKCAP-public.git"
+BRANCH="main"
 
 # Ask for installation directory
 echo -e "${YELLOW}Where do you want to install NTKCAP?${NC}"
