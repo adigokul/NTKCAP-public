@@ -866,8 +866,8 @@ fi
 
 section "Step 7: Generating TensorRT Engines"
 
-# Set environment for engine generation
-export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${LD_LIBRARY_PATH:-}"
+# Set environment for engine generation (include cuDNN path)
+export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
 
 # Engine output directories
 RTMDET_ENGINE_DIR="${MMDEPLOY_DIR}/rtmpose-trt/rtmdet-m"
@@ -879,8 +879,26 @@ mkdir -p "${RTMPOSE_ENGINE_DIR}"
 RTMDET_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmdet/detection/detection_tensorrt_static-320x320.py"
 RTMPOSE_DEPLOY_CFG="${MMDEPLOY_DIR}/configs/mmpose/pose-detection_simcc_tensorrt_dynamic-256x192.py"
 
-RTMDET_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmdet/.mim/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
-RTMPOSE_MODEL_CFG="${CONDA_PREFIX}/lib/python3.10/site-packages/mmpose/.mim/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
+# Get mmdet/mmpose config paths dynamically (don't hardcode python version)
+MMDET_PATH=$(python -c "import mmdet; print(mmdet.__path__[0])" 2>/dev/null)
+MMPOSE_PATH=$(python -c "import mmpose; print(mmpose.__path__[0])" 2>/dev/null)
+
+if [[ -z "${MMDET_PATH}" ]] || [[ -z "${MMPOSE_PATH}" ]]; then
+    error "Could not find mmdet or mmpose installation paths. Make sure they are installed."
+fi
+
+RTMDET_MODEL_CFG="${MMDET_PATH}/.mim/configs/rtmdet/rtmdet_m_8xb32-300e_coco.py"
+RTMPOSE_MODEL_CFG="${MMPOSE_PATH}/.mim/configs/body_2d_keypoint/rtmpose/body8/rtmpose-m_8xb512-700e_body8-halpe26-256x192.py"
+
+# Verify config files exist
+if [[ ! -f "${RTMDET_MODEL_CFG}" ]]; then
+    error "RTMDet config not found: ${RTMDET_MODEL_CFG}
+Try running: mim download mmdet --config rtmdet_m_8xb32-300e_coco"
+fi
+if [[ ! -f "${RTMPOSE_MODEL_CFG}" ]]; then
+    error "RTMPose config not found: ${RTMPOSE_MODEL_CFG}
+Try running: mim download mmpose --config rtmpose-m_8xb512-700e_body8-halpe26-256x192"
+fi
 
 # Demo images
 DET_IMAGE="${MMDEPLOY_DIR}/demo/resources/det.jpg"
@@ -1221,7 +1239,11 @@ SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 
 # Set TensorRT path
 export TENSORRT_DIR="\${SCRIPT_DIR}/NTK_CAP/ThirdParty/TensorRT-${TENSORRT_VERSION}"
-export LD_LIBRARY_PATH="\${TENSORRT_DIR}/lib:\${LD_LIBRARY_PATH:-}"
+
+# cuDNN path (standard Ubuntu location)
+CUDNN_LIB="/usr/lib/x86_64-linux-gnu"
+
+export LD_LIBRARY_PATH="\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${LD_LIBRARY_PATH:-}"
 
 # Set CUDA path (if not already set)
 if [[ -z "\${CUDA_HOME}" ]]; then
