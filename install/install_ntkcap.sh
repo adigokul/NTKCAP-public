@@ -368,10 +368,6 @@ fi
 
 log "All prerequisites satisfied"
 
-if ! ask_continue "installation"; then
-    exit 0
-fi
-
 # ==============================================================================
 # STEP 0.5: INSTALL SYSTEM DEPENDENCIES
 # ==============================================================================
@@ -666,10 +662,6 @@ log "Python dependencies installed"
 NUMPY_VERSION=$(python -c "import numpy; print(numpy.__version__)")
 log "numpy version: ${NUMPY_VERSION}"
 
-if ! ask_continue "TensorRT setup"; then
-    exit 0
-fi
-
 # ==============================================================================
 # STEP 3: SETUP TENSORRT
 # ==============================================================================
@@ -700,10 +692,6 @@ export TENSORRT_DIR="${TENSORRT_DIR}"
 export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${LD_LIBRARY_PATH:-}"
 
 log "TensorRT configured: ${TENSORRT_DIR}"
-
-if ! ask_continue "ppl.cv build"; then
-    exit 0
-fi
 
 # ==============================================================================
 # STEP 4: BUILD PPL.CV
