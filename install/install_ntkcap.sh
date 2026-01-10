@@ -246,6 +246,35 @@ CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "/cuda" | tr
 export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
 log "LD_LIBRARY_PATH set to use ${CUDA_HOME}/lib64"
 
+# Fix .bashrc if it has conflicting CUDA versions
+CUDA_MAJOR_NEEDED=$(echo "${CUDA_VERSION}" | cut -d. -f1)
+if grep -q "cuda-[0-9]" ~/.bashrc 2>/dev/null; then
+    # Find CUDA versions in .bashrc that don't match our detected version
+    CONFLICTING_CUDA=$(grep -oP "cuda-\d+" ~/.bashrc | grep -v "cuda-${CUDA_MAJOR_NEEDED}" | sort -u)
+    if [[ -n "${CONFLICTING_CUDA}" ]]; then
+        warn "Found conflicting CUDA versions in ~/.bashrc: ${CONFLICTING_CUDA}"
+        info "Commenting out conflicting CUDA paths in ~/.bashrc..."
+
+        # Backup .bashrc
+        cp ~/.bashrc ~/.bashrc.backup.$(date +%Y%m%d%H%M%S)
+
+        # Comment out lines with conflicting CUDA versions
+        for conflict in ${CONFLICTING_CUDA}; do
+            sed -i "s|^export.*${conflict}|#&|g" ~/.bashrc
+        done
+
+        log "Fixed ~/.bashrc - conflicting CUDA paths commented out"
+        log "Backup saved as ~/.bashrc.backup.*"
+
+        # Re-source to apply changes
+        source ~/.bashrc 2>/dev/null || true
+
+        # Re-clean LD_LIBRARY_PATH after sourcing
+        CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "/cuda" | tr '\n' ':' | sed 's/:$//')
+        export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
+    fi
+fi
+
 # Warn if not CUDA 11.8 (TensorRT 8.6 requires CUDA 11.x)
 if [[ "${CUDA_VERSION_MAJOR}" != "11" ]]; then
     warn "CUDA ${CUDA_VERSION} detected. TensorRT 8.6.1 requires CUDA 11.x"
