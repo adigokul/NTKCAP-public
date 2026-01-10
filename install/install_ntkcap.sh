@@ -922,8 +922,9 @@ section "Step 7: Generating TensorRT Engines"
 # CRITICAL: Verify numpy before engine generation
 verify_fix_numpy "before engine generation"
 
-# Set environment for engine generation (include cuDNN path)
-export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
+# Set environment for engine generation (include CUDA, cuDNN, TensorRT paths)
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
+info "LD_LIBRARY_PATH set for engine generation"
 
 # Engine output directories
 RTMDET_ENGINE_DIR="${MMDEPLOY_DIR}/rtmpose-trt/rtmdet-m"
@@ -1293,25 +1294,25 @@ cat > "${ACTIVATE_SCRIPT}" << ACTIVATE_EOF
 # Get the directory where this script is located
 SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 
+# Set CUDA path FIRST (critical for cuBLAS libraries)
+if [[ -z "\${CUDA_HOME}" ]]; then
+    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+        if [[ -d "\${cuda_path}" ]]; then
+            export CUDA_HOME="\${cuda_path}"
+            break
+        fi
+    done
+fi
+
 # Set TensorRT path
 export TENSORRT_DIR="\${SCRIPT_DIR}/NTK_CAP/ThirdParty/TensorRT-${TENSORRT_VERSION}"
 
 # cuDNN path (standard Ubuntu location)
 CUDNN_LIB="/usr/lib/x86_64-linux-gnu"
 
-export LD_LIBRARY_PATH="\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${LD_LIBRARY_PATH:-}"
-
-# Set CUDA path (if not already set)
-if [[ -z "\${CUDA_HOME}" ]]; then
-    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
-        if [[ -d "\${cuda_path}" ]]; then
-            export CUDA_HOME="\${cuda_path}"
-            export PATH="\${CUDA_HOME}/bin:\${PATH}"
-            export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${LD_LIBRARY_PATH:-}"
-            break
-        fi
-    done
-fi
+# Set LD_LIBRARY_PATH with CUDA lib64 FIRST (required for cuBLAS)
+export PATH="\${CUDA_HOME}/bin:\${PATH}"
+export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${LD_LIBRARY_PATH:-}"
 
 # Activate conda environment
 CONDA_BASE=\$(conda info --base 2>/dev/null)
