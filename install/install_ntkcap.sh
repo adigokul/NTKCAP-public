@@ -99,6 +99,29 @@ ask_continue() {
     esac
 }
 
+# CRITICAL: Function to verify and fix numpy version
+# numpy 2.x breaks many packages (pandas, torch, etc.) that were compiled with numpy 1.x
+verify_fix_numpy() {
+    local stage="$1"
+    local current_numpy=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null || echo "not installed")
+
+    if [[ "${current_numpy}" == "1.22.4" ]]; then
+        log "numpy OK at ${stage}: ${current_numpy}"
+        return 0
+    fi
+
+    warn "numpy wrong at ${stage}: ${current_numpy} (need 1.22.4)"
+    info "Fixing numpy..."
+    pip install numpy==1.22.4 --force-reinstall --no-deps --quiet
+    pip install pandas==1.4.4 --force-reinstall --no-deps --quiet
+
+    current_numpy=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null)
+    if [[ "${current_numpy}" != "1.22.4" ]]; then
+        error "Failed to fix numpy at ${stage}. Current: ${current_numpy}"
+    fi
+    log "numpy fixed at ${stage}: ${current_numpy}"
+}
+
 detect_cuda_arch() {
     # Auto-detect GPU compute capability
     if command -v nvidia-smi &>/dev/null; then
@@ -423,6 +446,8 @@ info "Installing PyTorch with CUDA 11.8..."
 pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 \
     --index-url https://download.pytorch.org/whl/cu118
 
+verify_fix_numpy "after PyTorch"
+
 info "Installing OpenMMLab packages..."
 pip install openmim
 
@@ -430,13 +455,21 @@ pip install openmim
 # mim install ignores pip constraints and upgrades numpy to 2.x
 info "Installing mmengine, mmcv, mmdet, mmpose (using pip to respect numpy constraint)..."
 pip install mmengine==0.10.7
+verify_fix_numpy "after mmengine"
+
 pip install mmcv==2.1.0 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
+verify_fix_numpy "after mmcv"
+
 pip install mmdet==3.2.0
+verify_fix_numpy "after mmdet"
+
 pip install mmpose==1.3.1
+verify_fix_numpy "after mmpose"
 
 info "Installing mmdeploy..."
 pip install mmdeploy==1.3.1
 pip install mmdeploy-runtime-gpu==1.3.1
+verify_fix_numpy "after mmdeploy"
 
 info "Installing TensorRT Python bindings from local SDK..."
 # Install TensorRT from the local SDK wheel files (more reliable than pypi.nvidia.com)
@@ -486,6 +519,8 @@ pip install websocket-client
 pip install func_timeout==4.3.5
 pip install protobuf==3.20.2
 pip install ultralytics==8.2.40
+verify_fix_numpy "after ultralytics"
+
 pip install Pose2Sim==0.4.0
 pip install multiprocess==0.70.18
 
@@ -493,6 +528,7 @@ info "Installing OpenSim (biomechanics library)..."
 # Use --freeze-installed to prevent conda from changing pip-installed packages like numpy
 conda install -c opensim-org opensim -y --freeze-installed 2>/dev/null || \
     conda install -c opensim-org opensim -y
+verify_fix_numpy "after OpenSim"
 
 info "Installing PyQt5 and PyQt6 (GUI dependencies)..."
 # PyQt5 is needed for some components, PyQt6 for others
@@ -504,11 +540,8 @@ pip install pyqtgraph==0.13.7
 info "Installing OpenNI2 Python bindings (for PoE cameras)..."
 pip install openni
 
-# CRITICAL: Force reinstall numpy at the END (other packages upgrade it to 2.x which breaks everything)
-# Use --no-deps to prevent pip from "helpfully" upgrading numpy when installing pandas
-info "Pinning numpy to 1.22.4 (required for compatibility)..."
-pip install numpy==1.22.4 --force-reinstall --no-deps
-pip install pandas==1.4.4 --force-reinstall --no-deps  # Reinstall pandas to match numpy 1.x
+# Final numpy verification and fix
+verify_fix_numpy "end of Step 2"
 
 log "Python dependencies installed"
 
@@ -886,28 +919,8 @@ fi
 
 section "Step 7: Generating TensorRT Engines"
 
-# CRITICAL: Verify numpy version before engine generation
-# Some packages (like mim install) can upgrade numpy to 2.x which breaks everything
-CURRENT_NUMPY=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null)
-info "Current numpy version: ${CURRENT_NUMPY}"
-
-if [[ "${CURRENT_NUMPY}" != "1.22.4" ]]; then
-    warn "numpy version is ${CURRENT_NUMPY}, but 1.22.4 is required!"
-    info "Fixing numpy version..."
-    pip install numpy==1.22.4 --force-reinstall --no-deps
-    pip install pandas==1.4.4 --force-reinstall --no-deps
-
-    # Verify fix worked
-    CURRENT_NUMPY=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null)
-    if [[ "${CURRENT_NUMPY}" != "1.22.4" ]]; then
-        error "Failed to pin numpy to 1.22.4. Current version: ${CURRENT_NUMPY}
-
-Please manually fix:
-  pip install numpy==1.22.4 --force-reinstall --no-deps
-  pip install pandas==1.4.4 --force-reinstall --no-deps"
-    fi
-    log "numpy fixed to ${CURRENT_NUMPY}"
-fi
+# CRITICAL: Verify numpy before engine generation
+verify_fix_numpy "before engine generation"
 
 # Set environment for engine generation (include cuDNN path)
 export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
