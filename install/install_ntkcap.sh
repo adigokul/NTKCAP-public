@@ -699,40 +699,43 @@ log "TensorRT configured: ${TENSORRT_DIR}"
 
 section "Step 4: Building ppl.cv with CUDA Support"
 
-if [[ ! -d "${PPLCV_DIR}" ]]; then
-    info "Cloning ppl.cv..."
-    git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
-    log "ppl.cv cloned"
-elif [[ ! -d "${PPLCV_DIR}/.git" ]]; then
-    warn "ppl.cv exists but is not a git repository. Re-cloning..."
-    rm -rf "${PPLCV_DIR}"
-    git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
-    log "ppl.cv re-cloned"
-else
-    log "ppl.cv already exists"
-fi
-
-cd "${PPLCV_DIR}"
-
-# Create build directory
 PPLCV_BUILD_DIR="${PPLCV_DIR}/cuda-build"
 
-# Clean stale CMake caches if they exist (prevents errors when building from different locations)
-if [[ -f "${PPLCV_BUILD_DIR}/CMakeCache.txt" ]]; then
-    info "Cleaning stale CMake cache..."
-    rm -rf "${PPLCV_BUILD_DIR}"
-fi
-# Also clean deps directory which contains FetchContent caches
-if [[ -d "${PPLCV_DIR}/deps" ]]; then
-    info "Cleaning stale dependency caches..."
-    rm -rf "${PPLCV_DIR}/deps"
-fi
+# Check if ppl.cv is already built
+if [[ -f "${PPLCV_BUILD_DIR}/install/lib/libpplcv_static.a" ]]; then
+    log "ppl.cv already built - skipping"
+else
+    if [[ ! -d "${PPLCV_DIR}" ]]; then
+        info "Cloning ppl.cv..."
+        git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
+        log "ppl.cv cloned"
+    elif [[ ! -d "${PPLCV_DIR}/.git" ]]; then
+        warn "ppl.cv exists but is not a git repository. Re-cloning..."
+        rm -rf "${PPLCV_DIR}"
+        git clone https://github.com/openppl-public/ppl.cv.git "${PPLCV_DIR}"
+        log "ppl.cv re-cloned"
+    else
+        log "ppl.cv source exists"
+    fi
 
-mkdir -p "${PPLCV_BUILD_DIR}"
-cd "${PPLCV_BUILD_DIR}"
+    cd "${PPLCV_DIR}"
 
-info "Configuring ppl.cv with CMake..."
-info "  Using GCC: ${GCC_CXX_COMPILER}"
+    # Clean stale CMake caches if they exist (prevents errors when building from different locations)
+    if [[ -f "${PPLCV_BUILD_DIR}/CMakeCache.txt" ]]; then
+        info "Cleaning stale CMake cache..."
+        rm -rf "${PPLCV_BUILD_DIR}"
+    fi
+    # Also clean deps directory which contains FetchContent caches
+    if [[ -d "${PPLCV_DIR}/deps" ]]; then
+        info "Cleaning stale dependency caches..."
+        rm -rf "${PPLCV_DIR}/deps"
+    fi
+
+    mkdir -p "${PPLCV_BUILD_DIR}"
+    cd "${PPLCV_BUILD_DIR}"
+
+    info "Configuring ppl.cv with CMake..."
+    info "  Using GCC: ${GCC_CXX_COMPILER}"
 info "  CUDA Arch: ${CUDA_ARCH}"
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
@@ -1023,8 +1026,13 @@ verify_fix_numpy "before engine generation"
 
 # CRITICAL: Completely RESET LD_LIBRARY_PATH to remove ALL cuda paths
 # This is necessary because Python subprocess inherits polluted environment
-CUDNN_LIB=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' | xargs dirname 2>/dev/null)
-CUDNN_LIB="${CUDNN_LIB:-/usr/lib/x86_64-linux-gnu}"
+# Use safer approach that won't fail with set -e
+CUDNN_LIB_FILE=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' || true)
+if [[ -n "${CUDNN_LIB_FILE}" ]] && [[ -f "${CUDNN_LIB_FILE}" ]]; then
+    CUDNN_LIB=$(dirname "${CUDNN_LIB_FILE}")
+else
+    CUDNN_LIB="/usr/lib/x86_64-linux-gnu"
+fi
 
 # Build clean LD_LIBRARY_PATH with ONLY what we need
 export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}"
