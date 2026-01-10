@@ -11,24 +11,19 @@
 #   - Miniconda/Anaconda installed
 #   - Git installed
 #
-# MANUAL DOWNLOADS REQUIRED:
-#   1. TensorRT 8.6.1.6 (Linux x86_64 GNU/Linux)
-#      Download from: https://developer.nvidia.com/tensorrt
-#      File: TensorRT-8.6.1.6.Linux.x86_64-gnu.cuda-11.8.tar.gz
-#
 # USAGE:
-#   1. Download TensorRT and place it in this script's directory
-#   2. Run: chmod +x install_ntkcap.sh
-#   3. Run: ./install_ntkcap.sh
+#   1. Run: chmod +x install_ntkcap.sh
+#   2. Run: ./install_ntkcap.sh
 #
 # WHAT THIS SCRIPT DOES:
-#   1. Creates conda environment "NTKCAP" with pinned dependencies
-#   2. Extracts and configures TensorRT
-#   3. Clones and builds ppl.cv with CUDA support
-#   4. Builds mmdeploy SDK with TensorRT backend
-#   5. Downloads model weights and generates TensorRT engines
-#   6. Fixes pipeline.json files for proper inference
-#   7. Verifies the installation
+#   1. Installs required system dependencies
+#   2. Creates conda environment "NTKCAP" with pinned dependencies
+#   3. Downloads TensorRT from Google Drive (automatic)
+#   4. Clones and builds ppl.cv with CUDA support
+#   5. Builds mmdeploy SDK with TensorRT backend
+#   6. Downloads model weights and generates TensorRT engines
+#   7. Fixes pipeline.json files for proper inference
+#   8. Verifies the installation
 #
 # TIME: 30-60 minutes depending on internet and GPU
 ################################################################################
@@ -54,8 +49,10 @@ TENSORRT_VERSION="8.6.1.6"
 TENSORRT_DIR="${THIRDPARTY_DIR}/TensorRT-${TENSORRT_VERSION}"
 PPLCV_DIR="${THIRDPARTY_DIR}/ppl.cv"
 
-# TensorRT archive (user must download this)
+# TensorRT archive
 TENSORRT_ARCHIVE="TensorRT-${TENSORRT_VERSION}.Linux.x86_64-gnu.cuda-11.8.tar.gz"
+# Google Drive download link (public)
+TENSORRT_GDRIVE_ID="1CoETA05oSYV44WItwEh478HCCLZFZf8g"
 
 # Model weights URLs
 RTMDET_WEIGHT_URL="https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet_m_8xb32-300e_coco/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
@@ -220,18 +217,13 @@ if ! command -v cmake &>/dev/null; then
     warn "cmake not found. Will install via pip."
 fi
 
-# Check TensorRT archive
+# Check TensorRT - will be downloaded in Step 0.5 if not present
 if [[ ! -f "${SCRIPT_DIR}/${TENSORRT_ARCHIVE}" ]] && [[ ! -d "${TENSORRT_DIR}" ]]; then
-    echo ""
-    error "TensorRT archive not found!
-
-Please download TensorRT ${TENSORRT_VERSION} from:
-  https://developer.nvidia.com/tensorrt
-
-Download file: ${TENSORRT_ARCHIVE}
-Place it in: ${SCRIPT_DIR}/
-
-After downloading, run this script again."
+    info "TensorRT not found. Will be downloaded automatically in Step 0.5."
+    NEED_TENSORRT_DOWNLOAD=1
+else
+    NEED_TENSORRT_DOWNLOAD=0
+    log "TensorRT found"
 fi
 
 log "All prerequisites satisfied"
@@ -239,6 +231,92 @@ log "All prerequisites satisfied"
 if ! ask_continue "installation"; then
     exit 0
 fi
+
+# ==============================================================================
+# STEP 0.5: INSTALL SYSTEM DEPENDENCIES
+# ==============================================================================
+
+section "Step 0.5: Installing System Dependencies"
+
+info "Installing required system packages..."
+sudo apt-get update -qq
+
+# Build essentials and development libraries
+sudo apt-get install -y \
+    build-essential \
+    gcc-11 g++-11 \
+    cmake \
+    ninja-build \
+    pkg-config \
+    wget \
+    curl \
+    git \
+    unzip \
+    python3-pip \
+    aria2 \
+    libtinfo5 2>/dev/null || sudo ln -sf /lib/x86_64-linux-gnu/libtinfo.so.6 /lib/x86_64-linux-gnu/libtinfo.so.5
+
+# Install gdown for Google Drive downloads
+pip3 install --quiet gdown || pip install --quiet gdown
+
+# Download TensorRT from Google Drive if needed
+if [[ "${NEED_TENSORRT_DOWNLOAD}" -eq 1 ]]; then
+    info "Downloading TensorRT ${TENSORRT_VERSION} from Google Drive (~3GB)..."
+
+    mkdir -p "${SCRIPT_DIR}/downloads"
+    TENSORRT_DOWNLOAD_PATH="${SCRIPT_DIR}/downloads/${TENSORRT_ARCHIVE}"
+
+    gdown "https://drive.google.com/uc?id=${TENSORRT_GDRIVE_ID}" -O "${TENSORRT_DOWNLOAD_PATH}"
+
+    if [[ ! -f "${TENSORRT_DOWNLOAD_PATH}" ]]; then
+        error "Failed to download TensorRT from Google Drive.
+
+Please download manually from:
+  https://drive.google.com/file/d/${TENSORRT_GDRIVE_ID}/view
+
+Save as: ${TENSORRT_DOWNLOAD_PATH}
+Then run this script again."
+    fi
+
+    # Move to expected location
+    mv "${TENSORRT_DOWNLOAD_PATH}" "${SCRIPT_DIR}/${TENSORRT_ARCHIVE}"
+    log "TensorRT downloaded successfully"
+fi
+
+# OpenGL and graphics libraries
+sudo apt-get install -y \
+    libgl1-mesa-dev \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libfontconfig1 \
+    libice6 \
+    libxkbcommon-x11-0 \
+    libegl1
+
+# XCB libraries for PyQt6 GUI
+sudo apt-get install -y \
+    libxcb-cursor0 \
+    libxcb-xinerama0 \
+    libxcb-xfixes0 \
+    libxcb-shape0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-render-util0
+
+# OpenCV development libraries (for CMake discovery during mmdeploy build)
+sudo apt-get install -y libopencv-dev
+
+# Add user to input group for keyboard module
+if ! groups | grep -q '\binput\b'; then
+    info "Adding user to 'input' group for keyboard module..."
+    sudo usermod -a -G input "$(whoami)" || warn "Could not add user to input group"
+    warn "You may need to log out and back in for keyboard permissions to take effect"
+fi
+
+log "System dependencies installed"
 
 # ==============================================================================
 # STEP 1: CREATE CONDA ENVIRONMENT
@@ -288,7 +366,7 @@ pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118
     --index-url https://download.pytorch.org/whl/cu118
 
 info "Installing numpy..."
-pip install numpy==1.25.2  # OpenSim requires numpy>=1.25
+pip install numpy==1.22.4  # Must match verification and working environment
 
 info "Installing OpenMMLab packages..."
 pip install openmim
@@ -301,14 +379,24 @@ info "Installing mmdeploy..."
 pip install mmdeploy==1.3.1
 pip install mmdeploy-runtime-gpu==1.3.1
 
-info "Installing TensorRT Python bindings..."
-# Install TensorRT dependencies first from NVIDIA's PyPI to avoid build failures
-# The tensorrt package tries to install tensorrt_libs during wheel build, which can fail
-# if the NVIDIA index URL isn't passed correctly to the subprocess
-pip install tensorrt_libs==8.6.1 --index-url https://pypi.nvidia.com
-pip install tensorrt_bindings==8.6.1 --index-url https://pypi.nvidia.com
-# Use --no-build-isolation to prevent pip module issues in the build subprocess
-pip install tensorrt==8.6.1 --no-build-isolation
+info "Installing TensorRT Python bindings from local SDK..."
+# Install TensorRT from the local SDK wheel files (more reliable than pypi.nvidia.com)
+TRT_PYTHON_DIR="${TENSORRT_DIR}/python"
+TRT_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt-*-cp310-*.whl" 2>/dev/null | head -1)
+TRT_LEAN_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_lean-*-cp310-*.whl" 2>/dev/null | head -1)
+
+if [[ -f "${TRT_WHEEL}" ]]; then
+    info "Installing TensorRT from local wheel: $(basename ${TRT_WHEEL})"
+    pip install "${TRT_WHEEL}"
+else
+    warn "Local TensorRT wheel not found, trying PyPI..."
+    pip install tensorrt==8.6.1 --index-url https://pypi.nvidia.com
+fi
+
+if [[ -f "${TRT_LEAN_WHEEL}" ]]; then
+    info "Installing TensorRT-lean from local wheel: $(basename ${TRT_LEAN_WHEEL})"
+    pip install "${TRT_LEAN_WHEEL}"
+fi
 
 info "Installing CuPy for GPU acceleration..."
 pip install cupy-cuda11x==13.6.0
@@ -317,31 +405,40 @@ info "Installing ONNX and ONNXRuntime..."
 pip install onnx==1.17.0
 pip install onnxruntime-gpu==1.17.1
 
-info "Installing other dependencies..."
-pip install opencv-python-headless
+info "Installing OpenCV with GUI support..."
+# Install headless first (some packages depend on it), then full version (takes precedence)
+pip install opencv-python-headless==4.9.0.80
+pip install opencv-python==4.11.0.86  # Full version with highgui for cv2.imshow()
 pip install scipy==1.13.0
 pip install matplotlib==3.8.4
-pip install tqdm
+pip install pandas==1.4.4
+pip install tqdm==4.65.2
 pip install pyyaml
 pip install cmake
 pip install toml
 pip install ipython
-pip install keyboard
+pip install keyboard==0.13.5
 pip install beautifulsoup4 lxml
 pip install pyserial
-pip install pygltflib
-pip install natsort
+pip install pygltflib==1.16.5
+pip install natsort==8.4.0
 pip install openpyxl
 pip install websocket-client
-pip install func_timeout
+pip install func_timeout==4.3.5
+pip install protobuf==3.20.2
+pip install ultralytics==8.2.40
+pip install Pose2Sim==0.4.0
+pip install multiprocess==0.70.18
 
 info "Installing OpenSim (biomechanics library)..."
 conda install -c opensim-org opensim -y
 
-info "Installing PyQt6 and pyqtgraph (GUI dependencies)..."
+info "Installing PyQt5 and PyQt6 (GUI dependencies)..."
+# PyQt5 is needed for some components, PyQt6 for others
+pip install PyQt5==5.15.11 PyQt5-Qt5==5.15.18 PyQt5-sip==12.17.2
 pip install PyQt6==6.5.3 PyQt6-Qt6==6.5.3 PyQt6-sip==13.6.0
 pip install PyQt6-WebEngine==6.5.0 PyQt6-WebEngine-Qt6==6.5.3
-pip install pyqtgraph
+pip install pyqtgraph==0.13.7
 
 info "Installing OpenNI2 Python bindings (for PoE cameras)..."
 pip install openni
@@ -498,19 +595,137 @@ fi
 mkdir -p "${MMDEPLOY_BUILD_DIR}"
 cd "${MMDEPLOY_BUILD_DIR}"
 
+# ============================================================================
+# VALIDATE ALL REQUIRED PATHS BEFORE CMAKE
+# ============================================================================
+
+# 1. Find and validate CUDA_HOME
+if [[ -z "${CUDA_HOME}" ]]; then
+    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+        if [[ -f "${cuda_path}/bin/nvcc" ]]; then
+            export CUDA_HOME="${cuda_path}"
+            break
+        fi
+    done
+fi
+
+if [[ -z "${CUDA_HOME}" ]] || [[ ! -f "${CUDA_HOME}/bin/nvcc" ]]; then
+    error "CUDA not found. Please install CUDA 11.8 and ensure nvcc is available."
+fi
+log "CUDA_HOME validated: ${CUDA_HOME}"
+
+# 2. Validate TensorRT directory
+if [[ ! -f "${TENSORRT_DIR}/include/NvInfer.h" ]]; then
+    error "TensorRT headers not found at ${TENSORRT_DIR}/include/NvInfer.h"
+fi
+if [[ ! -f "${TENSORRT_DIR}/lib/libnvinfer.so" ]]; then
+    error "TensorRT library not found at ${TENSORRT_DIR}/lib/libnvinfer.so"
+fi
+log "TENSORRT_DIR validated: ${TENSORRT_DIR}"
+
+# 3. Find and validate pplcv cmake directory (built in Step 4)
+PPLCV_CMAKE_DIR=""
+PPLCV_SEARCH_PATHS=(
+    "${PPLCV_BUILD_DIR}/install/lib/cmake/ppl"
+    "${PPLCV_BUILD_DIR}/install/lib/cmake/pplcv"
+    "/usr/local/lib/cmake/ppl"
+    "/usr/local/lib/cmake/pplcv"
+)
+for pplcv_path in "${PPLCV_SEARCH_PATHS[@]}"; do
+    if [[ -f "${pplcv_path}/pplcv-config.cmake" ]]; then
+        PPLCV_CMAKE_DIR="${pplcv_path}"
+        break
+    fi
+done
+
+if [[ -z "${PPLCV_CMAKE_DIR}" ]]; then
+    error "pplcv cmake config not found. Searched paths:
+$(printf '  - %s\n' "${PPLCV_SEARCH_PATHS[@]}")
+
+Please ensure Step 4 (ppl.cv build) completed successfully."
+fi
+log "pplcv_DIR validated: ${PPLCV_CMAKE_DIR}"
+
+# 4. Find OpenCV cmake directory (installed by apt in Step 0.5)
+OPENCV_DIR=""
+OPENCV_SEARCH_PATHS=(
+    "/usr/lib/x86_64-linux-gnu/cmake/opencv4"
+    "/usr/local/lib/cmake/opencv4"
+    "/usr/lib/cmake/opencv4"
+)
+for opencv_path in "${OPENCV_SEARCH_PATHS[@]}"; do
+    if [[ -f "${opencv_path}/OpenCVConfig.cmake" ]]; then
+        OPENCV_DIR="${opencv_path}"
+        break
+    fi
+done
+
+if [[ -z "${OPENCV_DIR}" ]]; then
+    warn "OpenCV cmake directory not found. CMake will try to auto-detect."
+    warn "If build fails, run: sudo apt-get install libopencv-dev"
+else
+    log "OpenCV_DIR found: ${OPENCV_DIR}"
+fi
+
+# 5. Find cuDNN (typically in system paths on Ubuntu with apt install)
+CUDNN_DIR=""
+CUDNN_SEARCH_PATHS=(
+    "/usr/lib/x86_64-linux-gnu"
+    "/usr/local/cuda/lib64"
+    "${CUDA_HOME}/lib64"
+)
+for cudnn_path in "${CUDNN_SEARCH_PATHS[@]}"; do
+    if [[ -f "${cudnn_path}/libcudnn.so" ]] || [[ -f "${cudnn_path}/libcudnn.so.8" ]]; then
+        CUDNN_DIR="${cudnn_path}"
+        break
+    fi
+done
+
+if [[ -z "${CUDNN_DIR}" ]]; then
+    warn "cuDNN library not found. CMake will try to auto-detect."
+else
+    log "cuDNN found: ${CUDNN_DIR}"
+fi
+
+# ============================================================================
+# CMAKE CONFIGURATION
+# ============================================================================
+
+info "CMake Configuration Summary:"
+info "  CUDA_HOME    = ${CUDA_HOME}"
+info "  TENSORRT_DIR = ${TENSORRT_DIR}"
+info "  pplcv_DIR    = ${PPLCV_CMAKE_DIR}"
+info "  OpenCV_DIR   = ${OPENCV_DIR:-auto-detect}"
+info "  CUDNN_DIR    = ${CUDNN_DIR:-auto-detect}"
+info "  CUDA_ARCH    = ${CUDA_ARCH}"
+
 info "Configuring mmdeploy with CMake..."
-cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
-    -DMMDEPLOY_BUILD_SDK=ON \
-    -DMMDEPLOY_BUILD_SDK_PYTHON_API=ON \
-    -DMMDEPLOY_BUILD_SDK_MONOLITHIC=ON \
-    -DMMDEPLOY_TARGET_BACKENDS=trt \
-    -DMMDEPLOY_TARGET_DEVICES=cuda \
-    -DMMDEPLOY_CODEBASES=all \
-    -DTENSORRT_DIR="${TENSORRT_DIR}" \
-    -Dpplcv_DIR="${PPLCV_BUILD_DIR}/install/lib/cmake/ppl" \
-    -DCMAKE_INSTALL_PREFIX="${MMDEPLOY_BUILD_DIR}/install"
+CMAKE_ARGS=(
+    ".."
+    "-DCMAKE_BUILD_TYPE=Release"
+    "-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}"
+    "-DMMDEPLOY_BUILD_SDK=ON"
+    "-DMMDEPLOY_BUILD_SDK_PYTHON_API=ON"
+    "-DMMDEPLOY_BUILD_SDK_MONOLITHIC=ON"
+    "-DMMDEPLOY_TARGET_BACKENDS=trt"
+    "-DMMDEPLOY_TARGET_DEVICES=cuda"
+    "-DMMDEPLOY_CODEBASES=all"
+    "-DTENSORRT_DIR=${TENSORRT_DIR}"
+    "-Dpplcv_DIR=${PPLCV_CMAKE_DIR}"
+    "-DCMAKE_INSTALL_PREFIX=${MMDEPLOY_BUILD_DIR}/install"
+)
+
+# Add OpenCV_DIR only if found (otherwise let cmake auto-detect)
+if [[ -n "${OPENCV_DIR}" ]]; then
+    CMAKE_ARGS+=("-DOpenCV_DIR=${OPENCV_DIR}")
+fi
+
+# Add CUDNN_DIR only if found in non-standard location
+if [[ -n "${CUDNN_DIR}" ]] && [[ "${CUDNN_DIR}" != "/usr/lib/x86_64-linux-gnu" ]]; then
+    CMAKE_ARGS+=("-DCUDNN_DIR=${CUDNN_DIR}")
+fi
+
+cmake "${CMAKE_ARGS[@]}"
 
 info "Building mmdeploy SDK (this may take 10-20 minutes)..."
 make -j$(nproc)
@@ -1000,6 +1215,26 @@ print(f"mmpose: {mmpose.__version__}")
 # Test mmdet
 import mmdet
 print(f"mmdet: {mmdet.__version__}")
+
+# Test OpenCV (must have GUI support for cv2.imshow)
+import cv2
+print(f"opencv: {cv2.__version__}")
+# Verify highgui is available (not headless)
+if not hasattr(cv2, 'imshow'):
+    print("WARNING: cv2.imshow not available - OpenCV may be headless!")
+
+# Test PyQt
+try:
+    from PyQt6 import QtWidgets
+    print("PyQt6: OK")
+except ImportError:
+    print("WARNING: PyQt6 not available")
+
+try:
+    from PyQt5 import QtWidgets as Qt5Widgets
+    print("PyQt5: OK")
+except ImportError:
+    print("WARNING: PyQt5 not available")
 
 print("\n✓ All Python packages verified!")
 VERIFY_EOF
