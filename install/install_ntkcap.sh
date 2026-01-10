@@ -406,16 +406,33 @@ log "Activated environment: ${CONDA_ENV_NAME}"
 
 section "Step 2: Installing Python Dependencies"
 
+# CRITICAL: Install and pin numpy FIRST, before any other packages
+# This prevents mim install and other packages from upgrading to numpy 2.x
+info "Installing numpy 1.22.4 first (to prevent upgrades)..."
+pip install numpy==1.22.4
+
+# Create pip constraint file to prevent numpy upgrades during package installs
+CONSTRAINT_FILE="${CONDA_PREFIX}/pip-constraints.txt"
+cat > "${CONSTRAINT_FILE}" << 'EOF'
+numpy==1.22.4
+EOF
+export PIP_CONSTRAINT="${CONSTRAINT_FILE}"
+log "Pip constraints set to prevent numpy upgrades"
+
 info "Installing PyTorch with CUDA 11.8..."
 pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 \
     --index-url https://download.pytorch.org/whl/cu118
 
 info "Installing OpenMMLab packages..."
 pip install openmim
-mim install mmengine==0.10.7
-mim install mmcv==2.1.0
-mim install "mmdet>=3.0.0,<3.3.0"  # mmpose 1.3.1 requires mmdet<3.3.0
-mim install mmpose==1.3.1
+
+# Use pip install instead of mim install to respect constraints
+# mim install ignores pip constraints and upgrades numpy to 2.x
+info "Installing mmengine, mmcv, mmdet, mmpose (using pip to respect numpy constraint)..."
+pip install mmengine==0.10.7
+pip install mmcv==2.1.0 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
+pip install mmdet==3.2.0
+pip install mmpose==1.3.1
 
 info "Installing mmdeploy..."
 pip install mmdeploy==1.3.1
