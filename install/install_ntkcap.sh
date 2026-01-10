@@ -309,6 +309,44 @@ sudo apt-get install -y \
 # OpenCV development libraries (for CMake discovery during mmdeploy build)
 sudo apt-get install -y libopencv-dev
 
+# cuDNN (required for mmdeploy TensorRT backend)
+# Check if already installed
+if [[ ! -f /usr/lib/x86_64-linux-gnu/libcudnn.so.8 ]] && [[ ! -f /usr/local/cuda/lib64/libcudnn.so.8 ]]; then
+    info "cuDNN not found. Installing cuDNN 8.x..."
+
+    # Try to install from nvidia repo (should be configured if CUDA was installed properly)
+    sudo apt-get install -y libcudnn8 libcudnn8-dev 2>/dev/null || {
+        warn "cuDNN apt packages not found. Trying NVIDIA machine learning repo..."
+
+        # Add NVIDIA ML repo if not present
+        if [[ ! -f /etc/apt/sources.list.d/nvidia-machine-learning.list ]]; then
+            # Get Ubuntu version
+            UBUNTU_VERSION=$(lsb_release -rs)
+            UBUNTU_VERSION_SHORT="${UBUNTU_VERSION/./}"  # e.g., 2004 or 2204
+
+            info "Adding NVIDIA machine learning repository..."
+            wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VERSION_SHORT}/x86_64/cuda-keyring_1.0-1_all.deb
+            sudo dpkg -i cuda-keyring_1.0-1_all.deb 2>/dev/null || true
+            rm -f cuda-keyring_1.0-1_all.deb
+            sudo apt-get update -qq
+        fi
+
+        # Try again
+        sudo apt-get install -y libcudnn8 libcudnn8-dev || {
+            error "Failed to install cuDNN. Please install manually:
+
+For CUDA 11.8:
+  sudo apt-get install libcudnn8=8.6.* libcudnn8-dev=8.6.*
+
+Or download from NVIDIA Developer site:
+  https://developer.nvidia.com/cudnn"
+        }
+    }
+    log "cuDNN installed successfully"
+else
+    log "cuDNN already installed"
+fi
+
 # Verify GCC 11 is installed (required for CUDA 11.8)
 if [[ ! -f /usr/bin/gcc-11 ]] || [[ ! -f /usr/bin/g++-11 ]]; then
     error "GCC 11 not found. CUDA 11.8 requires GCC 11 or earlier.
@@ -681,23 +719,46 @@ else
 fi
 
 # 5. Find cuDNN (typically in system paths on Ubuntu with apt install)
-CUDNN_DIR=""
-CUDNN_SEARCH_PATHS=(
+# cuDNN installed via apt: libs in /usr/lib/x86_64-linux-gnu, headers in /usr/include
+CUDNN_LIB_DIR=""
+CUDNN_INCLUDE_DIR=""
+
+# Search for cuDNN library
+CUDNN_LIB_SEARCH_PATHS=(
     "/usr/lib/x86_64-linux-gnu"
     "/usr/local/cuda/lib64"
     "${CUDA_HOME}/lib64"
 )
-for cudnn_path in "${CUDNN_SEARCH_PATHS[@]}"; do
+for cudnn_path in "${CUDNN_LIB_SEARCH_PATHS[@]}"; do
     if [[ -f "${cudnn_path}/libcudnn.so" ]] || [[ -f "${cudnn_path}/libcudnn.so.8" ]]; then
-        CUDNN_DIR="${cudnn_path}"
+        CUDNN_LIB_DIR="${cudnn_path}"
         break
     fi
 done
 
-if [[ -z "${CUDNN_DIR}" ]]; then
-    warn "cuDNN library not found. CMake will try to auto-detect."
+# Search for cuDNN headers
+CUDNN_INCLUDE_SEARCH_PATHS=(
+    "/usr/include"
+    "/usr/local/cuda/include"
+    "${CUDA_HOME}/include"
+)
+for cudnn_inc in "${CUDNN_INCLUDE_SEARCH_PATHS[@]}"; do
+    if [[ -f "${cudnn_inc}/cudnn.h" ]] || [[ -f "${cudnn_inc}/cudnn_version.h" ]]; then
+        CUDNN_INCLUDE_DIR="${cudnn_inc}"
+        break
+    fi
+done
+
+if [[ -z "${CUDNN_LIB_DIR}" ]]; then
+    warn "cuDNN library not found. Install with: sudo apt-get install libcudnn8 libcudnn8-dev"
 else
-    log "cuDNN found: ${CUDNN_DIR}"
+    log "cuDNN library found: ${CUDNN_LIB_DIR}"
+fi
+
+if [[ -z "${CUDNN_INCLUDE_DIR}" ]]; then
+    warn "cuDNN headers not found. Install with: sudo apt-get install libcudnn8-dev"
+else
+    log "cuDNN headers found: ${CUDNN_INCLUDE_DIR}"
 fi
 
 # ============================================================================
@@ -705,12 +766,13 @@ fi
 # ============================================================================
 
 info "CMake Configuration Summary:"
-info "  CUDA_HOME    = ${CUDA_HOME}"
-info "  TENSORRT_DIR = ${TENSORRT_DIR}"
-info "  pplcv_DIR    = ${PPLCV_CMAKE_DIR}"
-info "  OpenCV_DIR   = ${OPENCV_DIR:-auto-detect}"
-info "  CUDNN_DIR    = ${CUDNN_DIR:-auto-detect}"
-info "  CUDA_ARCH    = ${CUDA_ARCH}"
+info "  CUDA_HOME        = ${CUDA_HOME}"
+info "  TENSORRT_DIR     = ${TENSORRT_DIR}"
+info "  pplcv_DIR        = ${PPLCV_CMAKE_DIR}"
+info "  OpenCV_DIR       = ${OPENCV_DIR:-auto-detect}"
+info "  CUDNN_LIB_DIR    = ${CUDNN_LIB_DIR:-auto-detect}"
+info "  CUDNN_INCLUDE    = ${CUDNN_INCLUDE_DIR:-auto-detect}"
+info "  CUDA_ARCH        = ${CUDA_ARCH}"
 
 info "Configuring mmdeploy with CMake..."
 # Use GCC 11 - CUDA 11.8 doesn't support GCC 12+
@@ -737,11 +799,16 @@ if [[ -n "${OPENCV_DIR}" ]]; then
     CMAKE_ARGS+=("-DOpenCV_DIR=${OPENCV_DIR}")
 fi
 
-# Add CUDNN_DIR only if found in non-standard location
-if [[ -n "${CUDNN_DIR}" ]] && [[ "${CUDNN_DIR}" != "/usr/lib/x86_64-linux-gnu" ]]; then
-    CMAKE_ARGS+=("-DCUDNN_DIR=${CUDNN_DIR}")
+# Add cuDNN paths - ALWAYS pass if found (mmdeploy FindCUDNN.cmake requires explicit paths)
+if [[ -n "${CUDNN_LIB_DIR}" ]]; then
+    CMAKE_ARGS+=("-DCUDNN_DIR=${CUDNN_LIB_DIR}")
+    CMAKE_ARGS+=("-DCUDNN_LIBRARY_DIR=${CUDNN_LIB_DIR}")
+fi
+if [[ -n "${CUDNN_INCLUDE_DIR}" ]]; then
+    CMAKE_ARGS+=("-DCUDNN_INCLUDE_DIR=${CUDNN_INCLUDE_DIR}")
 fi
 
+log "CMake command: cmake ${CMAKE_ARGS[*]}"
 cmake "${CMAKE_ARGS[@]}"
 
 info "Building mmdeploy SDK (this may take 10-20 minutes)..."
