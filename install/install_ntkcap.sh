@@ -309,6 +309,13 @@ sudo apt-get install -y \
 # OpenCV development libraries (for CMake discovery during mmdeploy build)
 sudo apt-get install -y libopencv-dev
 
+# Verify GCC 11 is installed (required for CUDA 11.8)
+if [[ ! -f /usr/bin/gcc-11 ]] || [[ ! -f /usr/bin/g++-11 ]]; then
+    error "GCC 11 not found. CUDA 11.8 requires GCC 11 or earlier.
+Please install manually: sudo apt-get install gcc-11 g++-11"
+fi
+log "GCC 11 found: $(gcc-11 --version | head -1)"
+
 # Add user to input group for keyboard module
 if ! groups | grep -q '\binput\b'; then
     info "Adding user to 'input' group for keyboard module..."
@@ -527,8 +534,12 @@ mkdir -p "${PPLCV_BUILD_DIR}"
 cd "${PPLCV_BUILD_DIR}"
 
 info "Configuring ppl.cv with CMake..."
+# Use GCC 11 - CUDA 11.8 doesn't support GCC 12+
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=/usr/bin/gcc-11 \
+    -DCMAKE_CXX_COMPILER=/usr/bin/g++-11 \
+    -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-11 \
     -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
     -DPPLCV_USE_CUDA=ON \
     -DPPLCV_USE_X86_64=OFF \
@@ -700,9 +711,13 @@ info "  CUDNN_DIR    = ${CUDNN_DIR:-auto-detect}"
 info "  CUDA_ARCH    = ${CUDA_ARCH}"
 
 info "Configuring mmdeploy with CMake..."
+# Use GCC 11 - CUDA 11.8 doesn't support GCC 12+
 CMAKE_ARGS=(
     ".."
     "-DCMAKE_BUILD_TYPE=Release"
+    "-DCMAKE_C_COMPILER=/usr/bin/gcc-11"
+    "-DCMAKE_CXX_COMPILER=/usr/bin/g++-11"
+    "-DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-11"
     "-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}"
     "-DMMDEPLOY_BUILD_SDK=ON"
     "-DMMDEPLOY_BUILD_SDK_PYTHON_API=ON"
