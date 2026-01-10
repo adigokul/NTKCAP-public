@@ -775,10 +775,6 @@ log "ppl.cv built successfully"
 
 cd "${PROJECT_ROOT}"
 
-if ! ask_continue "mmdeploy SDK build"; then
-    exit 0
-fi
-
 # ==============================================================================
 # STEP 5: BUILD MMDEPLOY SDK
 # ==============================================================================
@@ -999,10 +995,6 @@ log "mmdeploy SDK built successfully"
 log "TensorRT ops library: ${TENSORRT_OPS_LIB}"
 
 cd "${PROJECT_ROOT}"
-
-if ! ask_continue "TensorRT engine generation"; then
-    exit 0
-fi
 
 # ==============================================================================
 # STEP 6: DOWNLOAD MODEL WEIGHTS
