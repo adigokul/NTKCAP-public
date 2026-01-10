@@ -581,7 +581,8 @@ verify_fix_numpy "after mmpose"
 
 info "Installing mmdeploy..."
 pip install mmdeploy==1.3.1
-pip install mmdeploy-runtime-gpu==1.3.1
+# NOTE: Do NOT install mmdeploy-runtime-gpu from pip - it's compiled for CUDA 12
+# We build mmdeploy SDK locally with CUDA 11.8 in Step 5 instead
 verify_fix_numpy "after mmdeploy"
 
 info "Installing TensorRT Python bindings from local SDK..."
@@ -1042,7 +1043,9 @@ else
 fi
 
 # Build clean LD_LIBRARY_PATH with ONLY what we need
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}"
+# Include mmdeploy build lib for the locally-built TensorRT ops
+MMDEPLOY_LIB="${MMDEPLOY_BUILD_DIR}/lib"
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}"
 info "LD_LIBRARY_PATH reset to: ${LD_LIBRARY_PATH}"
 
 # Also unset any CUDA environment variables that might cause issues
@@ -1105,7 +1108,7 @@ if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
     # Build RTMDet engine
     # Use env to explicitly set LD_LIBRARY_PATH for subprocess
     info "Building RTMDet TensorRT engine (320x320)..."
-    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}" \
+    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}" \
         python "${DEPLOY_SCRIPT}" \
         "${RTMDET_DEPLOY_CFG}" \
         "${RTMDET_MODEL_CFG}" \
@@ -1122,7 +1125,7 @@ if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
 
     # Build RTMPose engine
     info "Building RTMPose TensorRT engine (256x192)..."
-    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}" \
+    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}" \
         python "${DEPLOY_SCRIPT}" \
         "${RTMPOSE_DEPLOY_CFG}" \
         "${RTMPOSE_MODEL_CFG}" \
