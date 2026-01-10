@@ -372,14 +372,11 @@ info "Installing PyTorch with CUDA 11.8..."
 pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 \
     --index-url https://download.pytorch.org/whl/cu118
 
-info "Installing numpy..."
-pip install numpy==1.22.4  # Must match verification and working environment
-
 info "Installing OpenMMLab packages..."
 pip install openmim
 mim install mmengine==0.10.7
 mim install mmcv==2.1.0
-mim install mmdet==3.3.0
+mim install "mmdet>=3.0.0,<3.3.0"  # mmpose 1.3.1 requires mmdet<3.3.0
 mim install mmpose==1.3.1
 
 info "Installing mmdeploy..."
@@ -449,6 +446,11 @@ pip install pyqtgraph==0.13.7
 
 info "Installing OpenNI2 Python bindings (for PoE cameras)..."
 pip install openni
+
+# CRITICAL: Force reinstall numpy at the END (other packages upgrade it to 2.x which breaks everything)
+info "Pinning numpy to 1.22.4 (required for compatibility)..."
+pip install numpy==1.22.4 --force-reinstall
+pip install pandas==1.4.4 --force-reinstall  # Reinstall pandas to match numpy 1.x
 
 log "Python dependencies installed"
 
