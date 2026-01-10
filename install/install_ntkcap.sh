@@ -765,6 +765,7 @@ fi
 log "ppl.cv built successfully"
 
 cd "${PROJECT_ROOT}"
+fi
 
 # ==============================================================================
 # STEP 5: BUILD MMDEPLOY SDK
@@ -772,8 +773,14 @@ cd "${PROJECT_ROOT}"
 
 section "Step 5: Building mmdeploy SDK with TensorRT"
 
-# Clone mmdeploy if it doesn't exist or isn't a valid git repo
-if [[ ! -d "${MMDEPLOY_DIR}" ]]; then
+MMDEPLOY_BUILD_DIR="${MMDEPLOY_DIR}/build"
+
+# Check if mmdeploy SDK is already built
+if [[ -f "${MMDEPLOY_BUILD_DIR}/lib/libmmdeploy_tensorrt_ops.so" ]]; then
+    log "mmdeploy SDK already built - skipping"
+else
+    # Clone mmdeploy if it doesn't exist or isn't a valid git repo
+    if [[ ! -d "${MMDEPLOY_DIR}" ]]; then
     info "Cloning mmdeploy..."
     git clone --depth 1 --branch v1.3.1 https://github.com/open-mmlab/mmdeploy.git "${MMDEPLOY_DIR}"
     log "mmdeploy cloned"
@@ -792,8 +799,7 @@ cd "${MMDEPLOY_DIR}"
 info "Initializing mmdeploy submodules..."
 git submodule update --init --recursive
 
-# Create build directory
-MMDEPLOY_BUILD_DIR="${MMDEPLOY_DIR}/build"
+# Create build directory (MMDEPLOY_BUILD_DIR already defined above)
 
 # Clean stale CMake cache if it exists (prevents errors when building from different locations)
 if [[ -f "${MMDEPLOY_BUILD_DIR}/CMakeCache.txt" ]]; then
@@ -986,6 +992,7 @@ log "mmdeploy SDK built successfully"
 log "TensorRT ops library: ${TENSORRT_OPS_LIB}"
 
 cd "${PROJECT_ROOT}"
+fi
 
 # ==============================================================================
 # STEP 6: DOWNLOAD MODEL WEIGHTS
