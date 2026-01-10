@@ -1,8 +1,0 @@
-name: ntkcap_env
-channels:
-  - opensim-org
-  - defaults
-dependencies:
-  - python=3.10
-  - pip
-  - opensim=4.5=py310np121
