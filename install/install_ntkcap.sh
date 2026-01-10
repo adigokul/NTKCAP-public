@@ -1021,9 +1021,17 @@ section "Step 7: Generating TensorRT Engines"
 # CRITICAL: Verify numpy before engine generation
 verify_fix_numpy "before engine generation"
 
-# Set environment for engine generation (include CUDA, cuDNN, TensorRT paths)
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
-info "LD_LIBRARY_PATH set for engine generation"
+# CRITICAL: Completely RESET LD_LIBRARY_PATH to remove ALL cuda paths
+# This is necessary because Python subprocess inherits polluted environment
+CUDNN_LIB=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' | xargs dirname 2>/dev/null)
+CUDNN_LIB="${CUDNN_LIB:-/usr/lib/x86_64-linux-gnu}"
+
+# Build clean LD_LIBRARY_PATH with ONLY what we need
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}"
+info "LD_LIBRARY_PATH reset to: ${LD_LIBRARY_PATH}"
+
+# Also unset any CUDA environment variables that might cause issues
+unset CUDA_PATH 2>/dev/null || true
 
 # Engine output directories
 RTMDET_ENGINE_DIR="${MMDEPLOY_DIR}/rtmpose-trt/rtmdet-m"
@@ -1080,8 +1088,10 @@ fi
 
 if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
     # Build RTMDet engine
+    # Use env to explicitly set LD_LIBRARY_PATH for subprocess
     info "Building RTMDet TensorRT engine (320x320)..."
-    python "${DEPLOY_SCRIPT}" \
+    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}" \
+        python "${DEPLOY_SCRIPT}" \
         "${RTMDET_DEPLOY_CFG}" \
         "${RTMDET_MODEL_CFG}" \
         "${RTMDET_WEIGHT}" \
@@ -1097,7 +1107,8 @@ if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
 
     # Build RTMPose engine
     info "Building RTMPose TensorRT engine (256x192)..."
-    python "${DEPLOY_SCRIPT}" \
+    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}" \
+        python "${DEPLOY_SCRIPT}" \
         "${RTMPOSE_DEPLOY_CFG}" \
         "${RTMPOSE_MODEL_CFG}" \
         "${RTMPOSE_WEIGHT}" \
