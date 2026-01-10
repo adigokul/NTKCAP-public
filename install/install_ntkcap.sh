@@ -180,48 +180,121 @@ if [[ $EUID -eq 0 ]]; then
     warn "Running as root is not recommended. Consider running as regular user."
 fi
 
-# Check CUDA and ALWAYS set CUDA_HOME
-# First, try to find CUDA if nvcc is not in PATH
-if ! command -v nvcc &>/dev/null; then
-    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
+# ==============================================================================
+# AUTO-DETECT CUDA - Find from system, not hardcoded
+# ==============================================================================
+
+# Function to find CUDA installation automatically
+find_cuda() {
+    local cuda_found=""
+
+    # Method 1: Check if nvcc is already in PATH
+    if command -v nvcc &>/dev/null; then
+        cuda_found=$(dirname $(dirname $(which nvcc)))
+        echo "${cuda_found}"
+        return 0
+    fi
+
+    # Method 2: Check common CUDA installation paths
+    local cuda_search_paths=(
+        "/usr/local/cuda"
+        "/usr/local/cuda-11.8"
+        "/usr/local/cuda-11"
+        "/opt/cuda"
+    )
+
+    # Also search for any cuda-* directories
+    for d in /usr/local/cuda-*; do
+        [[ -d "$d" ]] && cuda_search_paths+=("$d")
+    done
+
+    for cuda_path in "${cuda_search_paths[@]}"; do
         if [[ -f "${cuda_path}/bin/nvcc" ]]; then
-            export PATH="${cuda_path}/bin:${PATH}"
-            break
+            echo "${cuda_path}"
+            return 0
         fi
     done
-fi
 
-if ! command -v nvcc &>/dev/null; then
-    error "CUDA not found. Please install CUDA 11.8 and ensure nvcc is in PATH.
+    return 1
+}
 
-Installation guide: https://developer.nvidia.com/cuda-11-8-0-download-archive"
-fi
-
-# ALWAYS set CUDA_HOME (critical for library paths later)
+# Find CUDA automatically
+CUDA_HOME=$(find_cuda)
 if [[ -z "${CUDA_HOME}" ]]; then
-    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
-        if [[ -d "${cuda_path}" ]]; then
-            export CUDA_HOME="${cuda_path}"
-            break
-        fi
-    done
+    error "CUDA not found. Please install CUDA and ensure nvcc is accessible.
+
+Searched paths:
+  - /usr/local/cuda
+  - /usr/local/cuda-11.8
+  - /usr/local/cuda-*
+  - PATH: $(echo $PATH | tr ':' '\n' | grep -i cuda || echo 'none')
+
+Installation guide: https://developer.nvidia.com/cuda-toolkit"
 fi
+export CUDA_HOME
+export PATH="${CUDA_HOME}/bin:${PATH}"
 
-# Ensure CUDA 11.8 libraries are FIRST in LD_LIBRARY_PATH
-# Remove any other CUDA versions from LD_LIBRARY_PATH to prevent conflicts
-CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "cuda-1[2-9]" | grep -v "cuda-[2-9][0-9]" | tr '\n' ':' | sed 's/:$//')
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
-log "CUDA_HOME: ${CUDA_HOME}"
-log "LD_LIBRARY_PATH cleaned of conflicting CUDA versions"
-
+# Get CUDA version from nvcc
 CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release //' | sed 's/,.*//')
+CUDA_VERSION_MAJOR=$(echo "${CUDA_VERSION}" | cut -d. -f1)
+
+log "CUDA detected: ${CUDA_HOME}"
 log "CUDA version: ${CUDA_VERSION}"
 
-# Check if CUDA 11.8
-if [[ ! "${CUDA_VERSION}" == "11.8"* ]]; then
-    warn "CUDA ${CUDA_VERSION} detected. This script is tested with CUDA 11.8."
-    warn "Compatibility with other versions is not guaranteed."
+# Clean LD_LIBRARY_PATH - remove ALL cuda paths, then add only our detected CUDA
+CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "/cuda" | tr '\n' ':' | sed 's/:$//')
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
+log "LD_LIBRARY_PATH set to use ${CUDA_HOME}/lib64"
+
+# Warn if not CUDA 11.8 (TensorRT 8.6 requires CUDA 11.x)
+if [[ "${CUDA_VERSION_MAJOR}" != "11" ]]; then
+    warn "CUDA ${CUDA_VERSION} detected. TensorRT 8.6.1 requires CUDA 11.x"
+    warn "You may encounter compatibility issues."
 fi
+
+# ==============================================================================
+# AUTO-DETECT GCC - Find compatible version for CUDA
+# ==============================================================================
+
+find_cuda_compatible_gcc() {
+    local cuda_major=$1
+    local max_gcc=11
+
+    if [[ "${cuda_major}" -ge 12 ]]; then
+        max_gcc=12
+    fi
+
+    # Try gcc-11, gcc-10, etc. in order of preference
+    for v in 11 10 9; do
+        if [[ -f "/usr/bin/gcc-${v}" ]] && [[ -f "/usr/bin/g++-${v}" ]]; then
+            echo "${v}"
+            return 0
+        fi
+    done
+
+    # Fall back to default gcc if it's compatible
+    local default_gcc_ver=$(gcc -dumpversion 2>/dev/null | cut -d. -f1)
+    if [[ "${default_gcc_ver}" -le "${max_gcc}" ]]; then
+        echo "default"
+        return 0
+    fi
+
+    return 1
+}
+
+GCC_VERSION=$(find_cuda_compatible_gcc "${CUDA_VERSION_MAJOR}")
+if [[ -z "${GCC_VERSION}" ]]; then
+    error "No compatible GCC found for CUDA ${CUDA_VERSION}. Install with: sudo apt-get install gcc-11 g++-11"
+fi
+
+if [[ "${GCC_VERSION}" == "default" ]]; then
+    GCC_C_COMPILER="gcc"
+    GCC_CXX_COMPILER="g++"
+else
+    GCC_C_COMPILER="/usr/bin/gcc-${GCC_VERSION}"
+    GCC_CXX_COMPILER="/usr/bin/g++-${GCC_VERSION}"
+fi
+log "GCC compiler: ${GCC_CXX_COMPILER} (compatible with CUDA ${CUDA_VERSION})"
 
 # Check GPU
 if ! command -v nvidia-smi &>/dev/null; then
@@ -642,12 +715,13 @@ mkdir -p "${PPLCV_BUILD_DIR}"
 cd "${PPLCV_BUILD_DIR}"
 
 info "Configuring ppl.cv with CMake..."
-# Use GCC 11 - CUDA 11.8 doesn't support GCC 12+
+info "  Using GCC: ${GCC_CXX_COMPILER}"
+info "  CUDA Arch: ${CUDA_ARCH}"
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_C_COMPILER=/usr/bin/gcc-11 \
-    -DCMAKE_CXX_COMPILER=/usr/bin/g++-11 \
-    -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-11 \
+    -DCMAKE_C_COMPILER="${GCC_C_COMPILER}" \
+    -DCMAKE_CXX_COMPILER="${GCC_CXX_COMPILER}" \
+    -DCMAKE_CUDA_HOST_COMPILER="${GCC_CXX_COMPILER}" \
     -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
     -DPPLCV_USE_CUDA=ON \
     -DPPLCV_USE_X86_64=OFF \
@@ -715,23 +789,54 @@ mkdir -p "${MMDEPLOY_BUILD_DIR}"
 cd "${MMDEPLOY_BUILD_DIR}"
 
 # ============================================================================
-# VALIDATE ALL REQUIRED PATHS BEFORE CMAKE
+# AUTO-DETECT ALL REQUIRED PATHS BEFORE CMAKE
 # ============================================================================
 
-# 1. Find and validate CUDA_HOME
-if [[ -z "${CUDA_HOME}" ]]; then
-    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
-        if [[ -f "${cuda_path}/bin/nvcc" ]]; then
-            export CUDA_HOME="${cuda_path}"
-            break
+info "Auto-detecting build dependencies..."
+
+# Function to find a file in multiple paths
+find_in_paths() {
+    local filename="$1"
+    shift
+    local paths=("$@")
+    for p in "${paths[@]}"; do
+        if [[ -f "${p}/${filename}" ]]; then
+            echo "${p}"
+            return 0
         fi
     done
-fi
+    return 1
+}
 
-if [[ -z "${CUDA_HOME}" ]] || [[ ! -f "${CUDA_HOME}/bin/nvcc" ]]; then
-    error "CUDA not found. Please install CUDA 11.8 and ensure nvcc is available."
-fi
-log "CUDA_HOME validated: ${CUDA_HOME}"
+# Function to find library using ldconfig and common paths
+find_library() {
+    local libname="$1"
+
+    # Try ldconfig first
+    local lib_path=$(ldconfig -p 2>/dev/null | grep "${libname}" | head -1 | awk '{print $NF}')
+    if [[ -n "${lib_path}" ]]; then
+        dirname "${lib_path}"
+        return 0
+    fi
+
+    # Search common paths
+    local search_paths=(
+        "/usr/lib/x86_64-linux-gnu"
+        "/usr/local/lib"
+        "/usr/lib"
+        "${CUDA_HOME}/lib64"
+    )
+    for p in "${search_paths[@]}"; do
+        if [[ -f "${p}/${libname}" ]]; then
+            echo "${p}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 1. CUDA_HOME (already set in prerequisites)
+log "CUDA_HOME: ${CUDA_HOME}"
 
 # 2. Validate TensorRT directory
 if [[ ! -f "${TENSORRT_DIR}/include/NvInfer.h" ]]; then
@@ -740,44 +845,29 @@ fi
 if [[ ! -f "${TENSORRT_DIR}/lib/libnvinfer.so" ]]; then
     error "TensorRT library not found at ${TENSORRT_DIR}/lib/libnvinfer.so"
 fi
-log "TENSORRT_DIR validated: ${TENSORRT_DIR}"
+log "TENSORRT_DIR: ${TENSORRT_DIR}"
 
-# 3. Find and validate pplcv cmake directory (built in Step 4)
-PPLCV_CMAKE_DIR=""
-PPLCV_SEARCH_PATHS=(
-    "${PPLCV_BUILD_DIR}/install/lib/cmake/ppl"
-    "${PPLCV_BUILD_DIR}/install/lib/cmake/pplcv"
-    "/usr/local/lib/cmake/ppl"
-    "/usr/local/lib/cmake/pplcv"
-)
-for pplcv_path in "${PPLCV_SEARCH_PATHS[@]}"; do
-    if [[ -f "${pplcv_path}/pplcv-config.cmake" ]]; then
-        PPLCV_CMAKE_DIR="${pplcv_path}"
-        break
-    fi
-done
+# 3. Find pplcv cmake directory (built in Step 4)
+PPLCV_CMAKE_DIR=$(find_in_paths "pplcv-config.cmake" \
+    "${PPLCV_BUILD_DIR}/install/lib/cmake/ppl" \
+    "${PPLCV_BUILD_DIR}/install/lib/cmake/pplcv" \
+    "${PPLCV_DIR}/cuda-build/install/lib/cmake/ppl" \
+    "/usr/local/lib/cmake/ppl" \
+    "/usr/local/lib/cmake/pplcv")
 
 if [[ -z "${PPLCV_CMAKE_DIR}" ]]; then
-    error "pplcv cmake config not found. Searched paths:
-$(printf '  - %s\n' "${PPLCV_SEARCH_PATHS[@]}")
-
-Please ensure Step 4 (ppl.cv build) completed successfully."
+    error "pplcv cmake config not found. Please ensure Step 4 (ppl.cv build) completed successfully."
 fi
-log "pplcv_DIR validated: ${PPLCV_CMAKE_DIR}"
+log "pplcv_DIR: ${PPLCV_CMAKE_DIR}"
 
-# 4. Find OpenCV cmake directory (installed by apt in Step 0.5)
-OPENCV_DIR=""
-OPENCV_SEARCH_PATHS=(
-    "/usr/lib/x86_64-linux-gnu/cmake/opencv4"
-    "/usr/local/lib/cmake/opencv4"
-    "/usr/lib/cmake/opencv4"
-)
-for opencv_path in "${OPENCV_SEARCH_PATHS[@]}"; do
-    if [[ -f "${opencv_path}/OpenCVConfig.cmake" ]]; then
-        OPENCV_DIR="${opencv_path}"
-        break
-    fi
-done
+# 4. Find OpenCV cmake directory
+OPENCV_DIR=$(find_in_paths "OpenCVConfig.cmake" \
+    "/usr/lib/x86_64-linux-gnu/cmake/opencv4" \
+    "/usr/local/lib/cmake/opencv4" \
+    "/usr/lib/cmake/opencv4" \
+    "/opt/opencv/lib/cmake/opencv4")
+
+# OpenCV is optional for cmake - will auto-detect if not found
 
 if [[ -z "${OPENCV_DIR}" ]]; then
     warn "OpenCV cmake directory not found. CMake will try to auto-detect."
@@ -786,33 +876,17 @@ else
     log "OpenCV_DIR found: ${OPENCV_DIR}"
 fi
 
-# 5. Find cuDNN (typically in system paths on Ubuntu with apt install)
-# cuDNN installed via apt: libs in /usr/lib/x86_64-linux-gnu, headers in /usr/include
-CUDNN_LIB_DIR=""
+# 5. Find cuDNN automatically using ldconfig or common paths
+CUDNN_LIB_DIR=$(find_library "libcudnn.so")
+if [[ -z "${CUDNN_LIB_DIR}" ]]; then
+    CUDNN_LIB_DIR=$(find_library "libcudnn.so.8")
+fi
+
+# Find cuDNN headers
 CUDNN_INCLUDE_DIR=""
-
-# Search for cuDNN library
-CUDNN_LIB_SEARCH_PATHS=(
-    "/usr/lib/x86_64-linux-gnu"
-    "/usr/local/cuda/lib64"
-    "${CUDA_HOME}/lib64"
-)
-for cudnn_path in "${CUDNN_LIB_SEARCH_PATHS[@]}"; do
-    if [[ -f "${cudnn_path}/libcudnn.so" ]] || [[ -f "${cudnn_path}/libcudnn.so.8" ]]; then
-        CUDNN_LIB_DIR="${cudnn_path}"
-        break
-    fi
-done
-
-# Search for cuDNN headers
-CUDNN_INCLUDE_SEARCH_PATHS=(
-    "/usr/include"
-    "/usr/local/cuda/include"
-    "${CUDA_HOME}/include"
-)
-for cudnn_inc in "${CUDNN_INCLUDE_SEARCH_PATHS[@]}"; do
-    if [[ -f "${cudnn_inc}/cudnn.h" ]] || [[ -f "${cudnn_inc}/cudnn_version.h" ]]; then
-        CUDNN_INCLUDE_DIR="${cudnn_inc}"
+for inc_path in "/usr/include" "${CUDA_HOME}/include" "/usr/local/include"; do
+    if [[ -f "${inc_path}/cudnn.h" ]] || [[ -f "${inc_path}/cudnn_version.h" ]]; then
+        CUDNN_INCLUDE_DIR="${inc_path}"
         break
     fi
 done
@@ -820,36 +894,37 @@ done
 if [[ -z "${CUDNN_LIB_DIR}" ]]; then
     warn "cuDNN library not found. Install with: sudo apt-get install libcudnn8 libcudnn8-dev"
 else
-    log "cuDNN library found: ${CUDNN_LIB_DIR}"
+    log "cuDNN library: ${CUDNN_LIB_DIR}"
 fi
 
 if [[ -z "${CUDNN_INCLUDE_DIR}" ]]; then
     warn "cuDNN headers not found. Install with: sudo apt-get install libcudnn8-dev"
 else
-    log "cuDNN headers found: ${CUDNN_INCLUDE_DIR}"
+    log "cuDNN headers: ${CUDNN_INCLUDE_DIR}"
 fi
 
 # ============================================================================
-# CMAKE CONFIGURATION
+# CMAKE CONFIGURATION (using GCC detected in prerequisites)
 # ============================================================================
 
 info "CMake Configuration Summary:"
 info "  CUDA_HOME        = ${CUDA_HOME}"
+info "  CUDA_VERSION     = ${CUDA_VERSION}"
 info "  TENSORRT_DIR     = ${TENSORRT_DIR}"
 info "  pplcv_DIR        = ${PPLCV_CMAKE_DIR}"
 info "  OpenCV_DIR       = ${OPENCV_DIR:-auto-detect}"
 info "  CUDNN_LIB_DIR    = ${CUDNN_LIB_DIR:-auto-detect}"
 info "  CUDNN_INCLUDE    = ${CUDNN_INCLUDE_DIR:-auto-detect}"
+info "  GCC_COMPILER     = ${GCC_CXX_COMPILER}"
 info "  CUDA_ARCH        = ${CUDA_ARCH}"
 
 info "Configuring mmdeploy with CMake..."
-# Use GCC 11 - CUDA 11.8 doesn't support GCC 12+
 CMAKE_ARGS=(
     ".."
     "-DCMAKE_BUILD_TYPE=Release"
-    "-DCMAKE_C_COMPILER=/usr/bin/gcc-11"
-    "-DCMAKE_CXX_COMPILER=/usr/bin/g++-11"
-    "-DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-11"
+    "-DCMAKE_C_COMPILER=${GCC_C_COMPILER}"
+    "-DCMAKE_CXX_COMPILER=${GCC_CXX_COMPILER}"
+    "-DCMAKE_CUDA_HOST_COMPILER=${GCC_CXX_COMPILER}"
     "-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}"
     "-DMMDEPLOY_BUILD_SDK=ON"
     "-DMMDEPLOY_BUILD_SDK_PYTHON_API=ON"
@@ -1301,52 +1376,69 @@ section "Step 9: Creating Activation Script"
 
 ACTIVATE_SCRIPT="${PROJECT_ROOT}/activate_ntkcap.sh"
 
-cat > "${ACTIVATE_SCRIPT}" << ACTIVATE_EOF
+cat > "${ACTIVATE_SCRIPT}" << 'ACTIVATE_EOF'
 #!/bin/bash
 # NTKCAP Environment Activation Script
 # Source this file to set up the environment: source activate_ntkcap.sh
 
 # Get the directory where this script is located
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Set CUDA path FIRST (critical for cuBLAS libraries)
-if [[ -z "\${CUDA_HOME}" ]]; then
-    for cuda_path in "/usr/local/cuda-11.8" "/usr/local/cuda"; do
-        if [[ -d "\${cuda_path}" ]]; then
-            export CUDA_HOME="\${cuda_path}"
-            break
+# Auto-detect CUDA - find from nvcc or common paths
+find_cuda() {
+    # Method 1: From nvcc in PATH
+    if command -v nvcc &>/dev/null; then
+        dirname $(dirname $(which nvcc))
+        return 0
+    fi
+    # Method 2: Common paths
+    for p in /usr/local/cuda /usr/local/cuda-*; do
+        if [[ -f "${p}/bin/nvcc" ]]; then
+            echo "${p}"
+            return 0
         fi
     done
+    return 1
+}
+
+export CUDA_HOME=$(find_cuda)
+
+# Find TensorRT directory (any version in ThirdParty)
+TENSORRT_DIR=$(find "${SCRIPT_DIR}/NTK_CAP/ThirdParty" -maxdepth 1 -type d -name "TensorRT-*" 2>/dev/null | head -1)
+if [[ -z "${TENSORRT_DIR}" ]]; then
+    echo "Warning: TensorRT directory not found in ThirdParty"
+fi
+export TENSORRT_DIR
+
+# Find cuDNN library path
+CUDNN_LIB=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' | xargs dirname 2>/dev/null)
+if [[ -z "${CUDNN_LIB}" ]]; then
+    CUDNN_LIB="/usr/lib/x86_64-linux-gnu"  # fallback
 fi
 
-# Set TensorRT path
-export TENSORRT_DIR="\${SCRIPT_DIR}/NTK_CAP/ThirdParty/TensorRT-${TENSORRT_VERSION}"
+# Clean LD_LIBRARY_PATH - remove ALL cuda paths, add only our detected CUDA
+CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "/cuda" | tr '\n' ':' | sed 's/:$//')
 
-# cuDNN path (standard Ubuntu location)
-CUDNN_LIB="/usr/lib/x86_64-linux-gnu"
-
-# Clean LD_LIBRARY_PATH of conflicting CUDA versions (12.x, 13.x, etc.)
-CLEAN_LD_PATH=\$(echo "\${LD_LIBRARY_PATH:-}" | tr ':' '\\n' | grep -v "cuda-1[2-9]" | grep -v "cuda-[2-9][0-9]" | tr '\\n' ':' | sed 's/:\$//')
-
-# Set LD_LIBRARY_PATH with CUDA 11.8 lib64 FIRST (required for cuBLAS)
-export PATH="\${CUDA_HOME}/bin:\${PATH}"
-export LD_LIBRARY_PATH="\${CUDA_HOME}/lib64:\${TENSORRT_DIR}/lib:\${CUDNN_LIB}:\${CLEAN_LD_PATH}"
+# Set paths
+export PATH="${CUDA_HOME}/bin:${PATH}"
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}:${CLEAN_LD_PATH}"
 
 # Activate conda environment
-CONDA_BASE=\$(conda info --base 2>/dev/null)
-if [[ -n "\${CONDA_BASE}" ]]; then
-    source "\${CONDA_BASE}/etc/profile.d/conda.sh"
-    conda activate ${CONDA_ENV_NAME}
+CONDA_BASE=$(conda info --base 2>/dev/null)
+if [[ -n "${CONDA_BASE}" ]]; then
+    source "${CONDA_BASE}/etc/profile.d/conda.sh"
+    conda activate NTKCAP
 fi
 
 # Set project root
-export NTKCAP_ROOT="\${SCRIPT_DIR}"
-cd "\${NTKCAP_ROOT}"
+export NTKCAP_ROOT="${SCRIPT_DIR}"
+cd "${NTKCAP_ROOT}"
 
 echo "NTKCAP environment activated"
-echo "  Python: \$(which python)"
-echo "  TensorRT: \${TENSORRT_DIR}"
-echo "  Project: \${NTKCAP_ROOT}"
+echo "  CUDA_HOME:    ${CUDA_HOME}"
+echo "  TensorRT:     ${TENSORRT_DIR}"
+echo "  Python:       $(which python)"
+echo "  Project:      ${NTKCAP_ROOT}"
 ACTIVATE_EOF
 
 chmod +x "${ACTIVATE_SCRIPT}"
