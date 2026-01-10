@@ -473,7 +473,9 @@ pip install Pose2Sim==0.4.0
 pip install multiprocess==0.70.18
 
 info "Installing OpenSim (biomechanics library)..."
-conda install -c opensim-org opensim -y
+# Use --freeze-installed to prevent conda from changing pip-installed packages like numpy
+conda install -c opensim-org opensim -y --freeze-installed 2>/dev/null || \
+    conda install -c opensim-org opensim -y
 
 info "Installing PyQt5 and PyQt6 (GUI dependencies)..."
 # PyQt5 is needed for some components, PyQt6 for others
@@ -486,9 +488,10 @@ info "Installing OpenNI2 Python bindings (for PoE cameras)..."
 pip install openni
 
 # CRITICAL: Force reinstall numpy at the END (other packages upgrade it to 2.x which breaks everything)
+# Use --no-deps to prevent pip from "helpfully" upgrading numpy when installing pandas
 info "Pinning numpy to 1.22.4 (required for compatibility)..."
-pip install numpy==1.22.4 --force-reinstall
-pip install pandas==1.4.4 --force-reinstall  # Reinstall pandas to match numpy 1.x
+pip install numpy==1.22.4 --force-reinstall --no-deps
+pip install pandas==1.4.4 --force-reinstall --no-deps  # Reinstall pandas to match numpy 1.x
 
 log "Python dependencies installed"
 
@@ -865,6 +868,29 @@ fi
 # ==============================================================================
 
 section "Step 7: Generating TensorRT Engines"
+
+# CRITICAL: Verify numpy version before engine generation
+# Some packages (like mim install) can upgrade numpy to 2.x which breaks everything
+CURRENT_NUMPY=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null)
+info "Current numpy version: ${CURRENT_NUMPY}"
+
+if [[ "${CURRENT_NUMPY}" != "1.22.4" ]]; then
+    warn "numpy version is ${CURRENT_NUMPY}, but 1.22.4 is required!"
+    info "Fixing numpy version..."
+    pip install numpy==1.22.4 --force-reinstall --no-deps
+    pip install pandas==1.4.4 --force-reinstall --no-deps
+
+    # Verify fix worked
+    CURRENT_NUMPY=$(python -c "import numpy; print(numpy.__version__)" 2>/dev/null)
+    if [[ "${CURRENT_NUMPY}" != "1.22.4" ]]; then
+        error "Failed to pin numpy to 1.22.4. Current version: ${CURRENT_NUMPY}
+
+Please manually fix:
+  pip install numpy==1.22.4 --force-reinstall --no-deps
+  pip install pandas==1.4.4 --force-reinstall --no-deps"
+    fi
+    log "numpy fixed to ${CURRENT_NUMPY}"
+fi
 
 # Set environment for engine generation (include cuDNN path)
 export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${CUDNN_LIB_DIR:-/usr/lib/x86_64-linux-gnu}:${LD_LIBRARY_PATH:-}"
