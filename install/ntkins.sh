@@ -800,8 +800,11 @@ if [[ -f "${TRT_LEAN_WHEEL}" ]]; then
     pip install "${TRT_LEAN_WHEEL}"
 fi
 
+# Uninstall any existing tensorrt first (PyPI version conflicts with SDK version)
+pip uninstall tensorrt -y 2>/dev/null || true
+
 info "Installing tensorrt: $(basename ${TRT_WHEEL})"
-pip install "${TRT_WHEEL}"
+pip install "${TRT_WHEEL}" --force-reinstall
 
 # Verify TensorRT installation
 info "Verifying TensorRT Python bindings..."
