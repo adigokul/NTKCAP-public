@@ -1506,10 +1506,7 @@ if [[ -f "${RTMPOSE_PIPELINE}" ]]; then
                 "input_map": {
                     "img": "input"
                 },
-                "output_map": {
-                    "output": "simcc_x",
-                    "700": "simcc_y"
-                }
+                "output_map": {}
             },
             {
                 "type": "Task",
