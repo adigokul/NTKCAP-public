@@ -992,6 +992,21 @@ fi
 log "mmdeploy SDK built successfully"
 log "TensorRT ops library: ${TENSORRT_OPS_LIB}"
 
+# Install locally-built mmdeploy_runtime Python bindings
+info "Installing mmdeploy_runtime Python bindings from local build..."
+MMDEPLOY_WHEEL=$(find "${MMDEPLOY_BUILD_DIR}" -name "mmdeploy_runtime*.whl" 2>/dev/null | head -1)
+if [[ -f "${MMDEPLOY_WHEEL}" ]]; then
+    pip install "${MMDEPLOY_WHEEL}" --force-reinstall --no-deps
+    log "mmdeploy_runtime installed from local wheel"
+else
+    # If no wheel, try installing from the build lib directory
+    if [[ -d "${MMDEPLOY_BUILD_DIR}/lib" ]]; then
+        # Add build lib to Python path as fallback
+        export PYTHONPATH="${MMDEPLOY_BUILD_DIR}/lib:${PYTHONPATH:-}"
+        log "mmdeploy_runtime: Added build lib to PYTHONPATH"
+    fi
+fi
+
 cd "${PROJECT_ROOT}"
 fi
 
@@ -1448,18 +1463,25 @@ if [[ -z "${TENSORRT_DIR}" ]]; then
 fi
 export TENSORRT_DIR
 
-# Find cuDNN library path
-CUDNN_LIB=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' | xargs dirname 2>/dev/null)
-if [[ -z "${CUDNN_LIB}" ]]; then
+# Find cuDNN library path (safely)
+CUDNN_LIB_FILE=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' || true)
+if [[ -n "${CUDNN_LIB_FILE}" ]] && [[ -f "${CUDNN_LIB_FILE}" ]]; then
+    CUDNN_LIB=$(dirname "${CUDNN_LIB_FILE}")
+else
     CUDNN_LIB="/usr/lib/x86_64-linux-gnu"  # fallback
 fi
+
+# Find mmdeploy build lib
+MMDEPLOY_LIB="${SCRIPT_DIR}/NTK_CAP/ThirdParty/mmdeploy/build/lib"
+MMDEPLOY_BUILD_DIR="${SCRIPT_DIR}/NTK_CAP/ThirdParty/mmdeploy/build"
 
 # Clean LD_LIBRARY_PATH - remove ALL cuda paths, add only our detected CUDA
 CLEAN_LD_PATH=$(echo "${LD_LIBRARY_PATH:-}" | tr ':' '\n' | grep -v "/cuda" | tr '\n' ':' | sed 's/:$//')
 
 # Set paths
 export PATH="${CUDA_HOME}/bin:${PATH}"
-export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${CUDNN_LIB}:${CLEAN_LD_PATH}"
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}:${CLEAN_LD_PATH}"
+export PYTHONPATH="${MMDEPLOY_LIB}:${PYTHONPATH:-}"
 
 # Activate conda environment
 CONDA_BASE=$(conda info --base 2>/dev/null)
