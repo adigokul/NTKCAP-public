@@ -669,62 +669,8 @@ pip install mmdeploy==1.3.1
 # We build mmdeploy SDK locally with CUDA 11.8 in Step 5 instead
 verify_fix_numpy "after mmdeploy"
 
-info "Installing TensorRT Python bindings from local SDK..."
-# Install TensorRT from the local SDK wheel files (more reliable than pypi.nvidia.com)
-# TensorRT 8.6+ splits into multiple packages: tensorrt, tensorrt_bindings, tensorrt_lean, tensorrt_libs
-TRT_PYTHON_DIR="${TENSORRT_DIR}/python"
-
-# Install ALL tensorrt wheels for Python 3.10 in the correct order
-# Order matters: libs first, then bindings, then main package
-TRT_LIBS_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_libs-*-cp310-*.whl" -o -name "tensorrt_libs-*.whl" 2>/dev/null | head -1)
-TRT_BINDINGS_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_bindings-*-cp310-*.whl" 2>/dev/null | head -1)
-TRT_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt-*-cp310-*.whl" 2>/dev/null | grep -v bindings | grep -v lean | grep -v libs | head -1)
-TRT_LEAN_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_lean-*-cp310-*.whl" 2>/dev/null | head -1)
-
-# Check if we have the required wheels
-if [[ -z "${TRT_BINDINGS_WHEEL}" ]] || [[ ! -f "${TRT_BINDINGS_WHEEL}" ]]; then
-    warn "tensorrt_bindings wheel not found in ${TRT_PYTHON_DIR}"
-    warn "Listing available wheels:"
-    ls -la "${TRT_PYTHON_DIR}"/*.whl 2>/dev/null || echo "No wheels found"
-
-    # Fall back to PyPI installation
-    info "Installing TensorRT from PyPI (nvidia index)..."
-    pip install tensorrt==8.6.1 --index-url https://pypi.nvidia.com
-else
-    # Install in correct order: libs -> bindings -> main -> lean
-    if [[ -f "${TRT_LIBS_WHEEL}" ]]; then
-        info "Installing tensorrt_libs: $(basename ${TRT_LIBS_WHEEL})"
-        pip install "${TRT_LIBS_WHEEL}"
-    fi
-
-    info "Installing tensorrt_bindings: $(basename ${TRT_BINDINGS_WHEEL})"
-    pip install "${TRT_BINDINGS_WHEEL}"
-
-    if [[ -f "${TRT_WHEEL}" ]]; then
-        info "Installing tensorrt: $(basename ${TRT_WHEEL})"
-        pip install "${TRT_WHEEL}"
-    fi
-
-    if [[ -f "${TRT_LEAN_WHEEL}" ]]; then
-        info "Installing tensorrt_lean: $(basename ${TRT_LEAN_WHEEL})"
-        pip install "${TRT_LEAN_WHEEL}"
-    fi
-fi
-
-# Verify TensorRT installation
-info "Verifying TensorRT Python bindings..."
-python -c "import tensorrt as trt; print(f'TensorRT {trt.__version__} OK')" || {
-    error "TensorRT Python bindings installation failed.
-
-Please check that TensorRT SDK contains Python wheels in:
-  ${TRT_PYTHON_DIR}
-
-Required wheels for Python 3.10:
-  - tensorrt_bindings-*-cp310-*.whl (REQUIRED)
-  - tensorrt-*-cp310-*.whl
-  - tensorrt_libs-*.whl (optional)
-  - tensorrt_lean-*-cp310-*.whl (optional)"
-}
+# NOTE: TensorRT Python bindings will be installed AFTER TensorRT SDK is extracted (Step 3)
+# This is because we need the wheel files from the SDK directory
 
 info "Installing CuPy for GPU acceleration..."
 pip install cupy-cuda11x==13.6.0
@@ -815,6 +761,72 @@ export TENSORRT_DIR="${TENSORRT_DIR}"
 export LD_LIBRARY_PATH="${TENSORRT_DIR}/lib:${LD_LIBRARY_PATH:-}"
 
 log "TensorRT configured: ${TENSORRT_DIR}"
+
+# ==============================================================================
+# STEP 3.5: INSTALL TENSORRT PYTHON BINDINGS
+# ==============================================================================
+
+section "Step 3.5: Installing TensorRT Python Bindings"
+
+info "Installing TensorRT Python bindings from local SDK..."
+# Install TensorRT from the local SDK wheel files (more reliable than pypi.nvidia.com)
+# TensorRT 8.6+ splits into multiple packages: tensorrt, tensorrt_bindings, tensorrt_lean, tensorrt_libs
+TRT_PYTHON_DIR="${TENSORRT_DIR}/python"
+
+# Install ALL tensorrt wheels for Python 3.10 in the correct order
+# Order matters: libs first, then bindings, then main package
+TRT_LIBS_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_libs-*-cp310-*.whl" -o -name "tensorrt_libs-*.whl" 2>/dev/null | head -1)
+TRT_BINDINGS_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_bindings-*-cp310-*.whl" 2>/dev/null | head -1)
+TRT_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt-*-cp310-*.whl" 2>/dev/null | grep -v bindings | grep -v lean | grep -v libs | head -1)
+TRT_LEAN_WHEEL=$(find "${TRT_PYTHON_DIR}" -name "tensorrt_lean-*-cp310-*.whl" 2>/dev/null | head -1)
+
+# Check if we have the required wheels
+if [[ -z "${TRT_BINDINGS_WHEEL}" ]] || [[ ! -f "${TRT_BINDINGS_WHEEL}" ]]; then
+    warn "tensorrt_bindings wheel not found in ${TRT_PYTHON_DIR}"
+    warn "Listing available wheels:"
+    ls -la "${TRT_PYTHON_DIR}"/*.whl 2>/dev/null || echo "No wheels found"
+
+    # Fall back to PyPI installation (install all components)
+    info "Installing TensorRT from PyPI (nvidia index)..."
+    pip install nvidia-tensorrt==8.6.1 --index-url https://pypi.nvidia.com || \
+    pip install tensorrt==8.6.1 --index-url https://pypi.nvidia.com
+else
+    # Install in correct order: libs -> bindings -> main -> lean
+    if [[ -f "${TRT_LIBS_WHEEL}" ]]; then
+        info "Installing tensorrt_libs: $(basename ${TRT_LIBS_WHEEL})"
+        pip install "${TRT_LIBS_WHEEL}"
+    fi
+
+    info "Installing tensorrt_bindings: $(basename ${TRT_BINDINGS_WHEEL})"
+    pip install "${TRT_BINDINGS_WHEEL}"
+
+    if [[ -f "${TRT_WHEEL}" ]]; then
+        info "Installing tensorrt: $(basename ${TRT_WHEEL})"
+        pip install "${TRT_WHEEL}"
+    fi
+
+    if [[ -f "${TRT_LEAN_WHEEL}" ]]; then
+        info "Installing tensorrt_lean: $(basename ${TRT_LEAN_WHEEL})"
+        pip install "${TRT_LEAN_WHEEL}"
+    fi
+fi
+
+# Verify TensorRT installation
+info "Verifying TensorRT Python bindings..."
+python -c "import tensorrt as trt; print(f'TensorRT {trt.__version__} OK')" || {
+    error "TensorRT Python bindings installation failed.
+
+Please check that TensorRT SDK contains Python wheels in:
+  ${TRT_PYTHON_DIR}
+
+Required wheels for Python 3.10:
+  - tensorrt_bindings-*-cp310-*.whl (REQUIRED)
+  - tensorrt-*-cp310-*.whl
+  - tensorrt_libs-*.whl (optional)
+  - tensorrt_lean-*-cp310-*.whl (optional)"
+}
+
+log "TensorRT Python bindings installed successfully"
 
 # ==============================================================================
 # STEP 4: BUILD PPL.CV
