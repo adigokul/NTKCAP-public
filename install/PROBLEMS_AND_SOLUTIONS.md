@@ -2465,6 +2465,389 @@ python -c "import mmdeploy_runtime; print('SUCCESS')"
 
 ---
 
+# Problem 9: Silent Script Exit Due to cuDNN Detection with set -e
+
+## Error Encountered
+
+**Symptom:** Install script exits silently at random points with no error message.
+
+The script would simply stop executing without any error output, making debugging extremely difficult.
+
+## Root Cause Analysis
+
+When bash script has `set -e` enabled (exit on error), any command that returns non-zero exit status causes immediate script termination.
+
+The problematic code:
+
+```bash
+# DANGEROUS with set -e!
+CUDNN_LIB=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}' | xargs dirname 2>/dev/null)
+```
+
+**Why it fails:**
+
+1. If cuDNN is not found via ldconfig, grep returns empty
+2. Empty input to `xargs dirname` causes dirname to fail
+3. Failed command + `set -e` = silent script exit
+4. No error message because stderr is redirected to /dev/null
+
+## Investigation
+
+```bash
+# Test the pipeline manually
+set -e
+ldconfig -p | grep libcudnn.so  # Returns nothing if cuDNN not in ldconfig
+
+# This will exit the shell silently!
+dirname $(echo "" | xargs)  # dirname with no args fails
+```
+
+## Solution
+
+Use safe command chaining with explicit error handling:
+
+```bash
+# SAFE version
+find_cudnn_lib() {
+    local cudnn_path=""
+
+    # Method 1: Try ldconfig (may not have cuDNN registered)
+    if ldconfig -p 2>/dev/null | grep -q libcudnn.so; then
+        cudnn_path=$(ldconfig -p 2>/dev/null | grep libcudnn.so | head -1 | awk '{print $NF}')
+        if [[ -n "${cudnn_path}" && -f "${cudnn_path}" ]]; then
+            dirname "${cudnn_path}"
+            return 0
+        fi
+    fi
+
+    # Method 2: Check common paths
+    for dir in /usr/lib/x86_64-linux-gnu /usr/local/cuda/lib64 "${CUDA_HOME}/lib64"; do
+        if [[ -f "${dir}/libcudnn.so" ]] || [[ -f "${dir}/libcudnn.so.8" ]]; then
+            echo "${dir}"
+            return 0
+        fi
+    done
+
+    # Fallback
+    echo "/usr/lib/x86_64-linux-gnu"
+    return 0
+}
+
+CUDNN_LIB=$(find_cudnn_lib)
+```
+
+## Key Patterns to Avoid with set -e
+
+```bash
+# DANGEROUS patterns (will exit silently if they fail):
+VAR=$(command | grep pattern)          # grep returns 1 if no match
+VAR=$(command | head -1 | xargs cmd)   # xargs can fail on empty input
+VAR=$(find ... 2>/dev/null | head -1)  # find failures hidden
+
+# SAFE patterns:
+VAR=$(command | grep pattern || true)
+VAR=$(command | head -1 | xargs -r cmd)  # -r = don't run if empty
+if command | grep -q pattern; then VAR=...; fi
+```
+
+## Verification
+
+```bash
+# Add debug output to track script progress
+set -x  # Print commands as they execute
+trap 'echo "Script exited at line $LINENO"' EXIT
+
+# Or temporarily disable set -e for risky sections
+set +e
+RESULT=$(risky_command)
+exit_code=$?
+set -e
+
+if [[ $exit_code -ne 0 ]]; then
+    echo "Command failed with exit code $exit_code"
+    # Handle gracefully
+fi
+```
+
+---
+
+# Problem 10: LD_LIBRARY_PATH Pollution During Engine Generation Subprocess
+
+## Error Encountered
+
+```
+subprocess.CalledProcessError: Command '['python', 'tools/deploy.py', ...]' returned non-zero exit status 1
+
+# In the subprocess output:
+ImportError: libcublasLt.so.12: cannot open shared object file: No such file or directory
+```
+
+**Critical observation:** The main script environment worked fine, but the Python subprocess called for engine generation failed with CUDA library errors.
+
+## Root Cause Analysis
+
+When the install script calls Python subprocesses, they **inherit the parent's LD_LIBRARY_PATH**:
+
+```bash
+# Parent shell has LD_LIBRARY_PATH set correctly
+export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:..."
+
+# But user's .bashrc might have also added conflicting paths
+# .bashrc example:
+# export LD_LIBRARY_PATH="/usr/local/cuda-13/lib64:$LD_LIBRARY_PATH"
+
+# When subprocess runs, it inherits COMBINED paths:
+# LD_LIBRARY_PATH=/usr/local/cuda-13/lib64:/usr/local/cuda-11.8/lib64:...
+#                 ^^^^^^^^^^^^^^^^^^^^^^^^
+#                 WRONG VERSION FIRST - takes precedence!
+```
+
+**The inheritance chain:**
+
+1. User's .bashrc adds cuda-13 paths
+2. Install script adds cuda-11.8 paths (appended)
+3. But cuda-13 paths are FIRST in the search order
+4. Subprocess searches cuda-13 first → libcublasLt.so.12 not found!
+
+## Solution
+
+**Force a clean LD_LIBRARY_PATH for the subprocess using `env` command:**
+
+```bash
+# DON'T DO THIS (inherits polluted paths):
+python tools/deploy.py ...
+
+# DO THIS (explicit clean environment):
+env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}" \
+    python tools/deploy.py ...
+```
+
+**Complete solution in install script:**
+
+```bash
+generate_engines() {
+    local mmdeploy_dir="$1"
+
+    # Build CLEAN LD_LIBRARY_PATH (not inheriting from parent)
+    local CLEAN_LD_PATH=""
+    CLEAN_LD_PATH="${CONDA_PREFIX}/lib"
+    CLEAN_LD_PATH="${CLEAN_LD_PATH}:${CUDA_HOME}/lib64"
+    CLEAN_LD_PATH="${CLEAN_LD_PATH}:${TENSORRT_DIR}/lib"
+    CLEAN_LD_PATH="${CLEAN_LD_PATH}:${mmdeploy_dir}/build/lib"
+
+    echo "Using CLEAN LD_LIBRARY_PATH for engine generation:"
+    echo "  ${CLEAN_LD_PATH}"
+
+    # Run Python with explicit environment
+    env LD_LIBRARY_PATH="${CLEAN_LD_PATH}" \
+        CUDA_HOME="${CUDA_HOME}" \
+        python tools/deploy.py \
+            configs/mmdet/detection/... \
+            ...
+}
+```
+
+## Why env Command Works
+
+```bash
+# Without env - subprocess inherits everything
+python script.py  # Gets parent's LD_LIBRARY_PATH (polluted)
+
+# With env - subprocess gets ONLY what we specify for that variable
+env LD_LIBRARY_PATH="/clean/path" python script.py  # Gets clean path
+
+# env REPLACES the variable for that command only
+# Parent's LD_LIBRARY_PATH is unchanged
+```
+
+## Debugging Subprocess Environment
+
+```bash
+# Check what LD_LIBRARY_PATH subprocess sees
+python -c "import os; print(os.environ.get('LD_LIBRARY_PATH', 'NOT SET'))"
+
+# Trace library loading in subprocess
+env LD_DEBUG=libs python -c "import tensorrt" 2>&1 | grep -i cublas
+
+# Compare parent vs subprocess
+echo "Parent: $LD_LIBRARY_PATH"
+python -c "import os; print('Subprocess:', os.environ.get('LD_LIBRARY_PATH'))"
+```
+
+## Verification
+
+```bash
+# Engine generation should succeed with clean environment
+env LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib" \
+    python -c "import tensorrt; print('TensorRT OK')"
+
+# Verify no cuda-12/cuda-13 paths leak through
+python -c "import os; ldp = os.environ.get('LD_LIBRARY_PATH', ''); print([p for p in ldp.split(':') if 'cuda-1' in p])"
+# Should show only cuda-11.8 paths
+```
+
+---
+
+# Problem 11: Conflicting CUDA Versions in User's .bashrc
+
+## Error Encountered
+
+After carefully setting up LD_LIBRARY_PATH in the install script, errors still occur:
+
+```
+ImportError: libcublasLt.so.12: cannot open shared object file
+```
+
+**The mystery:** Script sets CUDA 11.8 paths, but something keeps adding CUDA 12/13 paths.
+
+## Root Cause Analysis
+
+User's `~/.bashrc` contains CUDA path exports from previous installations or system setup:
+
+```bash
+# User's ~/.bashrc (the culprit)
+export PATH="/usr/local/cuda-13/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/cuda-13/lib64:$LD_LIBRARY_PATH"
+```
+
+**The problem:**
+
+1. Every new shell sources ~/.bashrc
+2. bashrc adds cuda-13 paths BEFORE any existing paths
+3. Even if install script sets cuda-11.8, bashrc path comes first
+4. Library search finds cuda-13 directory first
+5. cuda-13 not installed → library not found
+
+**Even worse scenario:**
+
+```bash
+# Some systems have multiple CUDA versions in bashrc:
+export LD_LIBRARY_PATH="/usr/local/cuda-13/lib64:$LD_LIBRARY_PATH"  # Added by admin
+export LD_LIBRARY_PATH="/usr/local/cuda-12/lib64:$LD_LIBRARY_PATH"  # Added by prev install
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"      # Symlink (maybe 11.8)
+```
+
+## Investigation
+
+```bash
+# Check what's in bashrc
+grep -i cuda ~/.bashrc
+
+# Check actual LD_LIBRARY_PATH after sourcing
+source ~/.bashrc
+echo $LD_LIBRARY_PATH | tr ':' '\n' | grep cuda
+
+# Find conflicting versions
+echo $LD_LIBRARY_PATH | tr ':' '\n' | grep -E "cuda-[0-9]+" | sort -u
+```
+
+## Solution
+
+**Auto-detect and comment out conflicting CUDA versions:**
+
+```bash
+fix_bashrc_cuda_conflicts() {
+    local detected_cuda_version="$1"  # e.g., "11" from cuda-11.8
+    local bashrc="$HOME/.bashrc"
+
+    if [[ ! -f "${bashrc}" ]]; then
+        return 0
+    fi
+
+    # Find conflicting CUDA versions in bashrc
+    local conflicts=$(grep -n "cuda-[0-9]" "${bashrc}" | grep -v "cuda-${detected_cuda_version}" || true)
+
+    if [[ -z "${conflicts}" ]]; then
+        echo "No conflicting CUDA versions in .bashrc"
+        return 0
+    fi
+
+    echo "Found conflicting CUDA versions in .bashrc:"
+    echo "${conflicts}"
+
+    # Backup bashrc
+    cp "${bashrc}" "${bashrc}.backup.$(date +%Y%m%d_%H%M%S)"
+
+    # Comment out conflicting lines
+    local cuda_major
+    for cuda_major in 12 13 14; do
+        if [[ "${cuda_major}" != "${detected_cuda_version}" ]]; then
+            # Comment out lines containing cuda-XX where XX conflicts
+            sed -i "s|^\(.*cuda-${cuda_major}.*\)$|# DISABLED BY NTKCAP INSTALLER: \1|g" "${bashrc}"
+        fi
+    done
+
+    echo "Conflicting CUDA paths have been commented out in .bashrc"
+    echo "Backup saved to ${bashrc}.backup.*"
+
+    # Re-source to apply changes
+    source "${bashrc}"
+}
+
+# Usage
+CUDA_MAJOR=$(echo "${CUDA_HOME}" | grep -oP 'cuda-\K[0-9]+' || echo "11")
+fix_bashrc_cuda_conflicts "${CUDA_MAJOR}"
+```
+
+## Manual Fix
+
+```bash
+# Edit .bashrc
+nano ~/.bashrc
+
+# Find and comment out conflicting lines:
+# BEFORE:
+export LD_LIBRARY_PATH="/usr/local/cuda-13/lib64:$LD_LIBRARY_PATH"
+
+# AFTER:
+# DISABLED - conflicts with CUDA 11.8: export LD_LIBRARY_PATH="/usr/local/cuda-13/lib64:$LD_LIBRARY_PATH"
+
+# Apply changes
+source ~/.bashrc
+
+# Verify
+echo $LD_LIBRARY_PATH | tr ':' '\n' | grep cuda
+# Should only show cuda-11.8 or cuda-11 paths
+```
+
+## Prevention
+
+**Best practice for CUDA path management:**
+
+```bash
+# In ~/.bashrc, use a function that checks CUDA version:
+setup_cuda() {
+    # Auto-detect installed CUDA
+    if [[ -d "/usr/local/cuda" ]]; then
+        export CUDA_HOME="/usr/local/cuda"  # Use symlink
+        export PATH="${CUDA_HOME}/bin:$PATH"
+        export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+    fi
+}
+setup_cuda
+
+# DON'T hardcode version numbers like cuda-13 or cuda-12
+# The /usr/local/cuda symlink should point to the correct version
+```
+
+## Verification
+
+```bash
+# After fix, verify no conflicts
+source ~/.bashrc
+echo $LD_LIBRARY_PATH | tr ':' '\n' | grep -E "cuda-[0-9]+"
+
+# Should show only ONE CUDA version (e.g., cuda-11.8)
+# NOT multiple versions like:
+# /usr/local/cuda-13/lib64   ← WRONG
+# /usr/local/cuda-11.8/lib64 ← This is what we want
+
+# Test TensorRT import
+python -c "import tensorrt; print('Success!')"
+```
+
+---
+
 # Appendix A: Complete Environment Activation Script
 
 See the full script in the main document section "activate_ntkcap.sh".
@@ -2954,14 +3337,17 @@ cv2.error: OpenCV(4.8.0) /io/opencv/modules/highgui/src/window_gtk.cpp:624: erro
 | 6 | TensorRT | `setTensorAddress given invalid tensor name: output` | Hardcoded wrong names | Fix: output->simcc_x, 700->simcc_y |
 | 7 | OpenCV | `function is not implemented` | Headless OpenCV build | Install non-headless version |
 | 8 | Environment | Variables reset after script | Running instead of sourcing | Use `source script.sh` |
+| 9 | Silent Exit | Script exits with no error | `set -e` + failed pipeline (cuDNN grep) | Safe command patterns with `|| true` |
+| 10 | Subprocess Env | Engine gen fails with CUDA error | Subprocess inherits polluted LD_LIBRARY_PATH | Use `env` to force clean paths |
+| 11 | .bashrc Conflict | CUDA errors despite correct setup | Old CUDA versions in .bashrc | Auto-comment conflicting paths |
 
 ---
 
 # Document Metadata
 
-**Total Problems Documented:** 8
-**Total Pages:** ~50 (formatted)
-**Lines of Documentation:** ~4000
+**Total Problems Documented:** 11
+**Total Pages:** ~60 (formatted)
+**Lines of Documentation:** ~3400
 **Code Examples:** 30+
 **Debugging Scripts:** 5
 **Time to Debug Original Issues:** Multiple hours

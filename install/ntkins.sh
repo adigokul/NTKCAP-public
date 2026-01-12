@@ -1206,8 +1206,10 @@ fi
 if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
     # Build RTMDet engine
     # Use env to explicitly set LD_LIBRARY_PATH for subprocess
+    # Include CONDA_PREFIX/lib FIRST for libstdc++ CXXABI compatibility
+    SUBPROCESS_LD_PATH="${CONDA_PREFIX}/lib:${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}"
     info "Building RTMDet TensorRT engine (320x320)..."
-    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}" \
+    env LD_LIBRARY_PATH="${SUBPROCESS_LD_PATH}" \
         python "${DEPLOY_SCRIPT}" \
         "${RTMDET_DEPLOY_CFG}" \
         "${RTMDET_MODEL_CFG}" \
@@ -1224,7 +1226,7 @@ if [[ -z "${SKIP_ENGINE_GEN}" ]]; then
 
     # Build RTMPose engine
     info "Building RTMPose TensorRT engine (256x192)..."
-    env LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}" \
+    env LD_LIBRARY_PATH="${SUBPROCESS_LD_PATH}" \
         python "${DEPLOY_SCRIPT}" \
         "${RTMPOSE_DEPLOY_CFG}" \
         "${RTMPOSE_MODEL_CFG}" \
