@@ -69,10 +69,13 @@ class TensorRTPoseEstimator:
         self.d_output_x = cp.zeros((1, 26, 384), dtype=cp.float32)
         self.d_output_y = cp.zeros((1, 26, 512), dtype=cp.float32)
 
-        # Set tensor addresses
+        # Set input shape for dynamic batch engine
+        self.context.set_input_shape("input", (1, 3, 256, 192))
+
+        # Set tensor addresses (using standard mmdeploy output names)
         self.context.set_tensor_address("input", self.d_input.data.ptr)
-        self.context.set_tensor_address("output", self.d_output_x.data.ptr)
-        self.context.set_tensor_address("700", self.d_output_y.data.ptr)
+        self.context.set_tensor_address("simcc_x", self.d_output_x.data.ptr)
+        self.context.set_tensor_address("simcc_y", self.d_output_y.data.ptr)
 
         # Create CUDA stream
         self.stream = cp.cuda.Stream()

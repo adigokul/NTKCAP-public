@@ -12,8 +12,17 @@
 #   - Git installed
 #
 # USAGE:
-#   1. Run: chmod +x install_ntkcap.sh
-#   2. Run: ./install_ntkcap.sh
+#   1. Run: chmod +x ntkins.sh
+#   2. Run: ./ntkins.sh [OPTIONS]
+#
+# OPTIONS:
+#   -e, --env-name NAME    Set conda environment name (default: NTKCAP)
+#   -h, --help             Show this help message
+#
+# EXAMPLES:
+#   ./ntkins.sh                      # Use default env name 'NTKCAP'
+#   ./ntkins.sh -e ntkcap_tensor     # Create env named 'ntkcap_tensor'
+#   ./ntkins.sh --env-name myenv     # Create env named 'myenv'
 #
 # WHAT THIS SCRIPT DOES:
 #   1. Installs required system dependencies
@@ -39,8 +48,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Project root is parent of install directory
 PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-# Conda environment name
-CONDA_ENV_NAME="NTKCAP"
+# Conda environment name (can be overridden via -e or --env-name)
+CONDA_ENV_NAME="${NTKCAP_ENV_NAME:-NTKCAP}"
 
 # Directory structure (relative to PROJECT_ROOT)
 THIRDPARTY_DIR="${PROJECT_ROOT}/NTK_CAP/ThirdParty"
@@ -51,8 +60,8 @@ PPLCV_DIR="${THIRDPARTY_DIR}/ppl.cv"
 
 # TensorRT archive
 TENSORRT_ARCHIVE="TensorRT-${TENSORRT_VERSION}.Linux.x86_64-gnu.cuda-11.8.tar.gz"
-# Google Drive download link (public)
-TENSORRT_GDRIVE_ID="1CoETA05oSYV44WItwEh478HCCLZFZf8g"
+# Google Drive download link (lab permanent hosting)
+TENSORRT_GDRIVE_ID="1ffQGBs1NiKUCteNTitNf6TflFb3MHNta"
 
 # Model weights URLs
 RTMDET_WEIGHT_URL="https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet_m_8xb32-300e_coco/rtmdet_m_8xb32-300e_coco_20220719_112220-229f527c.pth"
@@ -98,6 +107,44 @@ ask_continue() {
             ;;
     esac
 }
+
+# ==============================================================================
+# COMMAND LINE ARGUMENT PARSING
+# ==============================================================================
+
+show_help() {
+    echo "NTKCAP Installation Script"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -e, --env-name NAME    Set conda environment name (default: NTKCAP)"
+    echo "  -h, --help             Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                         # Use default environment name 'NTKCAP'"
+    echo "  $0 -e ntkcap_tensor        # Create environment named 'ntkcap_tensor'"
+    echo "  $0 --env-name myenv        # Create environment named 'myenv'"
+    exit 0
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -e|--env-name)
+            CONDA_ENV_NAME="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            error "Unknown option: $1. Use -h for help."
+            ;;
+    esac
+done
+
+info "Using conda environment name: ${CONDA_ENV_NAME}"
 
 # CRITICAL: Function to verify and fix numpy version
 # numpy 2.x breaks many packages (pandas, torch, etc.) that were compiled with numpy 1.x
@@ -1374,7 +1421,7 @@ if [[ -f "${RTMDET_PIPELINE}" ]]; then
             {
                 "type": "Task",
                 "module": "Net",
-                "name": "detection",
+                "name": "rtmdet",
                 "is_batched": false,
                 "input": [
                     "prep_output"
@@ -1493,7 +1540,7 @@ if [[ -f "${RTMPOSE_PIPELINE}" ]]; then
                 ]
             },
             {
-                "name": "pose",
+                "name": "topdownposeestimator",
                 "type": "Task",
                 "module": "Net",
                 "is_batched": false,
@@ -1665,7 +1712,13 @@ echo ""
 ACTIVATE_EOF
 
 chmod +x "${ACTIVATE_SCRIPT}"
+
+# Replace hardcoded environment name with the configured one
+sed -i "s/conda activate NTKCAP/conda activate ${CONDA_ENV_NAME}/g" "${ACTIVATE_SCRIPT}"
+sed -i "s/Failed to activate NTKCAP/Failed to activate ${CONDA_ENV_NAME}/g" "${ACTIVATE_SCRIPT}"
+
 log "Activation script created: ${ACTIVATE_SCRIPT}"
+log "Environment name in activation script: ${CONDA_ENV_NAME}"
 
 # ==============================================================================
 # STEP 10: VERIFICATION
