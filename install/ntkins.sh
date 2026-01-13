@@ -1698,6 +1698,11 @@ export PATH="${CUDA_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${CUDA_HOME}/lib64:${TENSORRT_DIR}/lib:${MMDEPLOY_LIB}:${CUDNN_LIB}:${CLEAN_LD_PATH}"
 export PYTHONPATH="${MMDEPLOY_LIB}:${PYTHONPATH:-}"
 
+# PyQt6 fix - preload Qt6Core for proper GUI initialization
+if [[ -f "${CONDA_PREFIX}/lib/libQt6Core.so.6" ]]; then
+    export LD_PRELOAD="${CONDA_PREFIX}/lib/libQt6Core.so.6"
+fi
+
 # Set project root
 export NTKCAP_ROOT="${SCRIPT_DIR}"
 cd "${NTKCAP_ROOT}"

@@ -4,11 +4,8 @@ __pycache__/
 .ipynb_checkpoints/
 patient/testing/
 /*venv*/
-# Ignore everything in Patient_data except Patient_ID
-Patient_data/*
-!Patient_data/Patient_ID/
-# If you want to include all files under Patient_ID, specify like below
-!Patient_data/Patient_ID/**
+# Ignore all patient data - users can clone separately if needed
+Patient_data/
 
 # Calibration files and directories
 calibration/
