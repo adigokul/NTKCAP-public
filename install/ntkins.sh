@@ -375,7 +375,8 @@ export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${CLEAN_LD_PATH}"
 log "LD_LIBRARY_PATH set to use ${CUDA_HOME}/lib64"
 
 # Create CUDA 12 symlinks if needed (for driver compatibility)
-create_cuda12_symlinks
+# This is optional - installation can proceed without it
+create_cuda12_symlinks || warn "CUDA 12 symlinks not created (optional, may need sudo)"
 
 # Fix .bashrc if it has conflicting CUDA versions
 CUDA_MAJOR_NEEDED=$(echo "${CUDA_VERSION}" | cut -d. -f1)
